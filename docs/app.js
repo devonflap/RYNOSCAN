@@ -302,49 +302,21 @@ function wireSize() {
 }
 function sizeNote() { const n = Number(S.size.max) || 3, o = openCount(); $('szNote').textContent = `${o} of ${n} positions open.${o >= n ? ' You are at your limit: skip new signals until one closes.' : ''}`; }
 
-// ---------- scan now (dispatches the GitHub Actions workflow, then waits for fresh data) ----------
+// ---------- data loading ----------
 const store = { get(k) { try { return localStorage.getItem(k) || ''; } catch { return ''; } }, set(k, v) { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch { /* storage blocked: fine */ } } };
 function guessRepo() { const saved = store.get('rynoRepo'); if (saved) return saved; const m = location.hostname.match(/^([^.]+)\.github\.io$/), p = location.pathname.split('/').filter(Boolean)[0]; return m && p ? m[1] + '/' + p : ''; }
 async function loadAll() {
   const [setups, signals, charts, vol, meta, bt] = await Promise.all([getJ('setups.json', []), getJ('signals.json', []), getJ('charts.json', []), getJ('chainvol.json', []), getJ('meta.json', null), getJ('backtest.json', null)]);
   S.setups = setups; S.signals = signals; S.charts = new Map(charts.map((c) => [c.id, c])); S.vol = vol; S.meta = meta; S.bt = bt;
-  header(); draw(); fearGreed(); drawBacktest(); sizeNote();
+  header(); draw(); fearGreed(); drawBacktest(); sizeNote(); stamp();
 }
-function wireScan() {
-  const btn = $('scanNow'), pan = $('scanPanel'); let busy = false;
-  const say = (...nodes) => { pan.hidden = false; pan.replaceChildren(...nodes); };
-  const settings = (why) => {
-    const repo = el('input'); repo.placeholder = 'owner/repo (e.g. ryan/rynoscan)'; repo.value = guessRepo(); repo.setAttribute('aria-label', 'GitHub repository');
-    const tok = el('input'); tok.type = 'password'; tok.placeholder = 'Fine-grained GitHub token (Actions: read and write)'; tok.autocomplete = 'off'; tok.setAttribute('aria-label', 'GitHub token');
-    const save = el('button', null, 'Save and scan'), clear = el('button', null, 'Forget saved token'), close = el('button', null, 'Close');
-    save.onclick = () => { if (!repo.value.includes('/') || !tok.value.trim()) { return settings('Enter the repository as owner/repo and paste the token.'); } store.set('rynoRepo', repo.value.trim()); store.set('rynoToken', tok.value.trim()); go(); };
-    clear.onclick = () => { store.set('rynoToken', ''); settings('Token removed from this browser.'); }; close.onclick = () => { pan.hidden = true; };
-    const help = el('p', 'meta'); help.append('A scan runs on GitHub, so this button needs a token that may start it. Create one at GitHub: Settings, Developer settings, Fine-grained tokens, only this repository, permission "Actions: Read and write". It is kept in this browser only. Or ', Object.assign(el('a', null, 'open the Actions page'), { href: repo.value.includes('/') ? `https://github.com/${repo.value}/actions/workflows/scan.yml` : 'https://github.com', target: '_blank', rel: 'noopener' }), ' and press Run workflow.');
-    const row = el('div', 'row'); row.append(save, clear, close);
-    say(...(why ? [el('p', null, why)] : []), help, repo, tok, row);
-  };
-  async function go() {
-    if (busy) return; const repo = guessRepo(), token = store.get('rynoToken'); if (!repo || !token) return settings();
-    busy = true; btn.disabled = true; btn.textContent = 'Scanning…';
-    const before = S.meta ? S.meta.scannedAt : null;
-    try {
-      const H = { Accept: 'application/vnd.github+json', Authorization: 'Bearer ' + token, 'X-GitHub-Api-Version': '2022-11-28' };
-      let ref = 'main'; try { const ri = await fetch(`https://api.github.com/repos/${repo}`, { headers: H }); if (ri.ok) ref = (await ri.json()).default_branch || 'main'; } catch { /* use main */ }
-      const r = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/scan.yml/dispatches`, { method: 'POST', headers: H, body: JSON.stringify({ ref }) });
-      if (r.status === 401 || r.status === 403 || r.status === 404) { busy = false; btn.disabled = false; btn.textContent = 'Scan now'; return settings(r.status === 404 ? 'GitHub could not find that repository or workflow (check the name and the token\'s repository access).' : 'GitHub refused the token. Check that it has Actions: Read and write for this repository.'); }
-      if (!r.ok) throw new Error('GitHub answered ' + r.status);
-    } catch (e) { busy = false; btn.disabled = false; btn.textContent = 'Scan now'; return say(el('p', 'caut', 'Could not start the scan: ' + e.message)); }
-    const t0 = Date.now(); say(el('p', null, 'Scan started on GitHub. A full scan takes a few minutes; this page updates by itself when it finishes.'));
-    const tick = async () => {
-      const m = await getJ('meta.json', null);
-      if (m && m.scannedAt !== before) { await loadAll(); say(el('p', null, 'Scan finished: ' + new Date(m.scannedAt).toLocaleString() + '.')); busy = false; btn.disabled = false; btn.textContent = 'Scan now'; return; }
-      if (Date.now() - t0 > 30 * 60e3) { say(el('p', 'caut', 'Still no new data after 30 minutes. Check the Actions page on GitHub; reload this page later.')); busy = false; btn.disabled = false; btn.textContent = 'Scan now'; return; }
-      setTimeout(tick, 20000);
-    };
-    setTimeout(tick, 30000);
-  }
-  btn.addEventListener('click', go);
-}
-
 // ---------- boot ----------
-(async () => { await loadAll(); wireSize(); wireScan(); })();
+function stamp() {
+  const u = $('updated'), m = S.meta; if (!u) return;
+  if (!m || !m.scannedAt) { u.textContent = 'Last updated: no scan yet'; return; }
+  const t = new Date(m.scannedAt), mins = Math.max(0, Math.round((Date.now() - t) / 60000));
+  const ago = mins < 2 ? 'just now' : mins < 90 ? mins + ' min ago' : mins < 2880 ? Math.round(mins / 60) + ' hours ago' : Math.round(mins / 1440) + ' days ago';
+  let when; try { when = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }).format(t) + ' Brisbane time'; } catch { when = t.toLocaleString(); }
+  u.textContent = `Last updated: ${when} (${ago})`; u.classList.toggle('stale', mins > 180);
+}
+(async () => { await loadAll(); wireSize(); stamp(); setInterval(stamp, 60000); })();

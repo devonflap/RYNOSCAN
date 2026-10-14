@@ -62,12 +62,5 @@ details.card summary{cursor:pointer;list-style:none}
 .sizing{border:1px dashed var(--line);border-radius:10px;padding:8px 10px;font-size:.82rem}.sizing b{color:var(--cyan)}
 .banner{border:1px solid var(--warn);color:var(--warn);border-radius:12px;padding:8px 12px;font-size:.85rem}.banner.ok{border-color:var(--ok);color:var(--ok)}
 .ok-line{font-size:.78rem;color:var(--ok)}ul.note{padding-left:18px}
-
-.scanbtn{margin-left:auto;font:inherit;font-size:.85rem;font-weight:650;color:#04122e;background:linear-gradient(90deg,#38a1ff,#38e1f8);border:0;border-radius:999px;padding:6px 16px;cursor:pointer}
-.scanbtn:disabled{opacity:.6;cursor:progress}
-.scanpanel{padding:14px 16px;display:flex;flex-direction:column;gap:8px;font-size:.88rem}
-.scanpanel[hidden]{display:none}
-.scanpanel input{font:inherit;color:var(--fg);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 10px;width:100%;max-width:34rem}
-.scanpanel a{color:var(--cyan)}
-.scanpanel .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.scanpanel button{font:inherit;color:var(--fg);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer}
+.updated{margin:2px 0 0;color:var(--cyan);font-size:.9rem;font-weight:600}
+.updated.stale{color:var(--warn)}
