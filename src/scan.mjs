@@ -25,6 +25,12 @@ const say = m => console.log(`[${((Date.now() - t0) / 1000).toFixed(0)}s] ${m}`)
 say(`data plan: ${api.plan}, pace ${api.paceMs}ms, up to ${cfg.maxPools} pools, floor $${cfg.minVolume}/24h volume and $${cfg.minLiquidity} liquidity`);
 
 fs.mkdirSync(OUT, { recursive: true });
+// Two scheduled slots per hour back each other up (GitHub sometimes skips one). If a scan already ran in the last
+// 40 minutes, the second scheduled run does nothing. Manual runs always scan.
+if (process.env.GITHUB_EVENT_NAME === 'schedule') {
+  const lastMeta = readJson(path.join(OUT, 'meta.json'), null), ageMin = lastMeta && lastMeta.scannedAt ? (Date.now() - Date.parse(lastMeta.scannedAt)) / 60000 : Infinity;
+  if (ageMin < 40) { say(`last scan was ${Math.round(ageMin)} min ago: nothing to do this slot`); process.exit(0); }
+}
 const prevSignals = readJson(path.join(OUT, 'signals.json'), []);
 const prevSetups = readJson(path.join(OUT, 'setups.json'), []);
 
