@@ -1,0 +1,4 @@
+Scan 11:42 Brisbane: 72 scanned, 59 scored, 3 above 65. On-chain volume Normal (1.01x 7-day avg).
+No longer bid-ready: STONK (Solana).
+Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Rule-based screen, not financial advice. Rules are untested until the log builds up.
