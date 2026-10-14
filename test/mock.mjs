@@ -42,7 +42,7 @@ export function installMock(g = globalThis, opts = {}) {
     if (opts.fail429 && !g.__did429 && url.includes('/ohlcv/')) { g.__did429 = true; return json({}, 429); }
     if (url.includes('dexscreener.com')) {
       calls.dex++; const m = url.match(/pairs\/(\w+)\/(.+)$/); const net = { ethereum: 'eth' }[m[1]] || m[1];
-      const pairs = m[2].split(',').map(a => find(net, a)).filter(Boolean).map(p => ({ pairAddress: p.addr, volume: { h24: p.v24 * 1.05, h1: p.v24 / 24 }, txns: { h1: { buys: 30, sells: 22 } }, liquidity: { usd: p.liq }, priceChange: { h6: p.ch24 / 4 },
+      const pairs = m[2].split(',').map(a => find(net, a)).filter(Boolean).map(p => ({ pairAddress: p.addr, chainId: m[1], priceUsd: String(p.price), baseToken: { address: p.tokenAddr, symbol: p.sym, name: p.name }, fdv: p.liq * 20, pairCreatedAt: Date.now() - p.ageDays * 864e5, volume: { h24: p.v24 * 1.05, h1: p.v24 / 24 }, txns: { h1: { buys: 30, sells: 22 } }, liquidity: { usd: p.liq }, priceChange: { h6: p.ch24 / 4 },
         marketCap: p.liq * 20, info: { socials: p.type % 2 ? [{}] : [], websites: [{}] } }));
       return json({ pairs });
     }

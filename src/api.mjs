@@ -12,8 +12,8 @@ export function makeApi(env = process.env, fetchImpl = globalThis.fetch) {
   else base = 'https://api.geckoterminal.com/api/v2';
   const keyed = !!key;
   const paceMs = Number(env.PACE_MS) || (keyed ? 250 : 4000);
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  let last = 0, n429 = 0, nErr = 0, calls = 0;
+  const sleep = ms => new Promise(r => setTimeout(r, ms)), wait = ms => sleep(ms * (Number(env.RETRY_SCALE) >= 0 && env.RETRY_SCALE !== undefined ? Number(env.RETRY_SCALE) : 1)); // RETRY_SCALE shrinks retry delays in tests
+  let last = 0, n429 = 0, nErr = 0, calls = 0, failStreak = 0; // failStreak: requests in a row that failed after every retry (feed down)
   const log = [];
   // base2 = CoinGecko main API (not on-chain): used for SOL/ETH price history
   const base2 = key && plan !== 'demo' ? 'https://pro-api.coingecko.com/api/v3' : 'https://api.coingecko.com/api/v3';
@@ -22,16 +22,17 @@ export function makeApi(env = process.env, fetchImpl = globalThis.fetch) {
       const w = Math.max(0, paceMs - (Date.now() - last)); if (w) await sleep(w); last = Date.now();
       let r; calls++;
       try { r = await fetchImpl(b + path, { headers: h, signal: AbortSignal.timeout(30000) }); }
-      catch (e) { nErr++; log.push('net'); await sleep(keyed ? 3000 : 15000); continue; }
+      catch (e) { nErr++; log.push('net'); await wait(keyed ? 3000 : 15000); continue; }
       if (r.status === 429) {
         n429++; log.push('429');
         const ra = Number(r.headers.get('retry-after'));
-        await sleep(ra > 0 ? ra * 1000 + 500 : (keyed ? 5000 : 20000) * (a + 1)); continue;
+        await wait(ra > 0 ? ra * 1000 + 500 : (keyed ? 5000 : 20000) * (a + 1)); continue;
       }
-      if (r.status >= 500) { nErr++; log.push(String(r.status)); await sleep(3000 * (a + 1)); continue; }
-      if (!r.ok) { log.push(r.status + ' ' + path.split('?')[0]); return null; }
-      return r.json();
+      if (r.status >= 500) { nErr++; log.push(String(r.status)); await wait(3000 * (a + 1)); continue; }
+      if (!r.ok) { failStreak = 0; log.push(r.status + ' ' + path.split('?')[0]); return null; }
+      try { const j = await r.json(); failStreak = 0; return j; } catch (e) { nErr++; log.push('badjson ' + path.split('?')[0]); await wait(keyed ? 1500 : 5000); continue; }
     }
+    if (++failStreak >= 4) throw new Error('data feed unreachable: 4 requests in a row failed after retries. Stopping early; the dashboard keeps the last good data.');
     return null;
   }
   const getCG = path => get(path, base2, headers);

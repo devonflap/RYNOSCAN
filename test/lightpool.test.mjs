@@ -1,0 +1,25 @@
+import { pickMode, poolsFromTracked } from '../src/lightpool.mjs';
+const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) process.exitCode = 1; };
+const at = (h, m = 10) => Date.UTC(2026, 9, 14, h, m);
+const fullAt = (h) => new Date(Date.UTC(2026, 9, 14, h, 12)).toISOString();
+const base = { trackedCount: 10, settings: {} };
+ok(pickMode({ ...base, env: { GITHUB_EVENT_NAME: 'workflow_dispatch' }, meta: { fullAt: fullAt(0) }, now: at(1) }).mode === 'full', 'manual runs are always full');
+ok(pickMode({ ...base, env: {}, meta: { fullAt: fullAt(0) }, now: at(1) }).mode === 'light', 'one hour after a full scan: light');
+ok(pickMode({ ...base, env: {}, meta: { fullAt: fullAt(0) }, now: at(3) }).mode === 'light', 'three hours after: still light');
+ok(pickMode({ ...base, env: {}, meta: { fullAt: fullAt(0) }, now: at(4) }).mode === 'full', '4h candle just closed: full');
+ok(pickMode({ ...base, env: {}, meta: { fullAt: fullAt(4) }, now: at(4, 40) }).mode === 'light', 'backup slot after a full scan ran: not repeated as full');
+ok(pickMode({ ...base, env: {}, meta: { fullAt: fullAt(0) }, now: at(6) }).mode === 'full', 'a missed 4h full scan is recovered by the next run');
+ok(pickMode({ ...base, env: {}, meta: null, now: at(1) }).mode === 'full', 'no previous scan: full');
+ok(pickMode({ ...base, trackedCount: 1, env: {}, meta: { fullAt: fullAt(0) }, now: at(1) }).mode === 'full', 'nothing tracked: full');
+ok(pickMode({ ...base, settings: { lightScans: false }, env: {}, meta: { fullAt: fullAt(0) }, now: at(1) }).mode === 'full', 'light scans can be switched off');
+ok(pickMode({ ...base, env: {}, meta: { fullAt: fullAt(0) }, usage: { calls: 99000 }, now: at(4) }).mode === 'light', 'nearly out of monthly data: stay light even at the 4h close');
+ok(pickMode({ ...base, env: { SCAN_MODE: 'full' }, meta: { fullAt: fullAt(0) }, now: at(1) }).mode === 'full', 'SCAN_MODE forces a mode');
+// pool rebuild
+const rows = [{ coin: 'AAA', name: 'Aaa', chain: 'Solana', pool: 'P1', token: 'T1', price: 1, liquidity: 500000, vol24h: 900000, vol1h: 5e4, fdv: 1e7, chg24h: 2, ageDays: 20, buyers24h: 300, sellers24h: 250 }, { coin: 'BBB', chain: 'Robinhood', pool: 'P2', price: 2, liquidity: 400000, vol24h: 800000, ageDays: 9, mine: 1 }, { coin: 'CCC', chain: 'Solana', pool: 'P3', price: 3, liquidity: 90000, vol24h: 500000 }];
+const dex = async (u) => ({ pairs: u.includes('/solana/') ? [{ pairAddress: 'p1', priceUsd: '1.5', baseToken: { symbol: 'aaa', name: 'Aaa', address: 'T1' }, liquidity: { usd: 520000 }, volume: { h24: 1e6, h1: 6e4 }, priceChange: { h24: 4 }, txns: { h1: { buys: 30, sells: 20 }, h24: { buys: 700, sells: 600 } }, pairCreatedAt: Date.now() - 20 * 864e5, fdv: 2e7 }] : [] });
+const r = await poolsFromTracked(rows, [{ coin: 'DDD', chain: 'Solana', pool: 'P9', status: 'open' }], dex, { minLiquidity: 100000, minVolume: 100000 }, async () => {});
+ok(r.list.find((p) => p.sym === 'AAA' && p.price === 1.5 && p.token === 'T1' && p.b1 === 30 && p.buyers24 === 300), 'a pool is rebuilt from DexScreener and keeps saved buyer counts');
+ok(r.list.find((p) => p.sym === 'BBB' && p.mine && p.price === 2), 'a coin DexScreener does not return falls back to its saved row, and keeps its "mine" flag');
+ok(!r.list.find((p) => p.sym === 'CCC'), 'a coin that fell below the liquidity floor is dropped');
+ok(!r.list.find((p) => p.sym === 'DDD') && r.fromDex === 1 && r.fromRow === 2, 'an open signal with no data anywhere is skipped, counts are right');
+const bad = await poolsFromTracked(rows, [], async () => { throw new Error('down'); }, {}, async () => {}); ok(bad.list.length >= 2 && bad.fromDex === 0, 'DexScreener down: everything falls back to saved rows');

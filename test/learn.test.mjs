@@ -1,0 +1,12 @@
+import { learn, stat, verdict } from '../src/learn.mjs';
+const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) process.exitCode = 1; };
+const mk = (setup, Rs, extra = {}) => Rs.map((r, i) => ({ setup, resultR: r, status: 'stopped out', coin: 'C' + i, chain: 'Solana', at: '2026-10-01T03:00:00Z', ...extra }));
+const good = Array.from({ length: 24 }, (_, i) => i % 3 === 0 ? -1 : 1.4), bad = Array.from({ length: 14 }, (_, i) => i % 5 === 0 ? 0.3 : -1), few = [2, 2, 2];
+const L = learn([...mk('Base breakout', good), ...mk('Falling wedge', bad), ...mk('Bull flag', few)], { off: [], shadow: ['Base breakout'] });
+ok(L.promote.join() === 'Base breakout', 'strong candidate with 24 trades is promoted: ' + L.promote);
+ok(L.demote.join() === 'Falling wedge', 'live setup that reliably loses is demoted: ' + L.demote);
+ok(!L.promote.includes('Bull flag') && !L.demote.includes('Bull flag'), '3 great trades change nothing');
+ok(verdict(stat([2, 2, 2])) === 'unproven', 'tiny sample is unproven');
+const noise = Array.from({ length: 30 }, (_, i) => i % 2 ? 1 : -1.1);
+ok(learn(mk('Cup & handle', noise), { off: [], shadow: ['Cup & handle'] }).promote.length === 0, 'coin-flip results are never promoted');
+ok(learn([{ setup: 'X', resultR: 1, status: 'expired (no fill)' }]).setups.length === 0, 'unfilled signals are ignored');

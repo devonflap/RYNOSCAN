@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta http-equiv="Cache-Control" content="no-cache">
+<meta name="theme-color" content="#1a1a1a">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>RynoScan</title>
 <link rel="icon" href="logo.png">
@@ -16,11 +17,16 @@
       <h1>RynoScan</h1>
       <p class="updated" id="updated" aria-live="polite">Last updated: loading…</p>
       <p class="refreshrow"><button id="refreshBtn" class="refreshbtn" type="button">Refresh</button> <span id="refreshNote" class="meta" aria-live="polite"></span></p>
+      <p class="health" id="health" hidden></p>
+      <p class="hint" id="setupHint" hidden></p>
       <p class="take" id="take">Loading the latest scan…</p>
       <p class="sub" id="sub"></p>
     </div>
   </header>
-  <nav aria-label="Sections"><a href="#lookup">Check a coin</a><a href="#bid">Bid-ready</a><a href="#plans">Worth watching</a><a href="#patterns">Patterns &amp; bottoms</a><a href="#log">Signal log</a><a href="#backtest">Backtest</a></nav>
+  <section class="card verdict" id="verdict" hidden></section>
+  <nav aria-label="Sections"><a href="#lookup">Check a coin</a><a href="#bid">Bid-ready</a><a href="#plans">Worth watching</a><a href="#patterns">Patterns &amp; bottoms</a><a href="#paper">Paper trading</a><a href="#log">Signal log</a><a href="#learn">What works</a><a href="#backtest">Backtest</a></nav>
+
+  <div class="ctl" id="ctl" aria-label="Filter and sort"></div>
 
   <section class="card" id="mkt">
     <h2>Market backdrop</h2>
@@ -64,27 +70,43 @@
     <div class="plans" id="patList"></div>
   </section>
 
+  <section class="card" id="paper">
+    <h2>Paper trading: $10,000 account</h2>
+    <p class="note">What the signal log would have done with $10,000, putting 5% of the account into every bid-ready setup when it fired. Results are the log's own R figures (stop distance and the 1.5% slippage already included), so no real money is involved. Setups that never filled use no money. This is the honest scoreboard: until it holds up over 30 or more closed trades, treat the rules as unproven.</p>
+    <div id="paperOut"></div>
+  </section>
+
   <section class="card" id="log">
     <h2>Signal log &amp; results</h2>
     <p class="note">Every bid-ready signal the rules have fired, re-checked against new candles on each scan: filled inside 48 hours, a third sold at each target, stop moved to breakeven after TP1, 7-day time exit. Results are in R (1R = the distance from entry to stop).</p>
+    <div id="rChart"></div>
     <div class="scroll"><table class="tbl" id="logTbl"><thead><tr><th>Signal</th><th>Coin</th><th>Setup</th><th>Entry</th><th>Stop</th><th>Status</th><th class="n">Result</th></tr></thead><tbody></tbody></table></div>
   </section>
 
   <details class="card" id="all">
     <summary><h2 style="display:inline">Review every coin above 65</h2></summary>
-    <div class="scroll"><table class="tbl" id="allTbl"><thead><tr><th>Coin</th><th>Chain</th><th>Signal</th><th>Setup</th><th class="n">Opp</th><th class="n">Checks</th><th class="n">Gates</th><th class="n">Risk %</th><th class="n">Upside %</th><th class="n">24h vol</th><th class="n">Liquidity</th></tr></thead><tbody></tbody></table></div>
+    <div class="scroll"><table class="tbl" id="allTbl"><thead><tr><th>Coin</th><th>Chain</th><th>Signal</th><th>Setup</th><th class="n">Opp</th><th class="n">Checks</th><th class="n">Gates</th><th class="n">Risk %</th><th class="n">Upside %</th><th class="n">24h vol</th><th class="n">Liquidity</th><th class="n">Holders</th></tr></thead><tbody></tbody></table></div>
   </details>
+
+  <section class="card" id="learn">
+    <h2>What the data says</h2>
+    <p class="tip" id="learnTip">Nothing learned yet.</p>
+    <div class="scroll"><table class="tbl" id="learnTbl"><thead><tr><th>Setup</th><th class="n">Trades</th><th class="n">Win</th><th class="n">Avg R</th><th class="n">90% range</th><th>Verdict</th></tr></thead><tbody></tbody></table></div>
+    <ul class="note" id="learnIns"></ul>
+    <p class="note">Every week the backtest replays all patterns, including new candidates, and adds the live signal log. A setup is switched off only when its results are reliably negative, and a candidate goes live only when they are reliably positive. Small samples never change anything.</p>
+  </section>
 
   <section class="card" id="backtest">
     <h2>Backtest: do the rules work?</h2>
     <p class="tip" id="btVerdict">No backtest has run yet. Run the "RynoScan backtest" workflow once (Actions tab); it then refreshes every Sunday.</p>
     <div class="scroll"><table class="tbl" id="btTbl"><thead><tr><th>Setup</th><th class="n">Signals</th><th class="n">Closed</th><th class="n">Win rate</th><th class="n">Avg R</th><th class="n">Median R</th><th class="n">Profit factor</th><th class="n">Hit TP1</th></tr></thead><tbody></tbody></table></div>
+    <p class="meta" id="btReal"></p>
     <div id="btExitWrap" hidden><h3>Exit rule comparison</h3><p class="meta">The same signals replayed with different stop rules after TP1. Pick a rule only if it is clearly better on a large sample.</p><table class="tbl" id="btExit"><thead><tr><th>Exit rule</th><th class="n">Closed</th><th class="n">Win</th><th class="n">Avg R</th><th class="n">Profit factor</th></tr></thead><tbody></tbody></table></div>
     <ul class="note" id="btNotes"></ul>
   </section>
 
   <p class="foot">Rule-based screen, not financial advice. Rules are untested until the signal log has about 30 closed signals. Meme coins can go to zero and stops can gap on thin liquidity.</p>
 </div>
-<script type="module" src="app.js?v=20261014b"></script>
+<script type="module" src="app.js?v=20261014h"></script>
 </body>
 </html>

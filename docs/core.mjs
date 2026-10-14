@@ -58,7 +58,7 @@ export function detectPatterns(h4){
  const r=rsi(c),A=atr(h4)[n];if(!A)return [];
  const cl=x=>Math.max(0,Math.min(1,x));
  const avgV=(a,b)=>{let s=0,k=0;for(let i=Math.max(0,a);i<=Math.min(n,b);i++){s+=v[i];k++;}return k?s/k:0;};
- const best={};const keep=p=>{if(!best[p.name]||p.quality>best[p.name].quality)best[p.name]=p;};
+ const best={};const keep=p=>{if(RULES.v2&&!RULES.allowShadow&&(RULES.off.includes(p.name)||RULES.shadow.includes(p.name)))return;if(!best[p.name]||p.quality>best[p.name].quality)best[p.name]=p;};
  const PL=pvLow(lo,3,Math.max(0,n-170),n).filter(i=>i<=n-3),PH=pvHigh(hi,3,Math.max(0,n-170),n);
  // ----- double bottom -----
  for(let q=PL.length-1;q>=1&&q>=PL.length-3;q--){const b=PL[q],a=PL[q-1],gap=b-a;if(gap<6||gap>70)continue;
@@ -131,6 +131,42 @@ export function detectPatterns(h4){
        q=cl((gain-0.3)/0.7)*15+cl(1-Math.abs(ret-0.78)/0.13)*20+(hl?15:5)+(turn?20:0)+(vp>=vi*0.8?10:0)+(vp<=vi?10:5)+(fl>=8&&fl<=35?10:4);
       keep({name:'Trend pullback',status:bk>=0?'breakout':'forming',quality:Math.round(q),trigger:fh,stopBase:fLow,H:hi[ip]-fLow,bk,start:is,
        lines:[[ip,hi[ip],n,hi[ip],'prior high'],[fi,fh,n,fh,'reclaim']],pts:[[is,lo[is]],[ip,hi[ip]],[fi,fLow]],why:{volc:vp<vi,turn}});}}}}}
+ // ----- candidate patterns (v2 only; shadow mode: found in the backtest, silent live until the data promotes them) -----
+ if(RULES.v2&&N>=60){
+  // ascending triangle: flat resistance touched at least twice, rising lows, tightening
+  for(const W of [30,50,70]){if(n<W+4)continue;const s0=n-W,ph=pvHigh(hi,2,s0,n).filter(i=>i<=n-2),pl=pvLow(lo,2,s0,n).filter(i=>i<=n-2);if(ph.length<2||pl.length<2)continue;
+   const top=Math.max(...ph.map(i=>hi[i])),flat=ph.filter(i=>hi[i]>=top*0.985);if(flat.length<2)continue;
+   const dn=linfit(pl,pl.map(i=>lo[i])),mdn=dn.m/c[n];if(!(mdn>0.0004))continue;
+   const D=j=>dn.m*j+dn.b;if(!(D(n)<top*0.97&&D(n)>top*0.6))continue;
+   let ok=0,tot=0;for(let j=s0;j<=n-3;j++){tot++;if(c[j]<=top*1.02&&c[j]>=D(j)*0.97)ok++;}if(ok/tot<0.85)continue;
+   let bk=-1;for(let j=n-3;j<=n;j++)if(c[j]>top*1.005){bk=j;break;}if(bk<0&&c[n]<top*0.93)continue;
+   const H=top-D(s0),q=cl((flat.length-2)/2)*20+cl((pl.length-2)/3)*20+cl(mdn/0.004)*15+cl((ok/tot-0.85)/0.15)*15+(avgV(n-12,n)<avgV(s0,s0+20)?15:5)+(r[n]!=null&&r[n]>50?15:5);
+   keep({name:'Ascending triangle',status:bk>=0?'breakout':'forming',quality:Math.round(q),trigger:top,stopBase:Math.min(D(n),...lo.slice(-4)),H,bk,start:s0,lines:[[s0,top,n,top,'resistance'],[s0,D(s0),n,D(n),'rising lows']],pts:[],why:{volc:avgV(n-12,n)<avgV(s0,s0+20)}});}
+  // tight base breakout: a quiet, narrow range after a drop, then a close above it
+  for(const W of [16,24,36]){if(n<W+30)continue;const s0=n-W-2;let rh=0,rl=Infinity;for(let i=s0;i<=n-2;i++){rh=Math.max(rh,hi[i]);rl=Math.min(rl,lo[i]);}
+   const rng=(rh-rl)/rl;if(rng>0.22||rng<0.03)continue;const before=Math.max(...hi.slice(Math.max(0,s0-40),s0+1));if(before<rl*1.3)continue;
+   let bk=-1;for(let j=n-2;j<=n;j++)if(c[j]>rh*1.005){bk=j;break;}if(bk<0)continue;if(c[n]>rh*1.12)continue;
+   const dry=avgV(s0,n-3)<avgV(Math.max(0,s0-30),s0)*0.8,pop=v[bk]>avgV(s0,n-3)*1.5,up=(c[Math.floor((s0+n)/2)]>=rl+(rh-rl)*0.4),q=cl(1-rng/0.22)*25+(dry?25:8)+(pop?25:5)+(up?10:3)+cl((before/rl-1.3)/0.7)*10+(r[n]!=null&&r[n]>50&&r[n]<75?5:0);
+   keep({name:'Base breakout',status:'breakout',quality:Math.round(q),trigger:rh,stopBase:rl,H:rh-rl,bk,start:s0,lines:[[s0,rh,n,rh,'base high'],[s0,rl,n,rl,'base low']],pts:[],why:{volc:dry}});}
+  // volume breakout (momentum): a close above the prior 30-bar high on a volume spike, not yet extended
+  {if(n>=40){let ph0=0;for(let i=n-32;i<=n-2;i++)ph0=Math.max(ph0,hi[i]);const sp=avgV(n-32,n-2)||1;let bk=-1;for(let j=n-1;j<=n;j++)if(c[j]>ph0*1.005&&v[j]>=sp*2.5){bk=j;break;}
+    if(bk>=0&&c[n]<=ph0*1.12&&r[n]!=null&&r[n]>=55&&r[n]<=82){const tl=Math.min(...lo.slice(-3)),q=cl((v[bk]/sp-2.5)/3)*30+cl(1-(c[n]/ph0-1)/0.12)*25+cl((r[n]-55)/20)*20+(c[n]>=c[n-1]?15:5)+10;
+     keep({name:'Volume breakout',status:'breakout',quality:Math.round(q),trigger:ph0,stopBase:Math.min(tl,ph0*0.97),H:Math.max(ph0-Math.min(...lo.slice(n-32,n-1)),A*2),bk,start:n-32,lines:[[n-32,ph0,n,ph0,'30-bar high']],pts:[],why:{volc:true}});}}}
+  // breakout retest: broke an old pivot high, came back to test it from above, and held
+  {const L0=Math.max(0,n-70);for(const pi of pvHigh(hi,3,L0,n).filter(i=>i<=n-14&&i>=n-60)){const lvl=hi[pi];let bk=-1;for(let j=pi+3;j<=n-6;j++)if(c[j]>lvl*1.03){bk=j;break;}if(bk<0)continue;
+    let mx=0;for(let j=bk;j<=n;j++)mx=Math.max(mx,hi[j]);if(mx<lvl*1.08)continue;
+    let held=true;for(let j=bk+1;j<=n;j++)if(c[j]<lvl*0.97)held=false;if(!held)continue;
+    if(!(c[n]>=lvl*0.99&&c[n]<=lvl+0.9*A))continue;let tl=Infinity;for(let j=n-3;j<=n;j++)tl=Math.min(tl,lo[j]);if(tl>lvl+0.6*A)continue;
+    const q=cl(1-Math.abs(c[n]-lvl)/(A*0.9))*30+cl((mx/lvl-1.08)/0.3)*20+(avgV(n-5,n)<avgV(bk,n-6)?20:6)+(r[n]!=null&&r[n]>=r[n-1]?15:5)+cl(1-(n-bk)/40)*15;
+    keep({name:'Breakout retest',status:'breakout',quality:Math.round(q),trigger:lvl,stopBase:Math.min(tl,lvl*0.97),H:mx-lvl,bk,start:pi,lines:[[pi,lvl,n,lvl,'old resistance, now support']],pts:[[pi,lvl]],why:{volc:avgV(n-5,n)<avgV(bk,n-6)}});break;}}
+  // liquidity sweep reclaim: price stabs below a prior swing low, closes back above it with a volume spike
+  {for(const pi of PL.filter(i=>i<=n-6&&i>=n-60).reverse()){const lvl=lo[pi];let sj=-1;for(let j=pi+4;j<=n;j++)if(lo[j]<lvl*0.985&&c[j]>lvl){sj=j;if(n-j<=8)break;}
+    if(sj<0||n-sj>8)continue;let broke=false;for(let j=sj+1;j<=n;j++)if(lo[j]<lo[sj]*0.995)broke=true;if(broke)continue;
+    const fh=Math.max(...hi.slice(sj,n+1)),big=Math.max(...hi.slice(Math.max(0,n-40),n+1)),H=Math.max(big-lo[sj],0);if(H<1.2*(fh-lo[sj]))continue;
+    const spike=v[sj]>avgV(sj-20,sj-1)*1.5,bk=c[n]>fh*0.999&&n>sj?sj:-1;
+    const q=cl((lvl-lo[sj])/lvl/0.06)*20+(spike?25:8)+(c[n]>lvl*1.01?20:6)+(r[sj]!=null&&r[sj]<35?15:5)+(r[n]!=null&&r[n]>r[sj]?10:0)+cl(1-(n-sj)/8)*10;
+    keep({name:'Liquidity sweep reclaim',status:c[n]>fh*0.999?'breakout':'forming',quality:Math.round(q),trigger:fh,stopBase:lo[sj],H,bk,start:pi,lines:[[pi,lvl,n,lvl,'swept low']],pts:[[sj,lo[sj]]],why:{volc:spike}});break;}}
+ }
  // ----- plan, gates -----
  const out=[];const price=c[n];
  for(const k in best){const p=best[k];const trig=p.trigger;
@@ -145,7 +181,7 @@ export function detectPatterns(h4){
   out.push({...p,plan,vb,ud,dist:+((trig/price-1)*100).toFixed(1),gates:g,n});}
  return out.sort((a,b)=>b.quality-a.quality);}
 
-export const RULES={v2:!(typeof process!=='undefined'&&process.env&&process.env.RS_RULES==='v1')}; // v2 = rules revised after the backtest; set false to reproduce the original v10 behaviour
+export const RULES={v2:!(typeof process!=='undefined'&&process.env&&process.env.RS_RULES==='v1'),off:['Trend pullback'],shadow:['Ascending triangle','Base breakout','Breakout retest','Liquidity sweep reclaim','Volume breakout'],allowShadow:false}; // shadow: new candidate patterns, detected only in the backtest until the data proves them (see src/learn.mjs). // off: pattern names switched off (Trend pullback went 0/7 in the backtest).  // v2 = rules revised after the backtest; set false to reproduce the original v10 behaviour
 export function scoreList(list,now){
 list.forEach(p=>{p.ageD=p.created?+((now-Date.parse(p.created))/864e5).toFixed(1):null;const fl=[];
  if(p.liq<100000)fl.push('thin liquidity');if(p.ageD!=null&&p.ageD<7)fl.push('new pool');if(p.fdv&&p.fdv/p.liq>60)fl.push('high FDV/liquidity');
@@ -187,8 +223,8 @@ list.forEach(p=>{p.ageD=p.created?+((now-Date.parse(p.created))/864e5).toFixed(1
   p.pat=(p.pats||[]).slice().sort((x,y)=>(y.ready?1:0)-(x.ready?1:0)||y.score-x.score)[0]||null;}
  const dvi=(x,lbl)=>x&&x.div&&x.divInfo?`${lbl}: price low ${sig5(x.divInfo.p0)} -> ${sig5(x.divInfo.p1)} (lower), RSI low ${Math.round(x.divInfo.r0)} -> ${Math.round(x.divInfo.r1)} (higher), ${x.divInfo.age} bars ago`:null;
  p.divDetail=[dvi(a,'1h'),dvi(b,'4h'),dvi(d,'1d')].filter(Boolean).join(' | ');
- const pt=p.pat,revEntry=p.ready&&p.score>=40&&p.confluence>=6,patEntry=!!(pt&&pt.ready&&(!RULES.v2||pt.status==='breakout')&&pt.score>=50&&!knife),
-  revWatch=!!(pl&&pl.valid&&!ext&&!collapsing&&!knife&&(!RULES.v2||G.structure)&&p.liq>=100000&&p.v24>=250000&&(p.gatesPassed>=4||(p.score>=30&&p.confluence>=4&&setup))),
+ const pt=p.pat,revEntry=p.ready&&p.score>=40&&p.confluence>=6&&!(RULES.v2&&RULES.off.includes('Bottom reversal')),patEntry=!!(pt&&pt.ready&&(!RULES.v2||pt.status==='breakout')&&pt.score>=50&&!knife),
+  revWatch=!!(!(RULES.v2&&RULES.off.includes('Bottom reversal'))&&pl&&pl.valid&&!ext&&!collapsing&&!knife&&(!RULES.v2||G.structure)&&p.liq>=100000&&p.v24>=250000&&(p.gatesPassed>=4||(p.score>=30&&p.confluence>=4&&setup))),
   patWatch=!!(pt&&pt.plan.rr2>=2&&pt.score>=50&&pt.pg.room&&!collapsing&&!knife&&p.liq>=100000&&p.v24>=250000&&pt.passed>=4&&(pt.status==='forming'?pt.dist<=(RULES.v2?3:6):true));
  p.lead='reversal';
  if(revEntry)p.signal='Entry signal';
@@ -204,10 +240,18 @@ list.forEach(p=>{p.ageD=p.created?+((now-Date.parse(p.created))/864e5).toFixed(1
 
 }
 
-export function techFromRaw(p,raw){
+// Clean a candle list: numbers only, positive finite prices, no duplicate timestamps, oldest first. One bad candle must not poison every indicator.
+export function cleanBars(raw){const m=new Map();for(const b of raw||[]){if(!Array.isArray(b))continue;const x=b.map(Number);if(![0,1,2,3,4].every(i=>isFinite(x[i]))||x[1]<=0||x[2]<=0||x[3]<=0||x[4]<=0)continue;if(!isFinite(x[5]))x[5]=0;x[2]=Math.max(x[2],x[1],x[4],x[3]);x[3]=Math.min(x[3],x[1],x[4],x[2]);m.set(x[0],x);}return [...m.values()].sort((a,b)=>a[0]-b[0]);}
+// v2: score closed candles only. The backtest only ever looks at a 4h candle after it closes, so the live scan must too, otherwise a signal can
+// appear mid-candle and vanish at the close (repainting) and live results would not match what was tested.
+export function closedOnly(h1,nowMs=Date.now()){if(!h1.length)return h1;const a=h1.slice();if(a[a.length-1][0]+3600>nowMs/1000)a.pop();return a;}
+export function techFromRaw(p,raw,nowMs){
  if(!raw||raw.length<22){if(raw)p.young=true;return false;}
- const h1=raw.slice().sort((a,b)=>a[0]-b[0]).map(b=>b.map(Number)),h4=resample(h1,14400),d1=resample(h1,86400);
- p.tf={'1h':analyse(h1,24),'4h':analyse(h4,18),'1d':d1.length>=20?analyse(d1,10):null};p.plan=plan(h4);p.lastClose=h1[h1.length-1][4];p.h4=h4;p.pats=detectPatterns(h4).filter(q=>q.quality>=50&&!(q.status==='forming'&&q.dist>12));
+ const all=cleanBars(raw);if(all.length<22){p.young=true;return false;}
+ const h1=RULES.v2?closedOnly(all,nowMs):all;if(h1.length<22){p.young=true;return false;}
+ let h4=resample(h1,14400);if(RULES.v2&&h4.length&&h1[h1.length-1][0]<h4[h4.length-1][0]+3*3600)h4=h4.slice(0,-1); // drop an unfinished 4h candle
+ const d1=resample(h1,86400);
+ p.tf={'1h':analyse(h1,24),'4h':analyse(h4,18),'1d':d1.length>=20?analyse(d1,10):null};p.plan=plan(h4);p.lastClose=all[all.length-1][4];p.h4=h4;p.pats=detectPatterns(h4).filter(q=>q.quality>=50&&!(q.status==='forming'&&q.dist>12));
  const bs1=p.s1?p.b1/p.s1:null,bs24=p.s24?p.b24/p.s24:null,vacc=p.v24?p.v1/(p.v24/24):null;p.bs1=bs1&&+bs1.toFixed(2);p.bs24=bs24&&+bs24.toFixed(2);p.vacc=vacc&&+vacc.toFixed(2);
  {const tl=h1[h1.length-1][0];if(h1[0][0]<=tl-14*86400){p.dv=Array(14).fill(0);for(const b of h1){const k=Math.floor((tl-b[0])/86400);if(k<14)p.dv[k]+=b[5];}}}
  p.ch7d=h1.length>168?+((h1[h1.length-1][4]/h1[h1.length-169][4]-1)*100).toFixed(1):null;
@@ -217,7 +261,7 @@ export function techFromRaw(p,raw){
 
 export function toRow(p,at){const r1=x=>x==null?null:Math.round(x*10)/10,yn=x=>x?1:0;
  return (p=>{const t=p.tf||{},a=t['1h'],b=t['4h'],c=t['1d'],pl=p.plan&&p.plan.entryMid?p.plan:null,ck=p.checks||{};return {
- id:CH[p.chain].slice(0,3).toUpperCase()+':'+p.sym,coin:p.sym,name:p.name,chain:CH[p.chain],pool:p.pool,signal:p.signal||'No trade',noTradeWhy:p.noTradeWhy||(p.tf?'':'too new to score'),score:p.setupScore??p.score,confluence:p.confluence??null,
+ id:CH[p.chain].slice(0,3).toUpperCase()+':'+p.sym,coin:p.sym,name:p.name,chain:CH[p.chain],pool:p.pool,token:p.token||null,signal:p.signal||'No trade',noTradeWhy:p.noTradeWhy||(p.tf?'':'too new to score'),score:p.setupScore??p.score,confluence:p.confluence??null,
  rsi1h:a?.rsi??null,state1h:a?.state??'too new',rsi4h:b?.rsi??null,state4h:b?.state??'too new',rsi1d:c?.rsi??null,state1d:c?.state??'too new',
  div1h:a?yn(a.div):null,div4h:b?yn(b.div):null,div1d:c?yn(c.div):null,rvol4h:b?.rvol??null,upDownVol4h:b?.upDown??null,
  chkOversold:p.checks?yn(ck.oversold):null,chkRsiTurning:p.checks?yn(ck.rsiTurning):null,chkDivergence:p.checks?yn(ck.divergence):null,chkVolume:p.checks?yn(ck.volume):null,chkMacd:p.checks?yn(ck.macd):null,
@@ -273,20 +317,26 @@ export async function crossCheck(rows,{getJson,sleep,log=()=>{}}){
   if(p.opp!=null){p.oppBase=p.opp;p.opp=Math.round(p.opp*0.6+c*6.7);}});
  return rows;}
 
+// Apply what src/learn.mjs decided: patterns proven by the data go live, patterns that keep losing are switched off.
+export function applyLearned(L){if(!L||typeof L!=='object'||!RULES.v2)return;const dem=Array.isArray(L.demote)?L.demote.filter(x=>typeof x==='string'):[],pro=Array.isArray(L.promote)?L.promote.filter(x=>typeof x==='string'):[];
+ RULES.shadow=RULES.shadow.filter(x=>!pro.includes(x));RULES.off=[...new Set([...RULES.off.filter(x=>!pro.includes(x)),...dem])];}
 // Walk an existing signal forward over new hourly candles (fill within 48h, a third sold at each TP,
 // stop to breakeven after TP1, 7-day time exit). Result in R.
 export function evaluate(s,h1,at,opts={}){const k1=opts.tp1Stop??0,ladder=!!opts.ladder; // k1: stop after TP1 sits k1 x risk below entry (0 = breakeven, 1 = keep the original stop); ladder: after TP2 the stop moves up to TP1
+// fillAt: 'mid' (default, optimistic) or 'high' (limit order resting at the top of the zone, which is what actually fills). slipPct: round-trip slippage and fees as % of the fill price, charged in R.
+const E=opts.fillAt==='high'?s.entryHigh:opts.fillAt==='low'?s.entryLow:s.entryMid,slipPct=opts.slipPct??0;
 const t0=Date.parse(s.signalAt)/1000;const bars=h1.filter(b=>b[0]>=t0);let filled=null,stop=s.stop,hit=0,R=0,left=1,status='waiting for entry',closedAt=null;
- const risk=s.entryMid-s.stop;
- for(const b of bars){if(!filled){if(b[0]>t0+48*3600){status='expired (no fill)';closedAt=b[0];break;}if(b[3]<=s.entryHigh){filled=b[0];status='open';}else continue;}
-  if(b[3]<=stop){R+=left*((stop-s.entryMid)/risk);left=0;status=hit?'stopped after TP'+hit:'stopped out';closedAt=b[0];break;}
-  const tps=[s.tp1,s.tp2,s.tp3];while(hit<3&&b[2]>=tps[hit]){R+=(1/3)*((tps[hit]-s.entryMid)/risk);left-=1/3;hit++;if(hit===1)stop=Math.max(stop,s.entryMid-k1*risk);if(hit===2&&ladder)stop=Math.max(stop,s.tp1);}
+ const risk=E-s.stop,slipR=risk>0?E*slipPct/100/risk:0;
+ if(!(risk>0))return {...s,status:'invalid plan',tpHit:0,resultR:null,openR:null,closedAt:null,checkedAt:at};
+ for(const b of bars){if(!filled){if(b[0]>t0+48*3600){status='expired (no fill)';closedAt=b[0];break;}if(b[3]<=s.entryHigh){filled=b[0];status='open';R=-slipR;}else continue;}
+  if(b[3]<=stop){R+=left*((stop-E)/risk);left=0;status=hit?'stopped after TP'+hit:'stopped out';closedAt=b[0];break;}
+  const tps=[s.tp1,s.tp2,s.tp3];while(hit<3&&b[2]>=tps[hit]){R+=(1/3)*((tps[hit]-E)/risk);left-=1/3;hit++;if(hit===1)stop=Math.max(stop,E-k1*risk);if(hit===2&&ladder)stop=Math.max(stop,s.tp1);}
   if(hit===3){left=0;status='hit TP3';closedAt=b[0];break;}
-  if(b[0]>filled+7*86400){R+=left*((b[4]-s.entryMid)/risk);left=0;status='time exit (7 days)';closedAt=b[0];break;}}
- return {...s,status,tpHit:hit,resultR:status==='open'||status==='waiting for entry'?null:+R.toFixed(2),openR:status==='open'?+(R+left*(((bars.length?bars[bars.length-1][4]:s.entryMid)-s.entryMid)/risk)).toFixed(2):null,
+  if(b[0]>filled+7*86400){R+=left*((b[4]-E)/risk);left=0;status='time exit (7 days)';closedAt=b[0];break;}}
+ return {...s,status,tpHit:hit,resultR:status==='open'||status==='waiting for entry'||status==='expired (no fill)'?null:+R.toFixed(2),openR:status==='open'?+(R+left*(((bars.length?bars[bars.length-1][4]:E)-E)/risk)).toFixed(2):null,
   closedAt:closedAt?new Date(closedAt*1000).toISOString().slice(0,16)+'Z':null,checkedAt:at};}
 
 export function newSignal(p,at){const id=CH[p.chain].slice(0,3).toUpperCase()+':'+p.sym,day=at.slice(0,10),pl=p.sp;
  return {signalId:id+'@'+day,setup:p.setupType,id,coin:p.sym,chain:CH[p.chain],pool:p.pool,signalAt:at,score:p.score,confluence:p.confluence,priceAtSignal:sig5(p.lastClose),
   entryLow:sig5(pl.entryLow),entryHigh:sig5(pl.entryHigh),entryMid:sig5(pl.entryMid),stop:sig5(pl.stop),tp1:sig5(pl.tp1),tp2:sig5(pl.tp2),tp3:sig5(pl.tp3),
-  status:'waiting for entry',tpHit:0,resultR:null,openR:null,closedAt:null,checkedAt:at};}
+  status:'waiting for entry',tpHit:0,resultR:null,openR:null,closedAt:null,checkedAt:at,opp:p.opp==null?null:p.opp,regime:p.regime||null,hsD7:p.hs&&p.hs.growPct!=null&&p.hs.growDays>=3?p.hs.growPct:null};}

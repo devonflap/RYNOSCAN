@@ -21,6 +21,8 @@ export async function checkToken(p, getJson, cfg = {}) {
           if (DANGER_RE.test(name)) danger.push(name); else flags.push(name);
         }
       }
+      // liquidity lock (the summary reports the share of LP that is locked or burned, when it knows)
+      const lp = Number(j.lpLockedPct ?? j.lpLocked?.pct); if (cfg.holderChecks !== false && Number.isFinite(lp) && lp < 20 && !flags.some(f => /liquidity|lp/i.test(f))) flags.push('only ' + Math.round(lp) + '% of liquidity is locked or burned');
       if (danger.length) return { level: 'danger', flags: [...danger, ...flags] };
       return { level: flags.length ? 'warn' : 'ok', flags };
     }
@@ -42,6 +44,7 @@ export async function checkToken(p, getJson, cfg = {}) {
     if (t.can_take_back_ownership === '1') flags.push('ownership can be reclaimed');
     if (t.transfer_pausable === '1') flags.push('transfers can be paused');
     if (Array.isArray(t.holders)) { const top = t.holders.slice(0, 10).reduce((a, h) => a + n(h.percent), 0); if (top > 0.5) flags.push('top 10 wallets hold ' + Math.round(top * 100) + '%'); }
+    if (cfg.holderChecks !== false && Array.isArray(t.lp_holders) && t.lp_holders.length) { const lock = t.lp_holders.filter(h => h.is_locked === 1 || h.is_locked === '1' || /^0x0{10,}|dead$/i.test(String(h.address || ''))).reduce((a, h) => a + n(h.percent), 0); if (lock < 0.2) flags.push('only ' + Math.round(lock * 100) + '% of liquidity is locked or burned'); }
     if (danger.length) return { level: 'danger', flags: [...danger, ...flags] };
     return { level: flags.length ? 'warn' : 'ok', flags };
   } catch (e) { return none('safety feed unavailable'); }

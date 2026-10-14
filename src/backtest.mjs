@@ -6,9 +6,10 @@ import path from 'node:path';
 import * as C from '../docs/core.mjs';
 import { discoverPools } from '../docs/pools.mjs';
 import { makeApi } from './api.mjs';
+import { learn } from './learn.mjs';
 
 const OUT = process.env.OUT_DIR || 'docs/data';
-const readJson = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
+const readJson = (f, d) => { try { const j = JSON.parse(fs.readFileSync(f, 'utf8')); return Array.isArray(d) ? (Array.isArray(j) ? j : d) : (j && typeof j === 'object' && !Array.isArray(j) ? j : d); } catch { return d; } };
 const settings = readJson(process.env.SETTINGS_FILE || 'config/settings.json', {});
 const api = makeApi();
 const cfg = {
@@ -22,6 +23,8 @@ say(`backtest: plan ${api.plan}, up to ${cfg.maxPools} coins`);
 const { list } = await discoverPools(api.get, cfg, [], m => api.log.push(m));
 const WARM = 384, TAIL = 192, STEP_OK = t => (t + 3600) % 14400 === 0; // 4h candle just closed
 const VARIANTS = { 'Breakeven after TP1 (current)': { tp1Stop: 0 }, 'Stop half a risk below entry after TP1': { tp1Stop: 0.5 }, 'Keep the original stop until TP2': { tp1Stop: 1 }, 'Breakeven after TP1, then stop at TP1 after TP2': { tp1Stop: 0, ladder: true } };
+const DEFAULT_OFF = [...C.RULES.off], DEFAULT_SHADOW = [...C.RULES.shadow], isLive = n => !DEFAULT_OFF.includes(n) && !DEFAULT_SHADOW.includes(n);
+C.RULES.allowShadow = true; C.RULES.off = []; // the replay measures every pattern, including candidates and switched-off ones, so the learner can see them
 const signals = []; let coins = 0, cuts = 0, i = 0;
 for (const p0 of list) {
   const j = await api.get(`/networks/${p0.net}/pools/${p0.pool}/ohlcv/hour?aggregate=1&limit=1000&currency=usd&token=base`);
@@ -39,9 +42,10 @@ for (const p0 of list) {
     if (p.signal !== 'Entry signal' || !p.sp || !p.sp.entryMid) continue;
     const at = new Date(t * 1000).toISOString().slice(0, 19) + 'Z';
     const sg = C.newSignal(p, at), endAt = new Date(h1[h1.length - 1][0] * 1000).toISOString();
-    const res = C.evaluate(sg, h1, endAt, { tp1Stop: settings.exitTp1Stop ?? 0, ladder: !!settings.exitLadder });
-    const variants = {}; for (const [name, o] of Object.entries(VARIANTS)) variants[name] = C.evaluate(sg, h1, endAt, o).resultR;
-    signals.push({ variants, coin: p0.sym, chain: C.CH[p0.chain], setup: p.setupType, at, status: res.status, tpHit: res.tpHit, resultR: res.resultR, baseOpp: p.opp, riskPct: p.sp.riskPct });
+    const exitOpts = { tp1Stop: settings.exitTp1Stop ?? 0, ladder: !!settings.exitLadder, fillAt: settings.fillAt ?? 'mid', slipPct: settings.slipPct ?? 0 };
+    const res = C.evaluate(sg, h1, endAt, exitOpts), opt = C.evaluate(sg, h1, endAt, { ...exitOpts, fillAt: 'mid', slipPct: 0 });
+    const variants = {}; for (const [name, o] of Object.entries(VARIANTS)) variants[name] = C.evaluate(sg, h1, endAt, { ...exitOpts, ...o }).resultR;
+    signals.push({ variants, optR: opt.resultR, coin: p0.sym, chain: C.CH[p0.chain], setup: p.setupType, at, status: res.status, tpHit: res.tpHit, resultR: res.resultR, baseOpp: p.opp, riskPct: p.sp.riskPct });
     busyUntil = res.closedAt ? Date.parse(res.closedAt) / 1000 : h1[h1.length - 1][0] + 1;
     if (res.status === 'stopped out') busyUntil += (settings.cooldownHours ?? 48) * 3600; // cooldown after a stop-out
   }
@@ -54,16 +58,21 @@ const stat = (rows) => {
     avgR: closed.length ? +(R.reduce((a, b) => a + b, 0) / closed.length).toFixed(2) : null, medianR: closed.length ? R[Math.floor(R.length / 2)] : null, profitFactor: loss > 0 ? +(gain / loss).toFixed(2) : null,
     tp1Rate: closed.length ? +(closed.filter(s => s.tpHit >= 1).length / closed.length).toFixed(3) : null };
 };
-const exitVariants = Object.keys(VARIANTS).map(name => ({ name, ...stat(signals.filter(s => s.variants && s.variants[name] != null).map(s => ({ ...s, resultR: s.variants[name], tpHit: s.tpHit, status: s.status }))) }));
+const exitVariants = Object.keys(VARIANTS).map(name => ({ name, ...stat(signals.filter(s => isLive(s.setup) && s.variants && s.variants[name] != null).map(s => ({ ...s, resultR: s.variants[name], tpHit: s.tpHit, status: s.status }))) }));
 const types = [...new Set(signals.map(s => s.setup))];
-const result = { at: new Date().toISOString().slice(0, 19) + 'Z', coins, cuts, days: Math.round((1000 - WARM - TAIL) / 24), overall: stat(signals), byType: types.map(t => ({ setup: t, ...stat(signals.filter(s => s.setup === t)) })).sort((a, b) => b.closed - a.closed),
-  exitVariants,
-  byChain: [...new Set(signals.map(s => s.chain))].map(c => ({ chain: c, ...stat(signals.filter(s => s.chain === c)) })),
+const result = { at: new Date().toISOString().slice(0, 19) + 'Z', coins, cuts, days: Math.round((1000 - WARM - TAIL) / 24), overall: stat(signals.filter(s => isLive(s.setup))), byType: types.map(t => ({ setup: t, candidate: !isLive(t), ...stat(signals.filter(s => s.setup === t)) })).sort((a, b) => b.closed - a.closed),
+  exitVariants, fill: { fillAt: settings.fillAt ?? 'mid', slipPct: settings.slipPct ?? 0 },
+  optimistic: stat(signals.filter(s => isLive(s.setup)).map(s => ({ ...s, resultR: s.optR }))),
+  byChain: [...new Set(signals.map(s => s.chain))].map(c => ({ chain: c, ...stat(signals.filter(s => s.chain === c && isLive(s.setup))) })),
   notes: ['Replays the chart rules only. Buyer/seller balance is approximated from candle volume and age/liquidity are assumed, so real signals are a little stricter than these.',
     'Covers about 17 days of signals (the data feed gives 1000 hourly candles, 8 days are kept for exits), on coins that are active today, which flatters the results (survivorship).',
     'Treat it as a sanity check on which setups to trust, not a forecast. Fewer than about 30 closed signals in a row means no conclusion.'],
-  sample: signals.slice(-40).map(({ variants, ...r }) => r) };
+  all: signals.map(s => ({ setup: s.setup, chain: s.chain, at: s.at, coin: s.coin, resultR: s.resultR, status: s.status, riskPct: s.riskPct, opp: s.baseOpp })),
+  sample: signals.slice(-40).map(({ variants, optR, ...r }) => r) };
 fs.mkdirSync(OUT, { recursive: true });
 fs.writeFileSync(path.join(OUT, 'backtest.json'), JSON.stringify(result));
+{ const live = readJson(path.join(OUT, 'signals.json'), []).map(s => ({ setup: s.setup, chain: s.chain, at: s.signalAt, coin: s.coin, resultR: s.resultR, status: s.status, riskPct: s.entryHigh && s.stop ? +((s.entryMid - s.stop) / s.entryMid * 100).toFixed(1) : null, opp: s.opp ?? s.score, verdict: s.panel?.verdict, regime: s.regime, volDay: s.volDay, hsD7: s.hsD7 }));
+  const fwd = readJson(path.join(OUT, 'forward.json'), []).map(s => ({ setup: 'Near-miss: ' + (s.setup || 'Unknown'), chain: s.chain, at: s.signalAt, coin: s.coin, resultR: s.resultR, status: s.status, riskPct: s.entryHigh && s.stop ? +((s.entryMid - s.stop) / s.entryMid * 100).toFixed(1) : null, opp: s.opp ?? s.score, regime: s.regime, volDay: s.volDay, hsD7: s.hsD7 }));
+  const L = learn([...result.all, ...live, ...fwd], { off: DEFAULT_OFF, shadow: DEFAULT_SHADOW }); fs.writeFileSync(path.join(OUT, 'learned.json'), JSON.stringify(L)); console.log('learned:', JSON.stringify({ promote: L.promote, demote: L.demote, insights: L.insights })); }
 console.log(JSON.stringify({ overall: result.overall, byType: result.byType }, null, 1));
 say(`done: ${coins} coins, ${cuts} checkpoints, ${signals.length} signals, ${api.stats().calls} data calls`);

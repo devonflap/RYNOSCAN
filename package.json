@@ -4,6 +4,6 @@
   "private": true,
   "type": "module",
   "description": "RynoScan: 4h-chart meme coin scanner for Solana, Robinhood Chain and Ethereum",
-  "scripts": { "scan": "node src/scan.mjs", "test": "node test/api.test.mjs && node test/overlays.test.mjs && node test/lookup.test.mjs && node test/pullback.test.mjs && RS_RULES=v1 ORIG=test/original_v10.js node test/parity.mjs", "serve": "npx --yes serve docs" },
+  "scripts": { "scan": "node src/scan.mjs", "test": "node test/api.test.mjs && node test/overlays.test.mjs && node test/lookup.test.mjs && node test/pullback.test.mjs && node test/exits.test.mjs && node test/watch.test.mjs && node test/newpatterns.test.mjs && node test/learn.test.mjs && node test/hardening.test.mjs && node test/panel.test.mjs && node test/panel_integration.test.mjs && node test/lightpool.test.mjs && node test/paper.test.mjs && node test/safeguards.test.mjs && RS_RULES=v1 ORIG=test/original_v10.js node test/parity.mjs", "serve": "npx --yes serve docs" },
   "engines": { "node": ">=20" }
 }

@@ -1,0 +1,16 @@
+import { debate, planView } from '../docs/panel.mjs';
+const ok = (c, m) => { console.log(c ? 'PASS' : 'FAIL', m); if (!c) process.exitCode = 1; };
+const base = { lead: 'reversal', bidReady: 1, entryLow: 1, entryHigh: 1.05, stop: 0.95, tp1: 1.2, tp2: 1.4, tp3: 1.7, rr1: 1.5, rr2: 3.2, rr3: 6, riskPct: 4.5, upsidePct: 62, gatesPassed: 7, rvol4h: 2, buySell24h: 1.5, conf: 6, liquidity: 900000, price: 1.02, setupType: 'Falling wedge', rug: 'ok', ageDays: 40 };
+const proven = { setups: [{ setup: 'Falling wedge', verdict: 'proven', avgR: 0.5, n: 25 }] };
+let d = debate(planView(base), { learned: proven, volRatio: 1.3 }); ok(d && d.verdict === 'ENTER', 'strong setup with a proven record: ENTER (' + d?.verdict + ')');
+d = debate(planView(base), { learned: null }); ok(d.verdict === 'SMALL', 'same setup with no track record is capped at SMALL (' + d.verdict + ')');
+d = debate(planView({ ...base, bidReady: 0 }), { learned: proven }); ok(d.verdict === 'WAIT', 'not bid-ready: WAIT');
+d = debate(planView({ ...base, rug: 'danger' }), { learned: proven }); ok(d.verdict === 'PASS' && /Veto/.test(d.why), 'dangerous token vetoes everything');
+d = debate(planView(base), { learned: proven, watch: { state: 'in-zone', liqChgPct: -55 } }); ok(d.verdict === 'PASS', 'liquidity collapse vetoes even an in-zone proven setup');
+d = debate(planView(base), { learned: { setups: [{ setup: 'Falling wedge', verdict: 'failing', avgR: -0.9, n: 20 }] } }); ok(d.verdict === 'PASS', 'a setup the data says loses is a PASS');
+d = debate(planView({ ...base, riskPct: 2, regime: 'Risk-off', buySell24h: 0.7, liquidity: 90000, gatesPassed: 5, rvol4h: 1, conf: 2, rr2: 2.1, upsidePct: 20 }), { learned: null }); ok(d.verdict === 'PASS' && d.bear.some((x) => x.id === 'slip'), 'bear-heavy setup is a PASS and the slippage point is made');
+d = debate(planView({ ...base, price: 1.2 }), { learned: proven, watch: { state: 'far', distPct: 14 } }); ok(d.verdict === 'WAIT' && /limit/.test(d.why), 'price far above the zone: WAIT with a limit order');
+ok(debate({ lead: 'reversal' }, {}) === null, 'no plan, no opinion');
+const pv = planView({ lead: 'pattern', patName: 'Bull flag', patEntryLow: 2, patEntryHigh: 3, patStop: 1, patTp1: 4, patTp2: 5, patTp3: 6, patRisk: 30, patPassed: 7, patReady: 1, entryLow: 9, stop: 9 }); ok(pv.entryLow === 2 && pv.setupType === 'Bull flag' && pv._ready, 'pattern rows use their own plan');
+d = debate(pv, {}); ok(d.bear.some((x) => x.id === 'stop' && x.w === 3), 'a 30% stop is the bear\'s top point');
+ok(d.rebut.length >= 1 && d.rebut[0].by === 'Bull', 'the bull answers the bear\'s top point');
