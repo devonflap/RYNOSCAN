@@ -17,13 +17,13 @@ ok(simulate(null).equity === 10000 && simulate([null, 5, {}, { status: 'open' }]
 ok(simulate([sig({ id: 'Z', at: 'not a date', status: 'stopped', R: -1 })]).closedN === 0, 'paper: bad date skipped');
 // forward
 { const pl = { entryLow: 1, entryHigh: 1.1, stop: 0.9, tp1: 1.3, tp2: 1.5, tp3: 1.8 }, mk = (sym, opp, o = {}) => ({ sym, chain: 'solana', opp, signal: 'No trade', sp: pl, setupType: 'Bottom reversal', pool: 'p' + sym, score: 70, lastClose: 1.05, ...o });
-  const rows = [mk('A', 60), mk('B', 55), mk('C', 40), mk('D', 70), mk('E', 62, { signal: 'Entry signal' }), mk('F', 58, { sp: null })];
+  const rows = [mk('A', 60), mk('B', 55), mk('C', 30), mk('D', 70), mk('E', 62, { signal: 'Entry signal' }), mk('F', 58, { sp: null })];
   const got = pickCandidates(rows, [], '2026-10-14T00:00:00Z', C.newSignal, 65);
-  ok(got.map((s) => s.coin).join() === 'A,B' && got.every((s) => s.forward), 'forward: only opp 50-65 without a plan gap, no bid-ready, no low scores: ' + got.map((s) => s.coin));
+  ok(got.map((s) => s.coin).join() === 'A,B' && got.every((s) => s.forward), 'forward: only opp 40-65 without a plan gap, no bid-ready, no low scores: ' + got.map((s) => s.coin));
   ok(pickCandidates(rows, got, '2026-10-14T00:00:00Z', C.newSignal, 65).length === 0, 'forward: no duplicates while one is open');
-  const many = Array.from({ length: 50 }, (_, i) => mk('S' + i, 60)); ok(pickCandidates(many, [], '2026-10-14T00:00:00Z', C.newSignal, 65).length === 25, 'forward: capped at 25 new per scan');
-  const big = Array.from({ length: 700 }, (_, i) => ({ signalId: 'x' + i, id: 'x' + i, status: 'stopped', signalAt: '2026-10-' + String(1 + i % 28).padStart(2, '0') })); big.push({ signalId: 'o', id: 'o', status: 'open', signalAt: '2026-09-01' });
-  const t = trim(big); ok(t.length === 601 && t.some((s) => s.id === 'o'), 'forward: closed trimmed to 600, open always kept'); }
+  const many = Array.from({ length: 60 }, (_, i) => mk('S' + i, 60)); ok(pickCandidates(many, [], '2026-10-14T00:00:00Z', C.newSignal, 65).length === 40, 'forward: capped at 40 new per scan');
+  const big = Array.from({ length: 1300 }, (_, i) => ({ signalId: 'x' + i, id: 'x' + i, status: 'stopped', signalAt: '2026-10-' + String(1 + i % 28).padStart(2, '0') })); big.push({ signalId: 'o', id: 'o', status: 'open', signalAt: '2026-09-01' });
+  const t = trim(big); ok(t.length === 1201 && t.some((s) => s.id === 'o'), 'forward: closed trimmed to 1200, open always kept'); }
 // learn: near-miss is evidence but never promoted or demoted; new features
 { const rs = []; for (let i = 0; i < 20; i++) rs.push({ setup: 'Near-miss: Bottom reversal', chain: 'Solana', at: '2026-10-01T05:00:00Z', resultR: -1, status: 'stopped', regime: 'Risk-on', volDay: 'Strong' });
   for (let i = 0; i < 20; i++) rs.push({ setup: 'Bottom reversal', chain: 'Solana', at: '2026-10-01T05:00:00Z', resultR: i % 2 ? 2 : -1, status: 'x', regime: 'Risk-on', volDay: 'Strong' });
@@ -33,4 +33,4 @@ ok(simulate([sig({ id: 'Z', at: 'not a date', status: 'stopped', R: -1 })]).clos
 // volume breakout candidate: shadow by default, detected when shadows are allowed
 { const t0 = 1.7e9, cs = []; for (let i = 0; i < 70; i++) cs.push(1 + 0.02 * Math.sin(i / 3)); cs.push(1.08, 1.12); const h4 = cs.map((c, i) => [t0 + i * 14400, i ? cs[i - 1] : c, c * 1.01, c * 0.99, c, i >= cs.length - 2 ? 9000 : 1000]);
   C.RULES.allowShadow = true; const r = C.detectPatterns(h4).map((x) => x.name); C.RULES.allowShadow = false; ok(r.includes('Volume breakout'), 'volume breakout detected: ' + r.join(','));
-  ok(!C.detectPatterns(h4).some((x) => x.name === 'Volume breakout'), 'volume breakout stays shadow until proven'); }
+  ok(C.detectPatterns(h4).some((x) => x.name === 'Volume breakout'), 'volume breakout is live by default'); }

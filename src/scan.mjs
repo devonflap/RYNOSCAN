@@ -10,6 +10,8 @@ import { checkToken, fetchRegime, applyOverlays } from '../docs/overlays.mjs';
 import { debate, planView } from '../docs/panel.mjs';
 import { pickMode, poolsFromTracked } from './lightpool.mjs';
 import { enrich as enrichHolders } from './holders.mjs';
+import { enrich as enrichSocial } from './social.mjs';
+import * as shadow from './shadow.mjs';
 import { due as digestDue, compose as digestCompose } from './digest.mjs';
 import { simulate } from '../docs/paper.mjs';
 import { pickCandidates, trim as trimFwd, MAX_EVAL } from './forward.mjs';
@@ -38,7 +40,7 @@ say(`data plan: ${api.plan}, pace ${api.paceMs}ms, up to ${cfg.maxPools} pools, 
 fs.mkdirSync(OUT, { recursive: true });
 // Two scheduled slots 30 minutes apart back each other up (GitHub sometimes skips one). If a scan already ran in the last
 // scanGapMin minutes (40 by default, because scans now run hourly), the second scheduled run does nothing. Manual runs always scan.
-if (process.env.GITHUB_EVENT_NAME === 'schedule') {
+if (process.env.GITHUB_EVENT_NAME === 'schedule' || process.env.RS_SOURCE === 'chain') {
   const lastMeta = readJson(path.join(OUT, 'meta.json'), null), ageMin = lastMeta && lastMeta.scannedAt ? (Date.now() - Date.parse(lastMeta.scannedAt)) / 60000 : Infinity;
   if (ageMin < (settings.scanGapMin ?? 40)) { say(`last scan was ${Math.round(ageMin)} min ago: nothing to do this slot`); process.exit(0); }
 }
@@ -125,6 +127,9 @@ let hsStatus = 'off', hsLooked = 0, hsApplied = 0;
   } catch (e) { say('holders skipped: ' + (e.message || e)); hsStatus = 'error'; }
 }
 
+// social links from DexScreener (free, presence only). Record-only: never changes a score.
+try { if (settings.social !== false) { const r = await enrichSocial(allRows.filter(p => (p.opp != null && p.opp >= 50) || p.mine), { getJson: api.getJson, sleep: api.sleep }); say(`social links: ${r.applied} of ${r.looked} coins checked`); } } catch (e) { say('social skipped: ' + (e.message || e)); }
+
 // 4. signal log: check open signals, add new ones
 const market = mode === 'full' ? C.marketRows(allRows) : readJson(path.join(OUT, 'chainvol.json'), []), all0 = market.find(m => m.chain === 'All' && m.daysAgo === 0);
 const panelCtx = { learned, volRatio: all0 ? all0.ratio : null, btAvg: readJson(path.join(OUT, 'backtest.json'), {}).overall?.avgR ?? null, slipPct: settings.slipPct ?? 1.5 };
@@ -148,18 +153,20 @@ for (const p of kept.filter(p => p.signal === 'Entry signal')) {
 }
 log.sort((a, b) => String(b.signalAt || '').localeCompare(String(a.signalAt || '')));
 
-// 4b. forward test of near-miss candidates (opp 50 to the cut-off): logged when they appear, followed with the same rules.
+// 4b. forward test of near-miss candidates (opp 40 to the cut-off): logged when they appear, followed with the same rules.
 // Full scans only, so the extra candle calls stay small. Failure here never stops the scan.
 let fwdN = 0;
 if (mode === 'full') { try {
   const fwd0 = readJson(path.join(OUT, 'forward.json'), []).filter(s => s && typeof s === 'object'), fwd = []; let used = 0;
   for (const s of fwd0) { if ((s.status === 'open' || s.status === 'waiting for entry') && used < MAX_EVAL) { used++; try { fwd.push(await evalOne(s)); } catch { fwd.push(s); } } else fwd.push(s); }
   const fresh = pickCandidates(allRows, fwd, at, (p, t) => { const g = C.newSignal(p, t); g.volDay = volDay; return g; }, cfg.minOpp);
+  let shN = 0; try { const sh = shadow.pick(shadow.candidates(allRows, C), fwd, at, (p, t) => { const g = C.newSignal(p, t); g.volDay = volDay; return g; }); fwd.push(...sh); shN = sh.length; } catch (e) { say('shadow tracking skipped: ' + (e.message || e)); }
+  if (shN) say(`shadow patterns: ${shN} background trades logged (${[...new Set(fwd.filter(x => x.shadow).map(x => x.setup))].join(', ')})`);
   fwd.push(...fresh); const keep = trimFwd(fwd); fs.writeFileSync(path.join(OUT, 'forward.json'), JSON.stringify(keep)); fwdN = fresh.length; say(`forward test: ${fresh.length} new candidates, ${keep.length} tracked`);
 } catch (e) { say('forward test skipped: ' + (e.message || e)); } }
 
 // 5. export
-const out = kept.map(p => { const r = C.toRow(p, at); if (p.rug) r.rug = p.rug; if (p.rugFlags) r.rugFlags = p.rugFlags; if (p.regime) r.regime = p.regime; if (p.hs) r.hs = p.hs; return r; });
+const out = kept.map(p => { const r = C.toRow(p, at); if (p.rug) r.rug = p.rug; if (p.rugFlags) r.rugFlags = p.rugFlags; if (p.regime) r.regime = p.regime; if (p.hs) r.hs = p.hs; if (p.soc) r.soc = p.soc; return r; });
 const charts = kept.filter(C.chartWorthy).sort((a, b) => (b.mine ? 1 : 0) - (a.mine ? 1 : 0) || (b.opp ?? 0) - (a.opp ?? 0)).slice(0, 32).map(C.toChart);
 const meta = { scannedAt: at, mode, fullAt: mode === 'full' ? at : (lastMeta && lastMeta.fullAt) || at, refreshedN: scannedN, scannedN: mode === 'full' ? scannedN : (lastMeta && lastMeta.scannedN) || scannedN, scoredN: mode === 'full' ? scoredN : (lastMeta && lastMeta.scoredN) || scoredN, kept: out.length, minOpp: cfg.minOpp, seconds: Math.round((Date.now() - t0) / 1000), plan: api.plan, mine: mineList, regime, excluded, safetyOn: cfg.safetyChecks, regimeFilter: cfg.regimeFilter, hs: hsStatus, hsLooked, hsApplied };
 const w = (f, d) => fs.writeFileSync(path.join(OUT, f), JSON.stringify(d));

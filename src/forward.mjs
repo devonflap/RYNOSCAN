@@ -1,7 +1,7 @@
-// Forward test of near-miss candidates. Every full scan, coins that have a valid plan and opportunity 50-65 (below the
+// Forward test of near-miss candidates. Every full scan, coins that have a valid plan and opportunity 40-65 (below the
 // dashboard cut-off) are logged with their entry/stop/targets and followed with the same fill and exit rules as real signals.
 // Because they are logged when they appear, coins that later die or rug stay in the sample, which the backtest cannot do (survivorship).
-export const MIN_OPP = 50, MAX_NEW = 25, MAX_EVAL = 40, KEEP_CLOSED = 600;
+export const MIN_OPP = 40, MAX_NEW = 40, MAX_EVAL = 80, KEEP_CLOSED = 1200;
 const isOpen = (s) => s && (s.status === 'open' || s.status === 'waiting for entry');
 
 // rows: scored pools (p.sp = plan, p.opp, p.setupType); returns new candidate signals (not yet evaluated)

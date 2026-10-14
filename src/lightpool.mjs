@@ -7,7 +7,7 @@ const num = (v, d = 0) => { const x = Number(v); return isFinite(x) ? x : d; };
 // which scan to run: 'full' (discovery + everything) or 'light' (tracked coins only)
 export function pickMode({ env = {}, meta = null, trackedCount = 0, settings = {}, usage = null, now = Date.now() }) {
   const forced = String(env.SCAN_MODE || '').toLowerCase(); if (forced === 'full' || forced === 'light') return { mode: forced, why: 'forced by SCAN_MODE' };
-  if (env.GITHUB_EVENT_NAME === 'workflow_dispatch') return { mode: 'full', why: 'manual run' };
+  if (env.GITHUB_EVENT_NAME === 'workflow_dispatch' && env.RS_SOURCE !== 'chain') return { mode: 'full', why: 'manual run' };
   if (settings.lightScans === false) return { mode: 'full', why: 'light scans switched off' };
   if (trackedCount < 3) return { mode: 'full', why: 'nothing tracked yet' };
   const fullAge = meta && meta.fullAt ? (now - Date.parse(meta.fullAt)) / 3600e3 : Infinity;

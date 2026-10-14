@@ -1,7 +1,7 @@
 # RynoScan
 
 Your 4-hour-chart meme coin scanner for Solana, Robinhood Chain and Ethereum, running on its own (no Claude needed).
-It scans every hour between 6am and 10pm Brisbane (17 scans a day), updates a web dashboard, and can buzz your phone when something new shows up.
+It scans every hour, around the clock (24 scans a day), updates a web dashboard, and can buzz your phone when something new shows up.
 
 Everything is free except the data key (optional, see step 3).
 
@@ -104,5 +104,8 @@ Based on a ~10 day, 106-signal replay (small sample, treat as directional):
 - The scan, watcher and backtest workflows send a phone alert if the run itself fails. The dashboard shows a schedule warning when a run is overdue.
 
 ## v5: hourly updates
-- `scan.yml` runs hourly (6am-10pm Brisbane). Every 4th hour, right after a 4h candle closes, it is a full discovery scan; the other hours are light refreshes that rebuild the tracked coins from DexScreener (free) and only fetch their candles from CoinGecko. A full scan costs about 250 CoinGecko calls, a light one about 60, which keeps hourly updates inside a 100k-calls-a-month plan. `docs/data/usage.json` tracks the month's calls; near the limit the scan stays light.
+- `scan.yml` runs hourly, 24 hours a day. Every 4th hour, right after a 4h candle closes, it is a full discovery scan; the other hours are light refreshes that rebuild the tracked coins from DexScreener (free) and only fetch their candles from CoinGecko. A full scan costs about 250 CoinGecko calls, a light one about 60, which keeps hourly updates inside a 100k-calls-a-month plan. `docs/data/usage.json` tracks the month's calls; near the limit the scan stays light.
 - Set `"lightScans": false` in `config/settings.json` to make every run a full scan (about 130k calls a month, over a 100k plan).
+
+## Learning loop and edge report
+Every week the backtest replays recent candles and combines them with your live signals and the background trades (near-misses, and every pattern that is not live, tracked silently from each full scan). It switches a pattern on or off only when the 90% confidence range clears zero (promote: 20+ trades; switch off: 12+ trades). The dashboard's Learn section also shows an **Edge report**: whether there is an edge yet, what each pattern still needs, what winners had in common, and candidate rules checked on older and newer trades. It never changes a rule by itself.

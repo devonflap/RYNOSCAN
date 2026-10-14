@@ -2,10 +2,8 @@
 // decide() is pure so it can be tested; the CLI at the bottom is what the workflow calls.
 import fs from 'node:fs';
 export const STALE_MIN = 95;
-const bneHour = (now) => new Date(now + 10 * 3600e3).getUTCHours();
 export function decide({ scannedAt, now = Date.now(), running = 0 }) {
-  const h = bneHour(now), day = h >= 6 && h < 22, t = Date.parse(scannedAt || ''), age = isFinite(t) ? Math.round((now - t) / 60000) : null;
-  if (!day) return { action: 'ok', age, reason: 'outside the 6am-10pm Brisbane window' };
+  const t = Date.parse(scannedAt || ''), age = isFinite(t) ? Math.round((now - t) / 60000) : null;
   if (running > 0) return { action: 'ok', age, reason: 'a scan is already running or queued' };
   if (age == null) return { action: 'restart', age, reason: 'no readable last-scan time' };
   if (age > STALE_MIN) return { action: 'restart', age, reason: `last scan is ${age} minutes old` };

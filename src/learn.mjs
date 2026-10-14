@@ -3,6 +3,9 @@
 //   promote: a candidate pattern whose lower 90% bound is above zero with enough trades -> goes live
 //   demote : a live setup whose upper 90% bound is below zero with enough trades -> switched off
 // Everything else stays as it is. Small samples never change anything, which is the point: at 20 trades a streak is noise.
+import { edge } from './edge.mjs';
+import { analysts } from './analyst.mjs';
+import { FEATS } from '../docs/features.mjs';
 export const MIN_DEMOTE = 12, MIN_PROMOTE = 20, Z90 = 1.645;
 
 export function stat(R) {
@@ -31,18 +34,12 @@ export function learn(signals, defaults = { off: [], shadow: [] }, now = new Dat
   const demote = setups.filter(s => s.live && !NM(s.setup) && s.verdict === 'failing').map(s => s.setup);
   const feat = [];
   const add = (label, map) => { for (const [k, R] of map) { const st = stat(R); if (st.n >= 8) feat.push({ feature: label, bucket: k, ...st }); } };
-  add('Stop distance', by(s => s.riskPct == null ? null : bucket(+s.riskPct, [5, 10, 20], ['under 5%', '5-10%', '10-20%', 'over 20%'])));
-  add('Opportunity score', by(s => s.opp == null ? null : bucket(+s.opp, [75, 85], ['65-75', '75-85', '85+'])));
-  add('Chain', by(s => s.chain || null));
-  add('Panel verdict', by(s => s.verdict || null));
-  add('Market regime', by(s => s.regime || null));
-  add('Holder growth (3+ days)', by(s => s.hsD7 == null ? null : bucket(+s.hsD7, [0, 5, 20], ['shrinking', 'flat (0-5%)', 'growing (5-20%)', 'surging (20%+)'])));
-  add('Volume day', by(s => s.volDay || null));
-  add('Hour of day (UTC)', by(s => s.at ? bucket(new Date(s.at).getUTCHours(), [6, 12, 18], ['00-06', '06-12', '12-18', '18-24']) : null));
+  for (const [label, fn] of FEATS) add(label, by(fn));
   const insights = [];
   for (const f of feat) { if (f.hi90 != null && f.hi90 < 0) insights.push(`${f.feature} ${f.bucket}: ${f.avgR}R average over ${f.n} trades is reliably negative.`); else if (f.lo90 != null && f.lo90 > 0) insights.push(`${f.feature} ${f.bucket}: ${f.avgR}R average over ${f.n} trades is reliably positive.`); }
   const all = stat(closed.map(s => +s.resultR));
-  return { at: now.toISOString().slice(0, 19) + 'Z', total: all, setups, promote, demote, features: feat, insights,
+  const pool = closedAll.map(s => NM(s.setup) ? { ...s, setup: s.setupBase || String(s.setup).replace(/^Near-miss: /, ''), tier: 'near-miss' } : s), edgeReport = edge(closed, FEATS, setups, all, pool);
+  return { at: now.toISOString().slice(0, 19) + 'Z', total: all, setups, promote, demote, features: feat, insights, edge: edgeReport, filters: edgeReport.filters || [], analysts: analysts(pool, FEATS, notLive),
     best: closed.slice().sort((a, b) => b.resultR - a.resultR).slice(0, 5).map(s => ({ coin: s.coin, setup: s.setup, resultR: s.resultR, at: s.at || s.signalAt })),
     rules: { minDemote: MIN_DEMOTE, minPromote: MIN_PROMOTE, confidence: '90%' },
     notes: ['Learned from the replay of recent hourly candles plus the live signal log. The replay covers a couple of weeks of one market regime, so treat even a "proven" setup as provisional.', 'A pattern is only promoted or switched off when the 90% confidence interval clears zero with at least ' + MIN_PROMOTE + ' (promote) or ' + MIN_DEMOTE + ' (demote) closed trades.'] };

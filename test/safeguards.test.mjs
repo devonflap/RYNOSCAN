@@ -9,7 +9,7 @@ const U = (s) => Date.parse(s);
   const d = decide({ scannedAt: '2026-10-14T00:10:00Z', now }); ok(d.action === 'restart' && d.age === 110, 'watchdog: 110 min old in the day restarts: ' + d.reason);
   ok(decide({ scannedAt: '2026-10-14T00:10:00Z', now, running: 1 }).action === 'ok', 'watchdog: no restart while a scan is running');
   ok(decide({ scannedAt: null, now }).action === 'restart' && decide({ scannedAt: 'junk', now }).action === 'restart', 'watchdog: unreadable time restarts');
-  ok(decide({ scannedAt: '2026-10-13T05:00:00Z', now: U('2026-10-14T14:00:00Z') }).action === 'ok', 'watchdog: quiet overnight (Brisbane night)');
+  ok(decide({ scannedAt: '2026-10-13T05:00:00Z', now: U('2026-10-14T14:00:00Z') }).action === 'restart', 'watchdog: now also restarts overnight (24h)');
   ok(STALE_MIN === 95 && decide({ scannedAt: '2026-10-14T00:26:00Z', now }).action === 'ok', 'watchdog: threshold 95 minutes'); }
 // digest timing
 { const morning = U('2026-10-13T21:30:00Z') /* 07:30 Brisbane 14th */, sent = {};
