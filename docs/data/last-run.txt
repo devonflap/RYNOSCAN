@@ -1,4 +1,4 @@
-Full scan 21:31 Brisbane: 69 scanned, 58 scored, 7 above 65. On-chain volume Normal (1.04x 7-day avg).
-NEW watch: ANSEMCAT (Robinhood) Bottom reversal, opp 80, checks 5/6, stop 1.4% away, upside 52.1%; no socials/website listed.
+Hourly refresh 01:53 Brisbane: 9 tracked coins refreshed, 9 scored, 3 above 65. On-chain volume Normal (1.04x 7-day avg).
+NEW watch: INDEX (Robinhood) Double bottom, opp 68, checks 6/6, stop 23.6% away, upside 64.4%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
