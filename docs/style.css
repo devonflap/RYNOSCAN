@@ -140,3 +140,43 @@ nav{gap:6px}nav a{font-size:.8rem;padding:5px 11px}
 .rmenu button:hover,.rmenu a:hover{border-color:var(--brand);color:var(--warn)}.rmenu p{margin:2px 4px;font-size:.74rem}
 
 #lookup{padding:12px 16px}#lookup h2{display:none}#lookup .lookup{margin:0}
+
+/* ---- prominent header; the rhino is a hidden control: no hover cue, no tooltip, opens only on a completed click ---- */
+.hero{gap:22px;padding:14px 4px 6px;align-items:center}
+.hero .logo{width:132px;filter:drop-shadow(0 8px 22px #000b)}
+.hero h1{font-size:clamp(2.7rem,9vw,4.4rem);font-weight:800;letter-spacing:-.03em;line-height:1;border-bottom:0;background:none;color:var(--fg);-webkit-background-clip:initial;background-clip:initial}
+.hero h1 span{color:var(--brand)}
+.rhino{cursor:default;-webkit-tap-highlight-color:transparent;outline:none;user-select:none;-webkit-user-select:none}
+.rhino:hover,.rhino:active{background:none;filter:none;transform:none}.rhino:focus:not(:focus-visible){outline:none}
+.rmenu{top:calc(100% - 4px);left:4px;min-width:17rem;padding:10px}
+.rmenu .updated{margin:0 0 2px;font-size:.82rem}
+.rmenu .mbtn{font:inherit;font-size:.85rem;font-weight:600;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:9px 12px;text-align:left;cursor:pointer}
+.rmenu .mbtn:hover{border-color:var(--brand);color:var(--warn)}.rmenu .mbtn:disabled{opacity:.6;cursor:progress}
+/* verdict workspace: side icon rail + pane */
+.verdict #vTop>*+*{margin-top:6px}.verdict .banner{margin-top:10px}
+.vwrap{display:flex;gap:12px;margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+.vrail{display:flex;flex-direction:column;gap:6px;flex:0 0 auto}
+.vtab{display:flex;flex-direction:column;align-items:center;gap:3px;width:62px;padding:9px 4px;border-radius:12px;border:1px solid transparent;background:transparent;color:var(--mut);font:inherit;font-size:.66rem;font-weight:600;cursor:pointer}
+.vtab:hover{color:var(--fg)}.vtab.on{background:var(--panel);border-color:var(--brand);color:var(--warn)}
+.vpanes{flex:1 1 auto;min-width:0}.vpane[hidden]{display:none}
+.zrow{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:9px 0;border-bottom:1px solid var(--line)}.zrow:last-child{border-bottom:0}
+.zrow .zm{grid-column:1/-1;font-size:.78rem;color:var(--mut)}.zl b{font-size:.98rem}
+.badge.z-y{color:var(--ok)}.badge.z-w{color:var(--warn)}.badge.z-n{color:var(--mut)}.badge.z-bad{color:var(--bad)}
+.srow{display:flex;justify-content:space-between;gap:14px;padding:7px 0;border-bottom:1px solid var(--line);font-size:.85rem}.srow:last-child{border-bottom:0}.srow b{text-align:right;font-weight:600}
+@media(max-width:560px){.hero .logo{width:92px}.hero{gap:14px}.vtab{width:50px;font-size:.6rem}.vwrap{gap:8px}.rmenu{min-width:14.5rem}}
+
+.zrow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 10px}.zl{flex:1 1 12rem;min-width:0}.zrow .badge{flex:0 0 auto}.zrow .zm{flex:1 1 100%}
+
+/* ---- feature sidebar ---- */
+.shell{display:flex;align-items:flex-start;max-width:1420px;margin:0 auto}
+.shell>.wrap{flex:1 1 auto;min-width:0;margin:0}
+.side{position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto;flex:0 0 200px;padding:16px 10px;display:flex;flex-direction:column;gap:3px;background:linear-gradient(180deg,#00000055,#00000022);border-right:1px solid var(--line);scrollbar-width:none}
+.side::-webkit-scrollbar{display:none}
+.sgroup{font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);padding:12px 10px 4px}.sgroup:first-child{padding-top:2px}
+.sitem{display:flex;align-items:center;gap:11px;width:100%;padding:9px 10px;border-radius:11px;border:1px solid transparent;background:transparent;color:var(--mut);font:inherit;font-size:.85rem;font-weight:600;text-align:left;text-decoration:none;cursor:pointer}
+.sitem svg{flex:0 0 auto}.sitem:hover{color:var(--fg);background:var(--panel2)}
+.sitem.on,.sitem.cur{color:var(--warn);background:var(--panel);border-color:var(--brand)}
+.side .vtab{flex-direction:row;width:100%;font-size:.85rem;padding:9px 10px}
+@media(max-width:900px){.side{flex-basis:54px;padding:12px 5px;align-items:center}.side .sitem{justify-content:center;padding:10px 0}.side .sitem span{display:none}.sgroup{font-size:0;padding:6px 0;width:60%;border-top:1px solid var(--line);margin:4px 0 0;height:1px}.sgroup:first-child{border:0}.side .vtab{width:100%}}
+
+@media(max-width:560px){.hero .logo{width:74px}.hero h1{font-size:2.15rem}.hero{gap:10px}}

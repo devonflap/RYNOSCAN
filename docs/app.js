@@ -428,20 +428,22 @@ function controls() {
 }
 // the one-glance answer at the top: act or wait
 function verdict() {
-  const h = $('verdict'); if (!h) return; h.replaceChildren();
-  if (!S.meta) { h.hidden = true; return; } h.hidden = false;
+  const sec = $('verdict'), h = $('vTop'); if (!sec || !h) return; h.replaceChildren();
+  if (!S.meta) { sec.hidden = true; return; } sec.hidden = false;
   const rows = S.setups, bid = rows.filter((r) => r.bidReady).map(viewAuto).sort(cmpDist()), watch = rows.filter((r) => !r.bidReady && r.signal === 'Watch').map(viewAuto).sort(cmpDist());
   const reg = S.meta.regime ? [['SOL', S.meta.regime.sol], ['ETH', S.meta.regime.eth]].filter((x) => x[1]) : [], off = reg.some((x) => x[1].level === 'Risk-off');
   const closed = S.signals.filter((s) => s.resultR != null && s.status !== 'expired (no fill)'), avg = closed.length ? closed.reduce((a, s) => a + Number(s.resultR), 0) / closed.length : null;
-  h.className = 'card verdict ' + (bid.length ? 'go' : 'wait');
+  sec.className = 'card verdict ' + (bid.length ? 'go' : 'wait');
   const top = bid[0] || null;
   h.append(el('div', 'vh', bid.length ? `${bid.length} BID-READY` : 'WAIT: nothing is bid-ready'));
   if (top) { const l = entryLine(top); h.append(el('p', 'vl', `${top.coin} (${top.chain}) · ${top.setupType} · buy ${fp(top.entryLow)}–${fp(top.entryHigh)} · stop ${fp(top.stop)} (${num(top.riskPct)}% away) · TP1 ${fp(top.tp1)}`)); if (l) h.append(el('p', 'eline ' + l.cls, l.txt)); let pd = null; try { pd = debate(top, panelCtx(top)); } catch { /* ignore */ } if (pd) h.append(el('p', 'meta', `Panel verdict: ${pd.verdict} (bull ${pd.bullScore} vs bear ${pd.bearScore}). ${pd.why}`)); }
   else if (watch.length) h.append(el('p', 'vl', 'Closest to a buy zone: ' + watch.slice(0, 3).map((r) => `${r.coin} (${distZone(r) < 0.05 ? 'in zone' : num(distZone(r)) + '% above'}, opp ${r.opp})`).join(' · ')));
-  const ctx = []; if (reg.length) ctx.push('Market: ' + reg.map((x) => x[0] + ' ' + x[1].level.toLowerCase()).join(', ') + (off ? ' (size down)' : ''));
+  if (reg.length) { const rb = el('p', 'banner' + (off ? '' : ' ok')); rb.textContent = off ? `Market risk-off: ${reg.filter((x) => x[1].level === 'Risk-off').map((x) => x[0] + ' (' + (x[1].why || []).slice(0, 2).join(', ') + ')').join('; ')}. Reversals fail more often in a falling market, so size down or wait.` : `Market backdrop: ${reg.map((x) => x[0] + ' ' + x[1].level.toLowerCase()).join(', ')}.`; h.append(rb); }
+  const ctx = [];
   ctx.push(closed.length ? `Rules so far: ${rr(avg)} average over ${closed.length} closed signals${closed.length < 30 ? ' (too few to trust)' : ''}` : 'Rules so far: no closed signals yet, treat as unproven');
   h.append(el('p', 'meta', ctx.join(' · ')));
   const pos = POS.get(), ids = Object.keys(pos);
+  try { zonePane(bid, watch); } catch { /* keep going */ }
   if (ids.length) { const box = el('div', 'pos'); box.append(el('b', null, 'Your positions')); ids.forEach((id) => { const q = pos[id], w = S.watch.get(id), row = S.setups.find((r) => r.id === id), now = w && w.price != null ? w.price : row ? row.price : null;
     const st = now == null ? 'no live price' : now <= Number(q.stop) ? 'THROUGH STOP: exit' : q.tp3 && now >= Number(q.tp3) ? 'at TP3' : q.tp2 && now >= Number(q.tp2) ? 'past TP2' : q.tp1 && now >= Number(q.tp1) ? 'past TP1: stop to entry' : 'open';
     const d = el('div', 'prow'); d.append(el('span', null, `${q.coin}: now ${fp(now)} · stop ${fp(q.stop)} · TP1 ${fp(q.tp1)} · ${st}`)); const x = el('button', 'act', 'Remove'); x.type = 'button'; x.onclick = () => { const o = POS.get(); delete o[id]; POS.set(o); verdict(); draw(); }; d.append(x); box.append(d); }); h.append(box); }
@@ -461,19 +463,34 @@ function rChart() {
   host.append(svg);
 }
 
+function zonePane(bid, watch) {
+  const host = $('zonePane'); if (!host) return; host.replaceChildren();
+  const list = [...bid, ...watch].sort(cmpDist()).slice(0, 8);
+  if (!list.length) { host.append(el('p', 'empty', 'No coin is close to a buy zone right now. The scanner keeps looking and will buzz your phone when one lines up.')); return; }
+  host.append(el('p', 'meta', 'Each coin below has a valid plan. Place the limit order at the top of the buy zone; do not chase price above it.'));
+  list.forEach((r) => {
+    const d = distZone(r), w = S.watch.get(r.id), p = w && w.price != null ? w.price : Number(r.price);
+    const state = r.stop != null && p <= Number(r.stop) ? ['bad', 'through stop'] : d < 0.05 ? ['y', 'in zone now'] : d <= 3 ? ['w', num(d) + '% above'] : ['n', num(d) + '% above'];
+    const row = el('div', 'zrow'), l = el('div', 'zl'), a = el('a', 'coinlink'); a.append(el('b', null, r.coin)); if (r.pool) { a.href = dexUrl(r.chain, r.pool); a.target = '_blank'; a.rel = 'noopener'; }
+    l.append(r.pool ? a : el('b', null, r.coin), el('span', 'meta', `  ${r.chain} · ${r.setupType || 'Bottom reversal'} · opp ${r.opp}`));
+    const m = el('div', 'zm', `buy ${fp(r.entryLow)}–${fp(r.entryHigh)} · stop ${fp(r.stop)} · TP1 ${fp(r.tp1)} · now ${fp(p)}`);
+    row.append(l, el('span', 'badge z-' + state[0], r.bidReady ? 'Bid-ready · ' + state[1] : 'Watch · ' + state[1]), m); host.append(row);
+  });
+}
 function header() {
-  const m = S.meta, rows = S.setups;
-  if (!m) { $('take').textContent = 'No scan has run yet. Run the scanner once (see README) and this page fills in.'; $('sub').textContent = ''; return; }
-  const bid = rows.filter((r) => r.bidReady), watch = rows.filter((r) => !r.bidReady && r.signal === 'Watch');
-  const allv = S.vol.filter((d) => d.chain === 'All' && d.daysAgo === 0)[0], st = allv ? volState(allv.ratio) : null;
-  const top = [...bid, ...watch].sort(byOpp).slice(0, 3).map((r) => { const v = viewAuto(r); return `${r.coin} (${v._lab.toLowerCase()}, opp ${r.opp}, ${v.upsidePct != null ? '+' + num(v.upsidePct, 0) + '% to TP3' : 'no plan'})`; }).join('; ');
-  $('take').textContent = `${st ? `On-chain volume is ${st[0].toLowerCase()} today. ` : ''}${bid.length ? bid.length + ' bid-ready.' : 'Nothing is bid-ready.'} ${watch.length} worth watching.${top ? ' Best: ' + top + '.' : ''}`;
-  const next = new Date(Date.parse(m.scannedAt) + 4 * 3600e3);
-  const rg = m.regime ? [['SOL', m.regime.sol], ['ETH', m.regime.eth]].filter((x) => x[1]) : [], off = rg.filter((x) => x[1].level === 'Risk-off');
-  let bn = $('regBanner'); if (!bn) { bn = el('p', 'banner'); bn.id = 'regBanner'; $('sub').after(bn); }
-  bn.hidden = !rg.length; bn.className = 'banner' + (off.length ? '' : ' ok');
-  bn.textContent = off.length ? `Market risk-off: ${off.map((x) => x[0] + ' (' + x[1].why.slice(0, 2).join(', ') + ')').join('; ')}. Reversals fail more often in a falling market, so size down or wait.` : `Market backdrop: ${rg.map((x) => x[0] + ' ' + x[1].level.toLowerCase()).join(', ')}.`;
-  $('sub').textContent = `Last scan ${brisbane(m.scannedAt)} (${ago(m.scannedAt)}) · ${m.scoredN} of ${m.scannedN} coins scored, ${m.kept} above ${m.minOpp} · updates hourly, 6am–10pm Brisbane` + (m.mode === 'light' && m.fullAt ? ` · this was a quick refresh of ${m.refreshedN} tracked coins; the last full discovery scan was ${ago(m.fullAt)}` : '') + (S.watchAt ? ` · entry prices checked ${ago(S.watchAt)}` : '') + (S.usage && S.usage.calls != null ? ` · data use this month ${Math.round(S.usage.calls / 1000)}k of 100k calls` : '');
+  const m = S.meta, host = $('scanPane'); if (!host) return; host.replaceChildren();
+  if (!m) { host.append(el('p', 'empty', 'No scan has run yet. Run the scanner once (see README) and this page fills in.')); return; }
+  const rows = S.setups, bid = rows.filter((r) => r.bidReady), watch = rows.filter((r) => !r.bidReady && r.signal === 'Watch'), pats = rows.filter((r) => r.patName && r.patScore >= 45);
+  const line = (k, v) => { const d = el('div', 'srow'); d.append(el('span', 'meta', k), el('b', null, v)); host.append(d); };
+  line('Last scan', `${brisbane(m.scannedAt)} (${ago(m.scannedAt)})`);
+  line('Type', m.mode === 'light' ? `Hourly refresh of ${m.refreshedN} tracked coins (last full discovery scan ${m.fullAt ? ago(m.fullAt) : 'n/a'})` : 'Full discovery scan');
+  line('Coins scored', `${m.scoredN} of ${m.scannedN}, ${m.kept} above ${m.minOpp}`);
+  line('Right now', `${bid.length} bid-ready · ${watch.length} worth watching · ${pats.length} chart patterns`);
+  line('Schedule', 'hourly 6am–10pm Brisbane, full discovery every 4 hours' + (S.watchAt ? `, entry prices checked ${ago(S.watchAt)}` : ''));
+  if (S.usage && S.usage.calls != null) line('Data use this month', `${Math.round(S.usage.calls / 1000)}k of ${Math.round((m.cgLimit || 100000) / 1000)}k calls`);
+  const nx = new Date(Date.parse(m.scannedAt) + 4 * 3600e3); if (m.mode !== 'light') line('Next full scan', brisbane(nx.toISOString()));
+  if (m.hsApplied) line('Holder data', `${m.hsApplied} coins`);
+  // the market-risk banner lives with the verdict; the market tab shows the trend tiles
 }
 
 async function fearGreed() {
@@ -494,23 +511,31 @@ async function gget(path, tries = 4) {
       if (r.status === 429) { await sleep(2500 * i); continue; } if (!r.ok) return null; return await r.json(); } catch { await sleep(1200 * i); }
   } return null;
 }
+// score one coin live in this browser with the same rules as the scanner (free public feeds; nothing is saved)
+async function scoreLive(q) {
+  const { list } = await discoverPools(gget, { onlyMine: true, cap: {}, maxPools: 0, minLiquidity: 0, minVolume: 0 }, [q], () => {});
+  const p = list[0]; if (!p) return { err: 'notfound' };
+  const j = await gget(`/networks/${p.net}/pools/${p.pool}/ohlcv/hour?aggregate=1&limit=1000&currency=usd&token=base`);
+  const raw = j?.data?.attributes?.ohlcv_list;
+  if (!raw || !C.techFromRaw(p, raw)) return { err: 'young', p };
+  C.scoreList([p], Date.now());
+  await C.crossCheck([p], { getJson: async (u) => (await fetch(u)).json(), sleep, log: () => {} });
+  const sf = await checkToken(p, async (u) => { const r = await fetch(u); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+  applyOverlays([p], { safety: { [p.net + '|' + p.token]: sf }, regime: null });
+  const row = C.toRow(p, new Date().toISOString()); row.rug = p.rug; row.rugFlags = p.rugFlags; if (sf.level === 'danger') row.noTradeWhy = 'token safety: ' + sf.flags[0];
+  try { const ij = p.token ? await gget(`/networks/${p.net}/tokens/${p.token}/info`) : null, hi = parseInfo(ij); if (hi) row.hs = hi; } catch { /* optional */ }
+  return { p, row, cr: p.h4 ? C.toChart(p) : null };
+}
 async function lookup(q) {
   const out = $('lookupOut'); out.replaceChildren(); const ql = q.toLowerCase();
   const hits = S.setups.filter((r) => r.coin.toLowerCase() === ql || r.name?.toLowerCase() === ql || r.pool?.toLowerCase() === ql || r.id.toLowerCase() === ql);
   if (hits.length) { hits.forEach((r) => out.append(card(viewAuto(r), S.charts.get(r.id)))); return; }
   out.append(el('p', 'empty', `“${q}” is not above 65 in the latest scan, so I am scoring it live with the same rules…`));
   try {
-    const log = [], { list } = await discoverPools(gget, { onlyMine: true, cap: {}, maxPools: 0, minLiquidity: 0, minVolume: 0 }, [q], (m) => log.push(m));
-    const p = list[0]; if (!p) { out.replaceChildren(el('p', 'caut', `Could not find “${q}” on Solana, Robinhood Chain or Ethereum. Try the contract address, or prefix the chain, e.g. solana:BONK.`)); return; }
-    const j = await gget(`/networks/${p.net}/pools/${p.pool}/ohlcv/hour?aggregate=1&limit=1000&currency=usd&token=base`);
-    const raw = j?.data?.attributes?.ohlcv_list;
-    if (!raw || !C.techFromRaw(p, raw)) { out.replaceChildren(el('p', 'caut', `${p.sym} on ${C.CH[p.chain]} has fewer than 22 hours of candles, so it is too new to score safely.`)); return; }
-    C.scoreList([p], Date.now());
-    await C.crossCheck([p], { getJson: async (u) => (await fetch(u)).json(), sleep, log: () => {} });
-    const sf = await checkToken(p, async (u) => { const r = await fetch(u); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
-    applyOverlays([p], { safety: { [p.net + '|' + p.token]: sf }, regime: null });
-    const row = C.toRow(p, new Date().toISOString()); row.rug = p.rug; row.rugFlags = p.rugFlags; if (sf.level === 'danger') row.noTradeWhy = 'token safety: ' + sf.flags[0]; try { const ij = p.token ? await gget(`/networks/${p.net}/tokens/${p.token}/info`) : null, hi = parseInfo(ij); if (hi) row.hs = hi; } catch { /* optional */ } const cr = p.h4 ? C.toChart(p) : null;
-    out.replaceChildren(el('p', 'note', 'Live score, not part of the saved scan. Opportunity under 65 is not something the scanner would list.')); out.append(card(viewAuto(row), cr));
+    const res = await scoreLive(q);
+    if (res.err === 'notfound') { out.replaceChildren(el('p', 'caut', `Could not find “${q}” on Solana, Robinhood Chain or Ethereum. Try the contract address, or prefix the chain, e.g. solana:BONK.`)); return; }
+    if (res.err === 'young') { out.replaceChildren(el('p', 'caut', `${res.p.sym} on ${C.CH[res.p.chain]} has fewer than 22 hours of candles, so it is too new to score safely.`)); return; }
+    out.replaceChildren(el('p', 'note', 'Live score, not part of the saved scan. Opportunity under 65 is not something the scanner would list.')); out.append(card(viewAuto(res.row), res.cr));
   } catch (e) { out.replaceChildren(el('p', 'caut', 'Live lookup failed (' + (e.message || e) + '). The free data feed may be rate-limiting; try again in a minute.')); }
 }
 $('lookupForm').addEventListener('submit', (e) => { e.preventDefault(); const q = $('lookupQ').value.trim(); if (q) lookup(q); });
@@ -551,6 +576,7 @@ async function loadAll() {
   S.setups = arr(setups); S.signals = arr(signals); S.fwd = arr(fwd); S.charts = new Map(arr(charts).filter((c) => c.id != null).map((c) => [c.id, c])); S.vol = arr(vol); S.usage = obj(usage) ? usage : null; S.meta = obj(meta) && meta.scannedAt ? meta : null; S.bt = obj(bt) && Array.isArray(bt.byType) && bt.overall ? bt : null;
   S.learned = obj(learned) && Array.isArray(learned.setups) ? { ...learned, promote: Array.isArray(learned.promote) ? learned.promote : [], demote: Array.isArray(learned.demote) ? learned.demote : [], insights: Array.isArray(learned.insights) ? learned.insights : [], total: obj(learned.total) || {} } : null; try { C.applyLearned(learned); } catch { /* ignore */ }
   S.watch = new Map(arr(watch && watch.items).filter((w) => w.id != null).map((w) => [w.id, w])); S.watchAt = watch && watch.at && watch.scanAt === (meta && meta.scannedAt) ? watch.at : (watch && watch.at) || null;
+  if (S.live && S.meta && S.live.at > Date.parse(S.meta.scannedAt)) { const m = S.live; S.setups = S.setups.map((r) => m.fresh.get(r.id) || r).filter((r) => r.mine || r.opp == null || r.opp > (S.meta.minOpp ?? 65) || !m.fresh.has(r.id)); m.charts.forEach((c, id) => S.charts.set(id, c)); }
   header(); verdict(); draw(); fearGreed(); drawBacktest(); drawLearn(); try { drawPaper(); } catch { /* keep the page alive */ } stamp();
 }
 // ---------- boot ----------
@@ -569,17 +595,64 @@ function stamp() {
     hl.hidden = !issues.length; hl.textContent = issues.length ? 'Schedule warning: ' + issues.join('; ') + '. GitHub may have skipped runs; open the Actions tab and run it manually.' : ''; }
 }
 
+
+// ---------- verdict side tabs ----------
+function wireTabs() {
+  const tabs = [...document.querySelectorAll('.vtab')]; if (!tabs.length) return;
+  const show = (k) => { tabs.forEach((t) => { const on = t.dataset.tab === k; t.classList.toggle('on', on); t.setAttribute('aria-selected', String(on)); }); document.querySelectorAll('.vpane').forEach((p) => { p.hidden = p.id !== 'pane-' + k; }); try { store.set('rynoTab', k); } catch { /* optional */ } };
+  tabs.forEach((t) => t.addEventListener('click', () => show(t.dataset.tab)));
+  let k = 'zone'; try { k = store.get('rynoTab') || 'zone'; } catch { /* default */ } show(tabs.some((t) => t.dataset.tab === k) ? k : 'zone');
+}
+
+// ---------- feature sidebar: highlight the section in view; Overview items pick a pane and scroll to the card ----------
+function wireSide() {
+  const items = [...document.querySelectorAll('.sitem[data-sec]')]; if (!items.length) return;
+  const secs = items.map((a) => ({ a, s: document.getElementById(a.dataset.sec) }));
+  let tick = false; const mark = () => { tick = false; let cur = null, best = -1e9; for (const x of secs) { if (!x.s || x.s.hidden) continue; const t = x.s.getBoundingClientRect().top; if (t <= 140 && t > best) { best = t; cur = x; } } if (window.scrollY < 200) cur = null; secs.forEach((x) => x.a.classList.toggle('cur', x === cur)); };
+  window.addEventListener('scroll', () => { if (!tick) { tick = true; requestAnimationFrame(mark); } }, { passive: true }); mark();
+  document.querySelectorAll('.side .vtab').forEach((b) => b.addEventListener('click', () => { const v = $('verdict'); if (v && !v.hidden) v.scrollIntoView({ behavior: 'smooth', block: 'start' }); }));
+}
 // ---------- tidy: fold the explanatory notes, and the hidden rhino menu ----------
 function tidy() {
   document.querySelectorAll('.card > p.note').forEach((p) => { const d = el('details', 'about'), s = el('summary', null, 'ⓘ About this section'); p.replaceWith(d); d.append(s, p); });
-  const gh = (() => { const m = location.hostname.match(/^([^.]+)\.github\.io$/), seg = location.pathname.split('/').filter(Boolean)[0]; return m && seg && !/\.(html?|js)$/.test(seg) ? { o: m[1], r: seg } : null; })();
   const rh = $('rhino'), menu = $('rmenu'); if (!rh || !menu) return;
   const close = () => { menu.hidden = true; rh.setAttribute('aria-expanded', 'false'); };
   rh.addEventListener('click', (e) => { e.stopPropagation(); menu.hidden = !menu.hidden; rh.setAttribute('aria-expanded', String(!menu.hidden)); });
   document.addEventListener('click', (e) => { if (!menu.hidden && !menu.contains(e.target)) close(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
-  $('rReload').addEventListener('click', () => { close(); refresh(true); });
-  if (gh) { const a = $('rScan'); a.href = `https://github.com/${gh.o}/${gh.r}/actions/workflows/scan.yml`; a.hidden = false; $('rNote').hidden = false; a.addEventListener('click', () => setTimeout(close, 200)); }
+  $('rScanNow').addEventListener('click', () => { close(); liveScan(); });
+}
+
+// ---------- scan now: re-score the tracked coins in this browser (no GitHub needed) ----------
+S.live = null; let liveBusy = false;
+const CHSLUG = { Solana: 'solana', Ethereum: 'ethereum', Robinhood: 'robinhood' };
+async function liveScan() {
+  if (liveBusy) return; const note = $('refreshNote'), item = $('rScanNow'); liveBusy = true; if (item) item.disabled = true;
+  const say = (t) => { if (note) note.textContent = t; if (item) item.textContent = t; };
+  try {
+    const rows = S.setups.filter((r) => r.pool && r.token && CHSLUG[r.chain]).sort(byOpp).slice(0, 20); let done = 0, failed = 0, dropped = 0;
+    if (!rows.length) { say('Nothing to re-score yet'); return; }
+    const fresh = new Map(), charts = new Map();
+    for (const r of rows) {
+      say(`Scanning live ${done + 1} of ${rows.length}…`);
+      try {
+        const res = await scoreLive(`${CHSLUG[r.chain]}:${r.token}`);
+        if (res.row) { const nr = { ...r, ...res.row, hs: { ...(r.hs || {}), ...(res.row.hs || {}) }, regime: r.regime, mine: r.mine }; fresh.set(r.id, nr); if (res.cr) charts.set(r.id, { ...res.cr, id: r.id }); } else failed++;
+      } catch { failed++; }
+      done++; if (done % 4 === 0 || done === rows.length) { applyLive(fresh, charts); }
+      await sleep(4500); // stays inside the free feed limit of about 30 calls a minute (3 calls per coin)
+    }
+    dropped = [...fresh.values()].filter((x) => x.opp == null || x.opp <= (S.meta ? S.meta.minOpp : 65)).length;
+    S.live = { at: Date.now(), fresh, charts }; applyLive(fresh, charts, true);
+    say(`Live scan ${clock()}: ${fresh.size} re-scored${failed ? `, ${failed} unavailable (feed busy)` : ''}${dropped ? `, ${dropped} now below 65` : ''}. Not saved to the log.`);
+  } catch (e) { say('Live scan failed: ' + (e.message || e)); }
+  finally { liveBusy = false; if (item) { item.disabled = false; item.textContent = 'Scan now (live, in this page)'; } }
+}
+// put re-scored rows into the page; rows that fall to 65 or below drop off, as in a normal scan
+function applyLive(fresh, charts, final) {
+  const min = S.meta ? S.meta.minOpp : 65;
+  S.setups = S.setups.map((r) => fresh.get(r.id) || r).filter((r) => r.mine || r.opp == null || r.opp > min || !fresh.has(r.id));
+  charts.forEach((c, id) => S.charts.set(id, c)); LIVE.clear(); draw(); verdict();
 }
 // ---------- refresh ----------
 let refreshing = false;
@@ -587,12 +660,12 @@ async function refresh(manual) {
   if (refreshing) return; refreshing = true; const b = $('refreshBtn'); if (b) { b.disabled = true; b.textContent = 'Refreshing…'; }
   const before = S.meta ? S.meta.scannedAt : null;
   try { await loadAll(); } catch { /* keep what is on screen */ }
-  if (b) { b.disabled = false; b.textContent = 'Refresh'; }
+  if (b) { b.disabled = false; b.textContent = 'Reload data'; }
   if (manual) { const u = $('refreshNote'); if (u) { const fresh = S.meta && S.meta.scannedAt !== before; u.textContent = fresh ? 'New scan loaded.' : 'Already the latest scan.'; setTimeout(() => { u.textContent = ''; }, 6000); } }
   refreshing = false;
 }
 (async () => {
-  tidy(); await loadAll(); stamp(); setInterval(stamp, 60000);
+  tidy(); wireTabs(); wireSide(); await loadAll(); stamp(); setInterval(stamp, 60000);
   const b = $('refreshBtn'); if (b) b.addEventListener('click', () => refresh(true));
   setInterval(() => { if (!document.hidden) refresh(false); }, 5 * 60000);          // quiet refresh every 5 minutes
   document.addEventListener('visibilitychange', () => { if (!document.hidden && S.meta && Date.now() - Date.parse(S.meta.scannedAt) > 20 * 60000) refresh(false); }); // coming back to the tab

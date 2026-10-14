@@ -10,6 +10,17 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div class="shell">
+<aside class="side" id="side" aria-label="Features">
+  <div class="sgroup">Overview</div>
+  <button type="button" class="sitem vtab" data-tab="zone" title="Buy zone" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".8" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><span>Buy zone</span></button><button type="button" class="sitem vtab" data-tab="mkt" title="Market" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg><span>Market</span></button><button type="button" class="sitem vtab" data-tab="vol" title="Volume" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V11M10 20V5M16 20v-7M22 20H2"/></svg><span>Volume</span></button><button type="button" class="sitem vtab" data-tab="scan" title="Scan info" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 12l6-6"/><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></svg><span>Scan info</span></button>
+  <div class="sgroup">Trades</div>
+  <a class="sitem" href="#bid" data-sec="bid" title="Bid-ready"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/></svg><span>Bid-ready</span></a><a class="sitem" href="#plans" data-sec="plans" title="Worth watching"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span>Worth watching</span></a><a class="sitem" href="#patterns" data-sec="patterns" title="Patterns"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg><span>Patterns</span></a>
+  <div class="sgroup">Results</div>
+  <a class="sitem" href="#paper" data-sec="paper" title="Paper trading"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12.5h2M3 10h18"/></svg><span>Paper trading</span></a><a class="sitem" href="#log" data-sec="log" title="Signal log"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Signal log</span></a><a class="sitem" href="#learn" data-sec="learn" title="What works"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0012 3z"/></svg><span>What works</span></a><a class="sitem" href="#backtest" data-sec="backtest" title="Backtest"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Backtest</span></a>
+  <div class="sgroup">Tools</div>
+  <a class="sitem" href="#lookup" data-sec="lookup" title="Check a coin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span>Check a coin</span></a>
+</aside>
 <div class="wrap">
   <section class="card" id="lookup">
     <h2>Check a coin</h2>
@@ -18,35 +29,38 @@
     <div id="lookupOut" class="plans"></div>
   </section>
   <header class="hero">
-    <button class="rhino" id="rhino" type="button" aria-label="RynoScan menu" aria-haspopup="true" aria-expanded="false"><img class="logo" src="logo.png" alt="RynoScan rhinoceros logo"></button>
-    <div class="rmenu" id="rmenu" hidden role="menu"><button type="button" role="menuitem" id="rReload">Reload data now</button><a role="menuitem" id="rScan" href="#" target="_blank" rel="noopener" hidden>Run a scan now ↗</a><p class="meta" id="rNote" hidden>On GitHub press <b>Run workflow</b> twice. New charts appear in about 5 minutes.</p></div>
-    <div>
-      <h1>RynoScan</h1>
+    <button class="rhino" id="rhino" type="button" aria-label="Menu" aria-haspopup="true" aria-expanded="false"><img class="logo" src="logo.png" alt="RynoScan rhinoceros logo"></button>
+    <h1>Ryno<span>Scan</span></h1>
+    <div class="rmenu" id="rmenu" hidden role="menu">
       <p class="updated" id="updated" aria-live="polite">Last updated: loading…</p>
-      <p class="refreshrow"><button id="refreshBtn" class="refreshbtn" type="button">Refresh</button> <span id="refreshNote" class="meta" aria-live="polite"></span></p>
-      <p class="health" id="health" hidden></p>
-      <p class="hint" id="setupHint" hidden></p>
-      <p class="take" id="take">Loading the latest scan…</p>
-      <p class="sub" id="sub"></p>
+      <button id="refreshBtn" class="mbtn" type="button" role="menuitem">Reload data</button>
+      <button type="button" class="mbtn" role="menuitem" id="rScanNow">Scan now (live, in this page)</button>
+      <p class="meta" id="refreshNote" aria-live="polite"></p>
+      <p class="meta" id="rNote">Scan now re-scores your tracked coins here in about 2 minutes. Nothing leaves this page and no GitHub run is needed.</p>
     </div>
   </header>
-  <section class="card verdict" id="verdict" hidden></section>
-  <nav aria-label="Sections"><a href="#lookup">Check a coin</a><a href="#bid">Bid-ready</a><a href="#plans">Worth watching</a><a href="#patterns">Patterns &amp; bottoms</a><a href="#paper">Paper trading</a><a href="#log">Signal log</a><a href="#learn">What works</a><a href="#backtest">Backtest</a></nav>
+  <p class="health" id="health" hidden></p>
+  <p class="hint" id="setupHint" hidden></p>
+  <section class="card verdict" id="verdict" hidden>
+    <div id="vTop"></div>
+    <div class="vwrap">
+      <div class="vpanes">
+        <div class="vpane" id="pane-zone" role="tabpanel" hidden><div id="zonePane"></div></div>
+        <div class="vpane" id="pane-mkt" role="tabpanel" hidden><div id="regBox"></div><div class="vgrid" id="fgGrid"></div></div>
+        <div class="vpane" id="pane-vol" role="tabpanel" hidden>
+          <div class="row"><b>On-chain volume today</b> <span class="pill" id="volPill">—</span></div>
+          <p class="tip" id="volTip">—</p>
+          <div class="vgrid" id="volGrid"></div>
+          <div id="volChart"></div>
+          <p class="meta">Dollar volume traded on-chain in the last 24 hours across the scanned coins that have at least 14 days of history, against the average of the 7 days before. Bars are the last 14 rolling 24-hour windows; the dashed line is the 7-day average. Thin volume means weaker follow-through and stops that slip, so on a poor day the sensible number of trades is none or one small one.</p>
+        </div>
+        <div class="vpane" id="pane-scan" role="tabpanel" hidden><div id="scanPane"></div></div>
+      </div>
+    </div>
+  </section>
 
   <div class="ctl" id="ctl" aria-label="Filter and sort"></div>
 
-  <section class="card" id="mkt">
-    <h2>Market backdrop</h2>
-    <div class="vgrid" id="fgGrid"></div>
-  </section>
-
-  <details class="card fold" id="vol">
-    <summary><span class="row"><h2>On-chain volume today</h2><span class="pill" id="volPill">—</span></span></summary>
-    <p class="tip" id="volTip">—</p>
-    <div class="vgrid" id="volGrid"></div>
-    <div id="volChart"></div>
-    <p class="note">Dollar volume traded on-chain in the last 24 hours across the scanned coins that have at least 14 days of history (the same coins every day), against the average of the 7 days before. Bars are the last 14 rolling 24-hour windows; the dashed line is the 7-day average. Thin volume means weaker follow-through on reversals and stops that slip, so on a poor day the sensible number of trades is none or one small one.</p>
-  </details>
 
   <section class="tiles" id="tiles"></section>
 
@@ -107,6 +121,7 @@
 
   <p class="foot">Rule-based screen, not financial advice. Rules are untested until the signal log has about 30 closed signals. Meme coins can go to zero and stops can gap on thin liquidity.</p>
 </div>
-<script type="module" src="app.js?v=20261014j"></script>
+</div>
+<script type="module" src="app.js?v=20261014m"></script>
 </body>
 </html>
