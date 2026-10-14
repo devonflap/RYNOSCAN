@@ -95,3 +95,19 @@ export function applyOverlays(rows, { safety = {}, regime = null, regimeFilter =
   }
   return excluded;
 }
+
+// Cooldown: a coin whose last signal ended "stopped out" within `hours` cannot be an Entry signal again yet.
+// Returns how many coins were held back. Never throws on odd rows: it just skips them.
+export function applyCooldown(rows, prevSignals, hours = 48, CH = {}, now = Date.now()) {
+  const cooling = new Set();
+  for (const s of prevSignals || []) if (s.status === 'stopped out' && s.closedAt && now - Date.parse(s.closedAt) < hours * 3600e3) cooling.add(s.id);
+  let n = 0;
+  for (const p of rows) {
+    if (p.opp == null || p.signal !== 'Entry signal') continue;
+    const id = String(CH[p.chain] || p.chain || '').slice(0, 3).toUpperCase() + ':' + p.sym;
+    if (!cooling.has(id)) continue;
+    p.signal = 'Watch'; p.ready = false; if (p.pat) p.pat.ready = false;
+    (p.flags = p.flags || []).push(`cooling off: stopped out within ${hours}h`); p.opp = Math.max(0, p.opp - 10); n++;
+  }
+  return n;
+}
