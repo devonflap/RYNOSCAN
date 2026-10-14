@@ -64,3 +64,6 @@ details.card summary{cursor:pointer;list-style:none}
 .ok-line{font-size:.78rem;color:var(--ok)}ul.note{padding-left:18px}
 .updated{margin:2px 0 0;color:var(--cyan);font-size:.9rem;font-weight:600}
 .updated.stale{color:var(--warn)}
+.refreshrow{margin:4px 0 0;display:flex;gap:10px;align-items:center}
+.refreshbtn{font:inherit;font-size:.8rem;font-weight:600;color:var(--fg);background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:4px 12px;cursor:pointer}
+.refreshbtn:disabled{opacity:.6;cursor:progress}

@@ -25,7 +25,7 @@ const ago = (iso) => { const m = Math.round((Date.now() - Date.parse(iso)) / 600
 const brisbane = (iso) => new Date(iso).toLocaleString('en-AU', { timeZone: 'Australia/Brisbane', weekday: 'short', hour: 'numeric', minute: '2-digit', hour12: true }) + ' Brisbane';
 
 // ---------- data ----------
-const getJ = async (f, d) => { try { const r = await fetch('data/' + f + '?t=' + Date.now()); if (!r.ok) throw 0; return await r.json(); } catch { return d; } };
+const getJ = async (f, d) => { try { const r = await fetch('data/' + f + '?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) throw 0; return await r.json(); } catch { return d; } };
 const GATES = [['gDivergence', 'Bullish divergence'], ['gRsiFlip', 'RSI flipping up'], ['gVolume', 'Volume confirms'], ['gBuyers', 'Buyers in control'], ['gZone', 'Price in entry zone'], ['gStructure', 'Structure turning up'], ['gSafe', 'Safe to size']];
 const PGATES = [['pShape', 'Clean pattern shape'], ['pBrk', 'Broke out, not chased'], ['pVolume', 'Volume on breakout'], ['pBuyers', 'Buyers in control'], ['pRoom', 'Not overextended'], ['pSafe', 'Safe to size'], ['pReward', 'Pays at least 2R']];
 const PATS = ['Bull flag', 'Inverse H&S', 'Cup & handle', 'Falling wedge', 'Double bottom', 'Trend pullback'];
@@ -234,7 +234,7 @@ function header() {
 }
 
 async function fearGreed() {
-  const g = $('fgGrid');
+  const g = $('fgGrid'); g.replaceChildren();
   const cell = (l, v, n) => { const d = el('div', 'vcell'); d.append(el('div', 'l', l), el('div', 'v', v)); if (n) d.append(el('div', 'l', n)); g.append(d); };
   try { const j = await (await fetch('https://api.alternative.me/fng/?limit=2')).json(), a = j.data[0], b = j.data[1]; cell('Crypto Fear & Greed', a.value, `${a.value_classification}${b ? ' · yesterday ' + b.value : ''}`); } catch { cell('Crypto Fear & Greed', '—', 'unavailable'); }
   const al = S.vol.find((d) => d.chain === 'All' && d.daysAgo === 0); if (al) cell('On-chain volume vs 7-day avg', Math.round((al.ratio ?? 0) * 100) + '%', volState(al.ratio)[0]);
@@ -303,4 +303,19 @@ function stamp() {
   let when; try { when = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }).format(t) + ' Brisbane time'; } catch { when = t.toLocaleString(); }
   u.textContent = `Last updated: ${when} (${ago})`; u.classList.toggle('stale', mins > 180);
 }
-(async () => { await loadAll(); stamp(); setInterval(stamp, 60000); })();
+// ---------- refresh ----------
+let refreshing = false;
+async function refresh(manual) {
+  if (refreshing) return; refreshing = true; const b = $('refreshBtn'); if (b) { b.disabled = true; b.textContent = 'Refreshing…'; }
+  const before = S.meta ? S.meta.scannedAt : null;
+  try { await loadAll(); } catch { /* keep what is on screen */ }
+  if (b) { b.disabled = false; b.textContent = 'Refresh'; }
+  if (manual) { const u = $('refreshNote'); if (u) { const fresh = S.meta && S.meta.scannedAt !== before; u.textContent = fresh ? 'New scan loaded.' : 'Already the latest scan.'; setTimeout(() => { u.textContent = ''; }, 6000); } }
+  refreshing = false;
+}
+(async () => {
+  await loadAll(); stamp(); setInterval(stamp, 60000);
+  const b = $('refreshBtn'); if (b) b.addEventListener('click', () => refresh(true));
+  setInterval(() => { if (!document.hidden) refresh(false); }, 5 * 60000);          // quiet refresh every 5 minutes
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && S.meta && Date.now() - Date.parse(S.meta.scannedAt) > 20 * 60000) refresh(false); }); // coming back to the tab
+})();

@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>RynoScan</title>
 <link rel="icon" href="logo.png">
@@ -14,6 +15,7 @@
     <div>
       <h1>RynoScan</h1>
       <p class="updated" id="updated" aria-live="polite">Last updated: loading…</p>
+      <p class="refreshrow"><button id="refreshBtn" class="refreshbtn" type="button">Refresh</button> <span id="refreshNote" class="meta" aria-live="polite"></span></p>
       <p class="take" id="take">Loading the latest scan…</p>
       <p class="sub" id="sub"></p>
     </div>
@@ -83,6 +85,6 @@
 
   <p class="foot">Rule-based screen, not financial advice. Rules are untested until the signal log has about 30 closed signals. Meme coins can go to zero and stops can gap on thin liquidity.</p>
 </div>
-<script type="module" src="app.js"></script>
+<script type="module" src="app.js?v=20261014b"></script>
 </body>
 </html>
