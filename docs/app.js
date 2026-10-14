@@ -120,8 +120,7 @@ function card(r, cr) {
   if (cr && r.entryLow != null) c.append(candleChart(r, cr));
   if (r.entryLow != null && r.stop != null) c.append(levels(r));
   else c.append(el('p', 'caut', r.noTradeWhy || r.scanState || 'No valid trade plan on the current 4h chart: no clean stop that pays at least 2R.'));
-  if (r.entryLow != null && r.stop != null) { const sz = sizeFor(r); if (sz) { const d = el('div', 'sizing'); d.innerHTML = sz.text; c.append(d); } }
-  const g = el('div', 'gates'); r._g.forEach(([k, lab]) => g.append(el('span', 'g ' + (r[k] ? 'y' : 'n'), (r[k] ? '✓ ' : '✗ ') + lab))); c.append(g);
+    const g = el('div', 'gates'); r._g.forEach(([k, lab]) => g.append(el('span', 'g ' + (r[k] ? 'y' : 'n'), (r[k] ? '✓ ' : '✗ ') + lab))); c.append(g);
   if (r.rug === 'ok') c.append(el('p', 'ok-line', '✓ Token checks clear (no mint/freeze control, honeypot or tax flags found)'));
   else if (r.rug === 'warn') c.append(el('p', 'caut', 'Token flags: ' + (r.rugFlags || 'see contract')));
   else if (r.rug === 'unchecked' || (r.rug == null && S.meta && S.meta.safetyOn)) c.append(el('p', 'caut', 'Token not checked by the safety feed: look at the contract and top holders yourself before buying.'));
@@ -139,17 +138,8 @@ function card(r, cr) {
 }
 
 // ---------- main ----------
-const S = { setups: [], signals: [], charts: new Map(), vol: [], meta: null, bt: null, patFilter: 'All', volChain: 'All', size: { acct: '', risk: 1, liq: 1, max: 3 } };
-try { Object.assign(S.size, JSON.parse(localStorage.getItem('rynoSize') || '{}')); } catch { /* storage blocked: fine */ }
+const S = { setups: [], signals: [], charts: new Map(), vol: [], meta: null, bt: null, patFilter: 'All', volChain: 'All' };
 const openCount = () => S.signals.filter((s) => s.status === 'open' || s.status === 'waiting for entry').length;
-function sizeFor(r) {
-  const z = S.size, liqCap = r.liquidity ? r.liquidity * (Number(z.liq) || 1) / 100 : null, acct = Number(z.acct) || 0;
-  if (!liqCap) return null;
-  if (!acct || !r.riskPct) return { text: `Max by liquidity about <b>${usd(liqCap)}</b> (${Number(z.liq) || 1}% of the pool)${acct ? '' : '. Enter your account size above for a full suggestion.'}` };
-  const byRisk = acct * (Number(z.risk) || 1) / 100 / (r.riskPct / 100), size = Math.min(byRisk, liqCap, acct);
-  return { text: `Suggested size <b>${usd(size)}</b> (${Math.round(size / acct * 100)}% of account), risking about ${usd(size * r.riskPct / 100)} if the stop hits. Limited by ${size === liqCap ? 'pool liquidity' : size === acct ? 'your account' : 'the stop distance'}.` };
-}
-
 function fill(host, rows, mk, empty) {
   host.replaceChildren();
   if (!rows.length) { host.append(el('p', 'empty', empty)); return; }
@@ -193,7 +183,7 @@ function tiles(rows) {
   const closed = S.signals.filter((s) => s.resultR != null && s.status !== 'expired (no fill)'), wins = closed.filter((s) => s.resultR > 0).length;
   const avg = closed.length ? closed.reduce((a, s) => a + Number(s.resultR), 0) / closed.length : null;
   [['Bid-ready', bid.length, 'all 7 gates pass', '#34d399'], ['Worth watching', watch.length, 'close to bid-ready', '#fbbf24'], ['Chart patterns', pats.length, `${pats.filter((r) => r.patReady).length} bid-ready`, '#a78bfa'], ['Bottomed out', bots.length, 'turning up from oversold', '#38e1f8'],
-    ['Open positions', `${openCount()} / ${Number(S.size.max) || 3}`, openCount() >= (Number(S.size.max) || 3) ? 'at your limit: skip new signals' : 'signals still open or waiting', openCount() >= (Number(S.size.max) || 3) ? '#f87171' : '#38e1f8'],
+    ['Open positions', `${openCount()}`, 'signals still open or waiting', '#38e1f8'],
     ['Signal log', closed.length ? `${Math.round(wins / closed.length * 100)}%` : '—', closed.length ? `win rate · avg ${rr(avg)} · ${closed.length} closed` : 'no closed signals yet', '#38a1ff']]
     .forEach(([l, v, n, c]) => { const d = el('div', 'tile'); d.style.setProperty('--c', c); d.append(el('div', 'lbl', l), el('div', 'big', v), el('div', 'nt', n)); t.append(d); });
 }
@@ -296,21 +286,13 @@ function drawBacktest() {
   if (b.exitVariants && b.exitVariants.length) { xw.hidden = false; b.exitVariants.forEach((x) => { const tr = el('tr'); tr.append(el('td', null, x.name), el('td', 'n', x.closed), el('td', 'n', x.winRate != null ? Math.round(x.winRate * 100) + '%' : '—'), el('td', 'n ' + (x.avgR > 0 ? 'pos' : 'neg'), x.avgR != null ? rr(x.avgR) : '—'), el('td', 'n', x.profitFactor ?? '—')); xb.append(tr); }); } else xw.hidden = true;
   const ul = $('btNotes'); ul.replaceChildren(); b.notes.forEach((n) => ul.append(el('li', null, n)));
 }
-function wireSize() {
-  const map = { szAcct: 'acct', szRisk: 'risk', szLiq: 'liq', szMax: 'max' };
-  for (const id in map) { const i = $(id); if (S.size[map[id]] !== '' && S.size[map[id]] != null) i.value = S.size[map[id]];
-    i.addEventListener('input', () => { S.size[map[id]] = i.value; try { localStorage.setItem('rynoSize', JSON.stringify(S.size)); } catch { /* ignore */ } draw(); sizeNote(); }); }
-  sizeNote();
-}
-function sizeNote() { const n = Number(S.size.max) || 3, o = openCount(); $('szNote').textContent = `${o} of ${n} positions open.${o >= n ? ' You are at your limit: skip new signals until one closes.' : ''}`; }
-
 // ---------- data loading ----------
 const store = { get(k) { try { return localStorage.getItem(k) || ''; } catch { return ''; } }, set(k, v) { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch { /* storage blocked: fine */ } } };
 function guessRepo() { const saved = store.get('rynoRepo'); if (saved) return saved; const m = location.hostname.match(/^([^.]+)\.github\.io$/), p = location.pathname.split('/').filter(Boolean)[0]; return m && p ? m[1] + '/' + p : ''; }
 async function loadAll() {
   const [setups, signals, charts, vol, meta, bt] = await Promise.all([getJ('setups.json', []), getJ('signals.json', []), getJ('charts.json', []), getJ('chainvol.json', []), getJ('meta.json', null), getJ('backtest.json', null)]);
   S.setups = setups; S.signals = signals; S.charts = new Map(charts.map((c) => [c.id, c])); S.vol = vol; S.meta = meta; S.bt = bt;
-  header(); draw(); fearGreed(); drawBacktest(); sizeNote(); stamp();
+  header(); draw(); fearGreed(); drawBacktest(); stamp();
 }
 // ---------- boot ----------
 function stamp() {
@@ -321,4 +303,4 @@ function stamp() {
   let when; try { when = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }).format(t) + ' Brisbane time'; } catch { when = t.toLocaleString(); }
   u.textContent = `Last updated: ${when} (${ago})`; u.classList.toggle('stale', mins > 180);
 }
-(async () => { await loadAll(); wireSize(); stamp(); setInterval(stamp, 60000); })();
+(async () => { await loadAll(); stamp(); setInterval(stamp, 60000); })();
