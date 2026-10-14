@@ -1,6 +1,6 @@
-Scan 17:51 Brisbane: 72 scanned, 61 scored, 4 above 65. On-chain volume Normal (1.1x 7-day avg).
-No longer bid-ready: INDEX (Robinhood).
-No longer bid-ready: OTC (Solana).
-Signal INDEX: open, open -0.18R.
+Scan 18:26 Brisbane: 74 scanned, 63 scored, 3 above 65. On-chain volume Normal (1.09x 7-day avg).
+NEW watch: PUMP (Solana) Bottom reversal, opp 74, checks 6/6, stop 6.4% away, upside 33.7%.
+NEW watch: STONK (Solana) Bottom reversal, opp 73, checks 5/6, stop 11.1% away, upside 75.7%; volume fading.
+NEW watch: SI (Solana) Bottom reversal, opp 70, checks 5/6, stop 17.3% away, upside 134%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
