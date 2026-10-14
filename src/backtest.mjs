@@ -21,6 +21,7 @@ const t0 = Date.now(); const say = m => console.log(`[${((Date.now() - t0) / 100
 say(`backtest: plan ${api.plan}, up to ${cfg.maxPools} coins`);
 const { list } = await discoverPools(api.get, cfg, [], m => api.log.push(m));
 const WARM = 384, TAIL = 192, STEP_OK = t => (t + 3600) % 14400 === 0; // 4h candle just closed
+const VARIANTS = { 'Breakeven after TP1 (current)': { tp1Stop: 0 }, 'Stop half a risk below entry after TP1': { tp1Stop: 0.5 }, 'Keep the original stop until TP2': { tp1Stop: 1 }, 'Breakeven after TP1, then stop at TP1 after TP2': { tp1Stop: 0, ladder: true } };
 const signals = []; let coins = 0, cuts = 0, i = 0;
 for (const p0 of list) {
   const j = await api.get(`/networks/${p0.net}/pools/${p0.pool}/ohlcv/hour?aggregate=1&limit=1000&currency=usd&token=base`);
@@ -37,9 +38,12 @@ for (const p0 of list) {
     C.scoreList([p], t * 1000);
     if (p.signal !== 'Entry signal' || !p.sp || !p.sp.entryMid) continue;
     const at = new Date(t * 1000).toISOString().slice(0, 19) + 'Z';
-    const res = C.evaluate(C.newSignal(p, at), h1, new Date(h1[h1.length - 1][0] * 1000).toISOString());
-    signals.push({ coin: p0.sym, chain: C.CH[p0.chain], setup: p.setupType, at, status: res.status, tpHit: res.tpHit, resultR: res.resultR, baseOpp: p.opp, riskPct: p.sp.riskPct });
+    const sg = C.newSignal(p, at), endAt = new Date(h1[h1.length - 1][0] * 1000).toISOString();
+    const res = C.evaluate(sg, h1, endAt, { tp1Stop: settings.exitTp1Stop ?? 0, ladder: !!settings.exitLadder });
+    const variants = {}; for (const [name, o] of Object.entries(VARIANTS)) variants[name] = C.evaluate(sg, h1, endAt, o).resultR;
+    signals.push({ variants, coin: p0.sym, chain: C.CH[p0.chain], setup: p.setupType, at, status: res.status, tpHit: res.tpHit, resultR: res.resultR, baseOpp: p.opp, riskPct: p.sp.riskPct });
     busyUntil = res.closedAt ? Date.parse(res.closedAt) / 1000 : h1[h1.length - 1][0] + 1;
+    if (res.status === 'stopped out') busyUntil += (settings.cooldownHours ?? 48) * 3600; // cooldown after a stop-out
   }
   if (++i % 20 === 0) say(`${i}/${list.length} coins, ${signals.length} signals so far`);
 }
@@ -50,13 +54,15 @@ const stat = (rows) => {
     avgR: closed.length ? +(R.reduce((a, b) => a + b, 0) / closed.length).toFixed(2) : null, medianR: closed.length ? R[Math.floor(R.length / 2)] : null, profitFactor: loss > 0 ? +(gain / loss).toFixed(2) : null,
     tp1Rate: closed.length ? +(closed.filter(s => s.tpHit >= 1).length / closed.length).toFixed(3) : null };
 };
+const exitVariants = Object.keys(VARIANTS).map(name => ({ name, ...stat(signals.filter(s => s.variants && s.variants[name] != null).map(s => ({ ...s, resultR: s.variants[name], tpHit: s.tpHit, status: s.status }))) }));
 const types = [...new Set(signals.map(s => s.setup))];
 const result = { at: new Date().toISOString().slice(0, 19) + 'Z', coins, cuts, days: Math.round((1000 - WARM - TAIL) / 24), overall: stat(signals), byType: types.map(t => ({ setup: t, ...stat(signals.filter(s => s.setup === t)) })).sort((a, b) => b.closed - a.closed),
+  exitVariants,
   byChain: [...new Set(signals.map(s => s.chain))].map(c => ({ chain: c, ...stat(signals.filter(s => s.chain === c)) })),
   notes: ['Replays the chart rules only. Buyer/seller balance is approximated from candle volume and age/liquidity are assumed, so real signals are a little stricter than these.',
     'Covers about 17 days of signals (the data feed gives 1000 hourly candles, 8 days are kept for exits), on coins that are active today, which flatters the results (survivorship).',
     'Treat it as a sanity check on which setups to trust, not a forecast. Fewer than about 30 closed signals in a row means no conclusion.'],
-  sample: signals.slice(-40) };
+  sample: signals.slice(-40).map(({ variants, ...r }) => r) };
 fs.mkdirSync(OUT, { recursive: true });
 fs.writeFileSync(path.join(OUT, 'backtest.json'), JSON.stringify(result));
 console.log(JSON.stringify({ overall: result.overall, byType: result.byType }, null, 1));

@@ -70,6 +70,8 @@ const excluded = applyOverlays(rows, { safety, regime, regimeFilter: cfg.regimeF
 C.sortRows(rows);
 const allRows = rows, scannedN = allRows.length, scoredN = allRows.filter(p => p.score != null).length;
 if (scoredN < Math.max(5, scannedN * 0.5)) { console.error(`Only ${scoredN}/${scannedN} pools could be scored (candle fetches failing). Leaving the dashboard untouched.`); process.exit(1); }
+// cooldown: a coin that just stopped out is not re-signalled as an entry for cfg.cooldownHours
+try { const { applyCooldown } = await import('../docs/overlays.mjs'); if (typeof applyCooldown !== 'function') throw new Error('overlays.mjs is the old version'); const nCool = applyCooldown(rows, prevSignals, settings.cooldownHours ?? 48, C.CH); if (nCool) say(`cooldown: ${nCool} coin(s) held back after a recent stop-out`); } catch (e) { say('cooldown skipped: ' + e.message); }
 const kept = rows.filter(p => p.mine || (p.opp != null && p.opp > cfg.minOpp));
 const at = new Date().toISOString().slice(0, 19) + 'Z';
 
@@ -79,7 +81,7 @@ for (const s of prevSignals) {
   if (s.status === 'open' || s.status === 'waiting for entry') {
     const j = await api.get(`/networks/${C.NETOF[String(s.chain).toLowerCase()] || String(s.chain).toLowerCase()}/pools/${s.pool}/ohlcv/hour?aggregate=1&limit=1000&currency=usd&token=base`);
     const raw = j?.data?.attributes?.ohlcv_list;
-    log.push(raw ? C.evaluate(s, raw.slice().sort((a, b) => a[0] - b[0]).map(b => b.map(Number)), at) : { ...s, checkedAt: at });
+    log.push(raw ? C.evaluate(s, raw.slice().sort((a, b) => a[0] - b[0]).map(b => b.map(Number)), at, { tp1Stop: settings.exitTp1Stop ?? 0, ladder: !!settings.exitLadder }) : { ...s, checkedAt: at });
   } else log.push(s);
 }
 for (const p of kept.filter(p => p.signal === 'Entry signal')) {
