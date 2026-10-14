@@ -1,9 +1,6 @@
-Scan 16:10 Brisbane: 70 scanned, 59 scored, 6 above 65. On-chain volume Normal (1.07x 7-day avg).
-NEW bid-ready: INDEX (Robinhood) Double bottom, opp 77, checks 6/6, stop 27.1% away, upside 57.1%. Entry 0.012743-0.013227, stop 0.0094708, TP 0.016498 / 0.020012 / 0.020403.
-No longer bid-ready: DELTA (Robinhood).
-NEW watch: SCHIFFY (Robinhood) Falling wedge, opp 68, checks 6/6, stop 48.3% away, upside 144.9%.
-NEW watch: NET (Robinhood) Double bottom, opp 66, checks 6/6, stop 22.6% away, upside 79.4%.
-Signal DELTA: open, open 0.26R.
-Signal OTC: open, open 0.07R.
+Scan 17:51 Brisbane: 72 scanned, 61 scored, 4 above 65. On-chain volume Normal (1.1x 7-day avg).
+No longer bid-ready: INDEX (Robinhood).
+No longer bid-ready: OTC (Solana).
+Signal INDEX: open, open -0.18R.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
