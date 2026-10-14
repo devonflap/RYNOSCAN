@@ -1,0 +1,30 @@
+name: RynoScan backtest
+on:
+  schedule:
+    - cron: "30 13 * * 0"   # Sundays 11:30pm Brisbane
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: rynoscan
+  cancel-in-progress: false
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Run backtest
+        env:
+          CG_API_KEY: ${{ secrets.CG_API_KEY }}
+          CG_PLAN: ${{ vars.CG_PLAN }}
+        run: node src/backtest.mjs
+      - name: Save results
+        run: |
+          git config user.name "rynoscan-bot"
+          git config user.email "rynoscan-bot@users.noreply.github.com"
+          git add docs/data/backtest.json
+          git diff --cached --quiet && echo "no changes" || (git commit -m "backtest $(date -u +%Y-%m-%d)" && git pull --rebase -q && git push)
