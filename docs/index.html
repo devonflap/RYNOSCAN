@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RynoScan</title>
+<link rel="icon" href="logo.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <img class="logo" src="logo.png" alt="RynoScan rhinoceros logo">
+    <div>
+      <h1>RynoScan</h1>
+      <p class="take" id="take">Loading the latest scan…</p>
+      <p class="sub" id="sub"></p>
+    </div>
+  </header>
+  <nav aria-label="Sections"><a href="#lookup">Check a coin</a><a href="#size">Sizing</a><a href="#bid">Bid-ready</a><a href="#plans">Worth watching</a><a href="#patterns">Patterns &amp; bottoms</a><a href="#log">Signal log</a><a href="#backtest">Backtest</a><a href="#method">Exit rules</a><button id="scanNow" class="scanbtn" type="button">Scan now</button></nav>
+  <section id="scanPanel" class="card scanpanel" hidden></section>
+
+  <section class="card" id="lookup">
+    <h2>Check a coin</h2>
+    <p class="note">Type a ticker, name, or contract or pool address. If the coin is in the latest scan you get its row at once; otherwise it is scored live with the same rules. Works for Solana, Robinhood Chain and Ethereum.</p>
+    <form id="lookupForm" class="lookup"><input id="lookupQ" type="search" placeholder="e.g. BONK, WIF, or a contract address" aria-label="Look up a coin" autocomplete="off"><button type="submit">Check</button></form>
+    <div id="lookupOut" class="plans"></div>
+  </section>
+
+  <section class="card" id="vol">
+    <div class="row"><h2>On-chain volume today</h2><span class="pill" id="volPill">—</span></div>
+    <p class="tip" id="volTip">—</p>
+    <div class="vgrid" id="volGrid"></div>
+    <div id="volChart"></div>
+    <p class="note">Dollar volume traded on-chain in the last 24 hours across the scanned coins that have at least 14 days of history (the same coins every day), against the average of the 7 days before. Bars are the last 14 rolling 24-hour windows; the dashed line is the 7-day average. Thin volume means weaker follow-through on reversals and stops that slip, so on a poor day the sensible number of trades is none or one small one.</p>
+  </section>
+
+  <section class="tiles" id="tiles"></section>
+
+  <section class="card" id="size">
+    <h2>Position sizing</h2>
+    <p class="note">Optional. Enter your account size and each card shows a suggested position: the smaller of what the stop distance allows at your risk per trade, and a share of the pool's liquidity (so your own buying and selling doesn't move the price). Saved in this browser only.</p>
+    <div class="sizegrid">
+      <label>Account size ($)<input id="szAcct" type="number" min="0" step="100" inputmode="decimal" placeholder="e.g. 5000"></label>
+      <label>Risk per trade (% of account)<input id="szRisk" type="number" min="0.1" max="10" step="0.1" value="1"></label>
+      <label>Max share of pool liquidity (%)<input id="szLiq" type="number" min="0.1" max="10" step="0.1" value="1"></label>
+      <label>Max open positions<input id="szMax" type="number" min="1" max="20" step="1" value="3"></label>
+    </div>
+    <p class="tip" id="szNote"></p>
+  </section>
+
+  <section class="card" id="bid">
+    <h2>Bid-ready charts</h2>
+    <p class="note">Coins where all 7 gates pass, whether the setup is a bottom reversal or a chart pattern. Each chart shows the entry zone (shaded), stop (red) and take-profits (green) over 4h candles with volume underneath; the purple dashed line is the pattern's neckline, rim or trend lines.</p>
+    <p class="empty" id="bidEmpty" hidden></p>
+    <div class="plans" id="bidList"></div>
+  </section>
+
+  <section class="card" id="plans">
+    <h2>Worth watching</h2>
+    <p class="note">Valid plan, $250k+ volume and close to bid-ready, ranked by opportunity score. Risk is shown, not capped: the stop sits wherever the setup is proved wrong, so check the stop distance before sizing.</p>
+    <div class="plans" id="watchList"></div>
+  </section>
+
+  <section class="card" id="patterns">
+    <h2>Chart patterns and bottomed-out charts</h2>
+    <p class="note">Bottomed-out charts are coins that sold off to oversold, stopped making lower lows and are now turning up (an RSI flip, a divergence or a higher low). They are early: levels are indicative until all 7 gates pass. Chart patterns (bull flag, inverse head and shoulders, cup and handle, falling wedge, double bottom) are found on the 4h chart by fixed rules; the purple lines on each chart are the pattern itself.</p>
+    <div class="chips" id="patChips"></div>
+    <div class="plans" id="patList"></div>
+  </section>
+
+  <section class="card" id="log">
+    <h2>Signal log &amp; results</h2>
+    <p class="note">Every bid-ready signal the rules have fired, re-checked against new candles on each scan: filled inside 48 hours, a third sold at each target, stop moved to breakeven after TP1, 7-day time exit. Results are in R (1R = the distance from entry to stop).</p>
+    <div class="scroll"><table class="tbl" id="logTbl"><thead><tr><th>Signal</th><th>Coin</th><th>Setup</th><th>Entry</th><th>Stop</th><th>Status</th><th class="n">Result</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section class="card" id="mkt">
+    <h2>Market backdrop</h2>
+    <div class="vgrid" id="fgGrid"></div>
+  </section>
+
+  <details class="card" id="all">
+    <summary><h2 style="display:inline">Review every coin above 65</h2></summary>
+    <div class="scroll"><table class="tbl" id="allTbl"><thead><tr><th>Coin</th><th>Chain</th><th>Signal</th><th>Setup</th><th class="n">Opp</th><th class="n">Checks</th><th class="n">Gates</th><th class="n">Risk %</th><th class="n">Upside %</th><th class="n">24h vol</th><th class="n">Liquidity</th></tr></thead><tbody></tbody></table></div>
+  </details>
+
+  <section class="card" id="backtest">
+    <h2>Backtest: do the rules work?</h2>
+    <p class="tip" id="btVerdict">No backtest has run yet. Run the "RynoScan backtest" workflow once (Actions tab); it then refreshes every Sunday.</p>
+    <div class="scroll"><table class="tbl" id="btTbl"><thead><tr><th>Setup</th><th class="n">Signals</th><th class="n">Closed</th><th class="n">Win rate</th><th class="n">Avg R</th><th class="n">Median R</th><th class="n">Profit factor</th><th class="n">Hit TP1</th></tr></thead><tbody></tbody></table></div>
+    <ul class="note" id="btNotes"></ul>
+  </section>
+
+  <section class="card exits" id="method">
+    <h2>Exit rules</h2>
+    <p class="lead">Every plan on this page uses the same exits, so the decision to sell is made before you buy. Follow them in order.</p>
+    <div class="ladder">
+      <div class="step x-stop"><span class="k">Stop loss</span><b>Exit everything</b><p>Place it half an ATR (average 4h candle range) below the lowest low of the setup. If price closes through it, sell the whole position. The distance is on every card as "stop %" so you can size the position before you enter.</p></div>
+      <div class="step x-tp1"><span class="k">Take profit 1</span><b>Sell one third</b><p>First target, never closer than 1R above entry. Then move the stop up to your entry price. The trade can no longer lose money.</p></div>
+      <div class="step x-tp2"><span class="k">Take profit 2</span><b>Sell one third</b><p>Second target, always beyond TP1. A plan only counts if TP2 pays at least 2R, so the reward is at least twice the risk.</p></div>
+      <div class="step x-tp3"><span class="k">Take profit 3</span><b>Sell the rest</b><p>The full target, always beyond TP2. This is the "upside to TP3" figure on each card.</p></div>
+    </div>
+    <div class="more">
+      <div class="rule"><b>Entry window</b><p>Buy only inside the shaded entry zone. If the zone isn't filled within 48 hours, the signal expires and you skip it.</p></div>
+      <div class="rule"><b>Chart-pattern trades</b><p>Same ladder, measured from the pattern. The stop sits half an ATR under the pattern's low. TP1 is half the pattern's height above its trigger, TP2 the full height, TP3 one and a half times.</p></div>
+      <div class="rule"><b>Candle close</b><p>Use the stop on a 4h close below the stop price. Do not widen a stop after you enter, and do not move it down.</p></div>
+      <div class="rule"><b>Time exit</b><p>If the trade is still open 7 days after the fill with no target or stop hit, sell at market.</p></div>
+      <div class="rule"><b>Weak volume day</b><p>When the volume gauge shows Poor or Below normal, stops slip and targets stall. Take no new trades, or one small one.</p></div>
+      <div class="rule"><b>Portfolio risk</b><p>No more than 3 positions open at once, and risk about 1% of your account per trade (2% at the very most). Several meme coins fall together, so three positions is closer to one big bet than three small ones. Use the sizing panel above.</p></div>
+      <div class="rule"><b>Market backdrop</b><p>When the banner says SOL or ETH is risk-off, bottom reversals fail more often. Size down or wait; do not average down.</p></div>
+      <div class="rule"><b>R means risk</b><p>1R is the distance from entry to stop. A move to TP2 that is 2R pays twice what the stop would lose.</p></div>
+    </div>
+    <p class="foot">Rule-based screen, not financial advice. The exit rules are untested until the signal log has about 30 closed signals. Meme coins can go to zero and stops can gap on thin liquidity.</p>
+  </section>
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

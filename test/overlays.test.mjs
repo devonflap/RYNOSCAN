@@ -1,0 +1,26 @@
+import { installMock } from './mock.mjs';
+import { regimeFromPrices, fetchRegime, checkToken, applyOverlays } from '../docs/overlays.mjs';
+installMock(globalThis);
+const ok = (c, m) => { if (!c) { console.log('FAIL', m); process.exitCode = 1; } else console.log('PASS', m); };
+const getCG = async p => (await fetch('https://api.coingecko.com/api/v3' + p)).json();
+const R = await fetchRegime(getCG);
+ok(R.sol && R.sol.level === 'Risk-off', 'falling SOL series is Risk-off: ' + R.sol?.level + ' ' + (R.sol?.why || []).join(', '));
+ok(R.eth && R.eth.level === 'Risk-on', 'rising ETH series is Risk-on: ' + R.eth?.level);
+ok(regimeFromPrices([[0, 1]]) === null, 'short history gives no regime');
+const gj = async u => (await fetch(u)).json();
+const res = [];
+for (let i = 0; i < 40; i++) res.push(await checkToken({ net: 'solana', token: 'TokenAddr' + i }, gj));
+ok(res.some(r => r.level === 'danger') && res.some(r => r.level === 'warn') && res.some(r => r.level === 'ok'), 'solana safety yields danger, warn and ok');
+const ev = []; for (let i = 0; i < 40; i++) ev.push(await checkToken({ net: 'eth', token: '0xabc' + i }, gj));
+ok(ev.some(r => r.level === 'danger') && ev.some(r => r.level === 'ok'), 'EVM safety yields danger and ok');
+ok((await checkToken({ net: 'robinhood', token: '0xabc' }, gj)).level === 'unchecked', 'robinhood is reported as unchecked, not as safe');
+ok((await checkToken({ net: 'solana', token: 'x' }, async () => { throw new Error('x'); })).level === 'unchecked', 'feed failure is unchecked, not safe');
+// overlay behaviour
+const mk = (o) => ({ sym: 'AAA', net: 'solana', token: 'T1', opp: 80, signal: 'Entry signal', ready: true, flags: [], pat: { ready: true }, ...o });
+const a = mk({}), b = mk({ token: 'T2' }), c = mk({ token: 'T3', net: 'eth' });
+const ex = applyOverlays([a, b, c], { safety: { 'solana|T1': { level: 'danger', flags: ['Freeze Authority still enabled'] }, 'solana|T2': { level: 'warn', flags: ['x'] } }, regime: R, regimeFilter: 'downgrade' });
+ok(a.signal === 'No trade' && !a.ready && a.opp <= 40 && ex.length === 1, 'danger token is removed from bid-ready and from the list');
+ok(b.opp === 77 && b.signal === 'Watch' && b.regime === 'Risk-off', 'warn token loses 3 points; risk-off downgrades in downgrade mode');
+ok(c.signal === 'Entry signal' && c.regime === 'Risk-on', 'risk-on ETH leaves a bid-ready coin alone');
+const d = mk({ token: 'T9' }); applyOverlays([d], { regime: R, regimeFilter: 'warn' });
+ok(d.signal === 'Entry signal' && d.flags.some(f => /risk-off/.test(f)), 'warn mode keeps the signal and adds a flag');

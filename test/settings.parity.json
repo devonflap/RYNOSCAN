@@ -1,0 +1,1 @@
+{"minVolume":250000,"minLiquidity":100000,"maxPools":120,"cap":{"solana":70,"robinhood":50,"eth":20},"minOpp":65,"safetyChecks":false,"regimeFilter":"off"}

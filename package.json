@@ -1,0 +1,9 @@
+{
+  "name": "rynoscan",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "RynoScan: 4h-chart meme coin scanner for Solana, Robinhood Chain and Ethereum",
+  "scripts": { "scan": "node src/scan.mjs", "test": "node test/api.test.mjs && node test/overlays.test.mjs && node test/lookup.test.mjs && node test/pullback.test.mjs && RS_RULES=v1 ORIG=test/original_v10.js node test/parity.mjs", "serve": "npx --yes serve docs" },
+  "engines": { "node": ">=20" }
+}

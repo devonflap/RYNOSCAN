@@ -1,0 +1,1 @@
+{"chains": ["solana", "robinhood"], "minVolume": 100000, "minLiquidity": 100000, "maxPools": 200, "extraPages": 3, "cap": {"solana": 110, "robinhood": 55, "eth": 40}, "freeMaxPools": 60, "freeCap": {"solana": 40, "robinhood": 40, "eth": 12}, "minOpp": 65, "safetyChecks": true, "regimeFilter": "warn", "backtestPools": 150}

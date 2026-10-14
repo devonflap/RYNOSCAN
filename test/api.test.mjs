@@ -1,0 +1,16 @@
+import { makeApi } from '../src/api.mjs';
+let seen = []; let n = 0;
+const f = async (url, init) => { seen.push([url, init.headers]); if (++n === 1) return { ok: false, status: 429, headers: { get: k => (k === 'retry-after' ? '0.01' : null) }, json: async () => ({}) }; return { ok: true, status: 200, headers: { get: () => null }, json: async () => ({ ok: 1 }) }; };
+const t = (cond, msg) => { console.log(cond ? 'PASS' : 'FAIL', msg); if (!cond) process.exitCode = 1; };
+let a = makeApi({ CG_API_KEY: 'SECRET123', CG_PLAN: 'pro', PACE_MS: '1' }, f);
+const r = await a.get('/networks/solana/pools/x/ohlcv/hour?limit=1');
+t(r?.ok === 1, 'retries after a 429 and returns data');
+t(seen[0][0].startsWith('https://pro-api.coingecko.com/api/v3/onchain/networks/solana'), 'paid plan uses the pro base URL');
+t(seen[0][1]['x-cg-pro-api-key'] === 'SECRET123', 'paid key sent in the header only');
+t(!seen[0][0].includes('SECRET123'), 'key never appears in the URL');
+t(a.stats().n429 === 1, 'counts rate-limit hits');
+seen = []; n = 5; a = makeApi({ CG_API_KEY: 'k', CG_PLAN: 'demo', PACE_MS: '1' }, f); await a.get('/x');
+t(seen[0][0].startsWith('https://api.coingecko.com/api/v3/onchain/') && seen[0][1]['x-cg-demo-api-key'] === 'k', 'demo plan uses the demo URL and header');
+seen = []; a = makeApi({ PACE_MS: '1' }, f); await a.get('/x');
+t(seen[0][0].startsWith('https://api.geckoterminal.com/api/v2/') && !seen[0][1]['x-cg-pro-api-key'], 'no key falls back to the free feed');
+t(a.paceMs === 1 && makeApi({}, f).paceMs === 4000 && makeApi({ CG_API_KEY: 'k' }, f).paceMs === 250, 'default pacing: 4s free, 0.25s with a key');
