@@ -1,9 +1,12 @@
 name: RynoScan
 on:
   schedule:
-    # two backup slots per hour, 6am-10pm Brisbane (UTC+10). If one is skipped by GitHub the other runs; the scan skips itself if one ran in the last 40 minutes.
-    - cron: "17 20-23,0-12 * * *"
-    - cron: "47 20-23,0-12 * * *"
+    # hourly, 6am-10pm Brisbane (UTC+10). Right after each 4h candle closes (every 4th hour) it is a full discovery scan; the hours in between
+    # are light refreshes of the tracked coins using DexScreener. Three attempts an hour: if GitHub skips one, the next covers it, and the scan
+    # skips itself if one already ran in the last 40 minutes. Manual runs are always full scans.
+    - cron: "10 20-23,0-12 * * *"
+    - cron: "25 20-23,0-12 * * *"
+    - cron: "40 20-23,0-12 * * *"
   workflow_dispatch: {}
 permissions:
   contents: write
@@ -31,3 +34,9 @@ jobs:
           git config user.email "rynoscan-bot@users.noreply.github.com"
           git add docs/data
           git diff --cached --quiet && echo "no changes" || (git commit -m "scan $(date -u +%Y-%m-%dT%H:%MZ)" && git pull --rebase -q && git push)
+      - name: Tell me if this failed
+        if: failure()
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: |
+          [ -n "$NTFY_TOPIC" ] && curl -s -H "Title: RynoScan failed" -H "Priority: default" -H "Tags: warning" -H "Click: https://github.com/${{ github.repository }}/actions" -d "The scan run failed. Tap to open the run log. The dashboard keeps showing the last good data." "https://ntfy.sh/$NTFY_TOPIC" || true
