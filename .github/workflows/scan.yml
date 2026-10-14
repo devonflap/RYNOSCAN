@@ -1,8 +1,9 @@
 name: RynoScan
 on:
   schedule:
-    # hourly, 6am-10pm Brisbane (UTC+10): 06:05 to 22:05 = 20:05-23:05 and 00:05-12:05 UTC
-    - cron: "5 20-23,0-12 * * *"
+    # two backup slots per hour, 6am-10pm Brisbane (UTC+10). If one is skipped by GitHub the other runs; the scan skips itself if one ran in the last 40 minutes.
+    - cron: "17 20-23,0-12 * * *"
+    - cron: "47 20-23,0-12 * * *"
   workflow_dispatch: {}
 permissions:
   contents: write
