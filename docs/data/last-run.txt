@@ -1,6 +1,4 @@
-Scan 18:26 Brisbane: 74 scanned, 63 scored, 3 above 65. On-chain volume Normal (1.09x 7-day avg).
-NEW watch: PUMP (Solana) Bottom reversal, opp 74, checks 6/6, stop 6.4% away, upside 33.7%.
-NEW watch: STONK (Solana) Bottom reversal, opp 73, checks 5/6, stop 11.1% away, upside 75.7%; volume fading.
-NEW watch: SI (Solana) Bottom reversal, opp 70, checks 5/6, stop 17.3% away, upside 134%; volume fading.
+Full scan 21:31 Brisbane: 69 scanned, 58 scored, 7 above 65. On-chain volume Normal (1.04x 7-day avg).
+NEW watch: ANSEMCAT (Robinhood) Bottom reversal, opp 80, checks 5/6, stop 1.4% away, upside 52.1%; no socials/website listed.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
