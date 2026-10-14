@@ -11,8 +11,15 @@
 </head>
 <body>
 <div class="wrap">
+  <section class="card" id="lookup">
+    <h2>Check a coin</h2>
+    <p class="note">Type a ticker, name, or contract or pool address. If the coin is in the latest scan you get its row at once; otherwise it is scored live with the same rules. Works for Solana, Robinhood Chain and Ethereum.</p>
+    <form id="lookupForm" class="lookup"><input id="lookupQ" type="search" placeholder="e.g. BONK, WIF, or a contract address" aria-label="Look up a coin" autocomplete="off"><button type="submit">Check</button></form>
+    <div id="lookupOut" class="plans"></div>
+  </section>
   <header class="hero">
-    <img class="logo" src="logo.png" alt="RynoScan rhinoceros logo">
+    <button class="rhino" id="rhino" type="button" aria-label="RynoScan menu" aria-haspopup="true" aria-expanded="false"><img class="logo" src="logo.png" alt="RynoScan rhinoceros logo"></button>
+    <div class="rmenu" id="rmenu" hidden role="menu"><button type="button" role="menuitem" id="rReload">Reload data now</button><a role="menuitem" id="rScan" href="#" target="_blank" rel="noopener" hidden>Run a scan now ↗</a><p class="meta" id="rNote" hidden>On GitHub press <b>Run workflow</b> twice. New charts appear in about 5 minutes.</p></div>
     <div>
       <h1>RynoScan</h1>
       <p class="updated" id="updated" aria-live="polite">Last updated: loading…</p>
@@ -33,20 +40,13 @@
     <div class="vgrid" id="fgGrid"></div>
   </section>
 
-  <section class="card" id="lookup">
-    <h2>Check a coin</h2>
-    <p class="note">Type a ticker, name, or contract or pool address. If the coin is in the latest scan you get its row at once; otherwise it is scored live with the same rules. Works for Solana, Robinhood Chain and Ethereum.</p>
-    <form id="lookupForm" class="lookup"><input id="lookupQ" type="search" placeholder="e.g. BONK, WIF, or a contract address" aria-label="Look up a coin" autocomplete="off"><button type="submit">Check</button></form>
-    <div id="lookupOut" class="plans"></div>
-  </section>
-
-  <section class="card" id="vol">
-    <div class="row"><h2>On-chain volume today</h2><span class="pill" id="volPill">—</span></div>
+  <details class="card fold" id="vol">
+    <summary><span class="row"><h2>On-chain volume today</h2><span class="pill" id="volPill">—</span></span></summary>
     <p class="tip" id="volTip">—</p>
     <div class="vgrid" id="volGrid"></div>
     <div id="volChart"></div>
     <p class="note">Dollar volume traded on-chain in the last 24 hours across the scanned coins that have at least 14 days of history (the same coins every day), against the average of the 7 days before. Bars are the last 14 rolling 24-hour windows; the dashed line is the 7-day average. Thin volume means weaker follow-through on reversals and stops that slip, so on a poor day the sensible number of trades is none or one small one.</p>
-  </section>
+  </details>
 
   <section class="tiles" id="tiles"></section>
 
@@ -88,25 +88,25 @@
     <div class="scroll"><table class="tbl" id="allTbl"><thead><tr><th>Coin</th><th>Chain</th><th>Signal</th><th>Setup</th><th class="n">Opp</th><th class="n">Checks</th><th class="n">Gates</th><th class="n">Risk %</th><th class="n">Upside %</th><th class="n">24h vol</th><th class="n">Liquidity</th><th class="n">Holders</th></tr></thead><tbody></tbody></table></div>
   </details>
 
-  <section class="card" id="learn">
-    <h2>What the data says</h2>
+  <details class="card fold" id="learn">
+    <summary><h2>What the data says</h2></summary>
     <p class="tip" id="learnTip">Nothing learned yet.</p>
     <div class="scroll"><table class="tbl" id="learnTbl"><thead><tr><th>Setup</th><th class="n">Trades</th><th class="n">Win</th><th class="n">Avg R</th><th class="n">90% range</th><th>Verdict</th></tr></thead><tbody></tbody></table></div>
     <ul class="note" id="learnIns"></ul>
     <p class="note">Every week the backtest replays all patterns, including new candidates, and adds the live signal log. A setup is switched off only when its results are reliably negative, and a candidate goes live only when they are reliably positive. Small samples never change anything.</p>
-  </section>
+  </details>
 
-  <section class="card" id="backtest">
-    <h2>Backtest: do the rules work?</h2>
+  <details class="card fold" id="backtest">
+    <summary><h2>Backtest: do the rules work?</h2></summary>
     <p class="tip" id="btVerdict">No backtest has run yet. Run the "RynoScan backtest" workflow once (Actions tab); it then refreshes every Sunday.</p>
     <div class="scroll"><table class="tbl" id="btTbl"><thead><tr><th>Setup</th><th class="n">Signals</th><th class="n">Closed</th><th class="n">Win rate</th><th class="n">Avg R</th><th class="n">Median R</th><th class="n">Profit factor</th><th class="n">Hit TP1</th></tr></thead><tbody></tbody></table></div>
     <p class="meta" id="btReal"></p>
     <div id="btExitWrap" hidden><h3>Exit rule comparison</h3><p class="meta">The same signals replayed with different stop rules after TP1. Pick a rule only if it is clearly better on a large sample.</p><table class="tbl" id="btExit"><thead><tr><th>Exit rule</th><th class="n">Closed</th><th class="n">Win</th><th class="n">Avg R</th><th class="n">Profit factor</th></tr></thead><tbody></tbody></table></div>
     <ul class="note" id="btNotes"></ul>
-  </section>
+  </details>
 
   <p class="foot">Rule-based screen, not financial advice. Rules are untested until the signal log has about 30 closed signals. Meme coins can go to zero and stops can gap on thin liquidity.</p>
 </div>
-<script type="module" src="app.js?v=20261014h"></script>
+<script type="module" src="app.js?v=20261014j"></script>
 </body>
 </html>

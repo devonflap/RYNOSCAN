@@ -282,22 +282,25 @@ function card(r, cr) {
     bar.append(cp, en); c.append(bar);
   }
   else c.append(el('p', 'caut', r.noTradeWhy || r.scanState || 'No valid trade plan on the current 4h chart: no clean stop that pays at least 2R.'));
-    const g = el('div', 'gates'); r._g.forEach(([k, lab]) => g.append(el('span', 'g ' + (r[k] ? 'y' : 'n'), (r[k] ? '✓ ' : '✗ ') + lab))); c.append(g);
-  if (r.rug === 'ok') c.append(el('p', 'ok-line', '✓ Token checks clear (no mint/freeze control, honeypot or tax flags found)'));
-  else if (r.rug === 'warn') c.append(el('p', 'caut', 'Token flags: ' + (r.rugFlags || 'see contract')));
-  else if (r.rug === 'unchecked' || (r.rug == null && S.meta && S.meta.safetyOn)) c.append(el('p', 'caut', 'Token not checked by the safety feed: look at the contract and top holders yourself before buying.'));
-  if (r.regime === 'Risk-off') c.append(el('p', 'caut', 'Market is risk-off for this chain: reversals fail more often. Size down.'));
+  // what matters stays on the card; the rest folds into "Details"
   const ob = r.entryLow != null && r.stop != null ? opinionBox(r) : null; if (ob) c.append(ob);
-  const { pos, neg } = takeLine(r);
-  if (pos.length) c.append(el('p', 'meta', 'For: ' + pos.join('; ') + '.'));
-  if (neg.length) c.append(el('p', 'caut', 'Against: ' + neg.join('; ') + '.'));
+  if (r.rug === 'warn') c.append(el('p', 'caut', 'Token flags: ' + (r.rugFlags || 'see contract')));
+  if (r.regime === 'Risk-off') c.append(el('p', 'caut', 'Market is risk-off for this chain: reversals fail more often. Size down.'));
   if (r.missing && !r.bidReady && !(r._pat && r.patReady)) c.append(el('p', 'caut', 'Still needs: ' + r.missing.split(',').filter(Boolean).join(', ')));
+  { const hl = holderLine(r); if (hl) c.append(el('p', hl.cls, hl.txt.replace(/ Shown for your judgement[^.]*\./, ''))); }
+  const more = el('details', 'more'), ms = el('summary', null, `Details · ${r._g.filter(([k]) => r[k]).length}/${r._g.length} checks · facts`); more.append(ms);
+  const g = el('div', 'gates'); r._g.forEach(([k, lab]) => g.append(el('span', 'g ' + (r[k] ? 'y' : 'n'), (r[k] ? '✓ ' : '✗ ') + lab))); more.append(g);
+  if (r.rug === 'ok') more.append(el('p', 'ok-line', '✓ Token checks clear (no mint/freeze control, honeypot or tax flags found)'));
+  else if (r.rug === 'unchecked' || (r.rug == null && S.meta && S.meta.safetyOn)) more.append(el('p', 'caut', 'Token not checked by the safety feed: look at the contract and top holders yourself before buying.'));
+  const { pos, neg } = takeLine(r);
+  if (pos.length) more.append(el('p', 'meta', 'For: ' + pos.join('; ') + '.'));
+  if (neg.length) more.append(el('p', 'caut', 'Against: ' + neg.join('; ') + '.'));
   const f = el('div', 'facts');
   [['24h volume', usd(r.vol24h)], ['Holders', r.hs && r.hs.holders != null ? Number(r.hs.holders).toLocaleString('en') + (r.hs.growPct != null ? ` (${pct(r.hs.growPct, 0)})` : '') : '—'], ['Liquidity', usd(r.liquidity)], ['24h change', pct(r.chg24h)], ['RSI 1h / 4h', `${num(r.rsi1h, 0)} / ${num(r.rsi4h, 0)}`], ['Buyers / sellers', `${r.buyers24h ?? '—'} / ${r.sellers24h ?? '—'}`], ['Age', r.ageDays != null ? num(r.ageDays, 0) + ' d' : '—']]
     .forEach(([k, v]) => { const d = el('div'); d.append(k, el('b', null, v)); f.append(d); });
-  c.append(f);
-  { const hl = holderLine(r); if (hl) c.append(el('p', hl.cls, hl.txt)); }
-  if (r.flags) c.append(el('p', 'caut', 'Flags: ' + r.flags));
+  more.append(f);
+  if (r.flags) more.append(el('p', 'caut', 'Flags: ' + r.flags));
+  c.append(more);
   return c;
 }
 
@@ -364,7 +367,7 @@ function drawVolume() {
     b.onclick = () => { S.volChain = c; drawVolume(); }; grid.append(b); });
   const k = info[S.volChain] || a, rows = k.rows, W = 640, H = 150, pad = 28, mx = Math.max(...rows.map((d) => d.volUsd), k.now.baseline7d, 1), bw = (W - pad) / rows.length;
   const svg = sv('svg', { viewBox: `0 0 ${W} ${H}`, class: 'ch' });
-  rows.forEach((d, i) => { const h = (d.volUsd / mx) * (H - 30), st = volState(d.ratio)[1], col = { strong: '#34d399', normal: '#e0e1e0', below: '#fbbf24', poor: '#f87171', na: '#a9a9a9' }[st];
+  rows.forEach((d, i) => { const h = (d.volUsd / mx) * (H - 30), st = volState(d.ratio)[1], col = { strong: '#34d399', normal: '#e0e1e0', below: '#ee6a4b', poor: '#f87171', na: '#a9a9a9' }[st];
     const r_ = sv('rect', { x: pad + i * bw + 2, y: H - 18 - h, width: bw - 4, height: h, rx: 3, fill: col, 'fill-opacity': d.daysAgo === 0 ? .95 : .55 }); r_.append(sv('title', {}, `${d.daysAgo === 0 ? 'Last 24h' : d.daysAgo + ' d ago'}: ${usd(d.volUsd)}`)); svg.append(r_);
     if (i % 2 === 0 || d.daysAgo === 0) svg.append(sv('text', { x: pad + i * bw + bw / 2, y: H - 4, 'text-anchor': 'middle', fill: '#a9a9a9', 'font-size': 9 }, d.daysAgo === 0 ? 'now' : '-' + d.daysAgo + 'd')); });
   const by_ = H - 18 - (k.now.baseline7d / mx) * (H - 30);
@@ -378,7 +381,7 @@ function tiles(rows) {
   const pats = rows.filter((r) => r.patName && r.patScore >= 45), bots = rows.filter((r) => r.bottomed);
   const closed = S.signals.filter((s) => s.resultR != null && s.status !== 'expired (no fill)'), wins = closed.filter((s) => s.resultR > 0).length;
   const avg = closed.length ? closed.reduce((a, s) => a + Number(s.resultR), 0) / closed.length : null;
-  [['Bid-ready', bid.length, 'all 7 gates pass', '#34d399'], ['Worth watching', watch.length, 'close to bid-ready', '#fbbf24'], ['Chart patterns', pats.length, `${pats.filter((r) => r.patReady).length} bid-ready`, '#a78bfa'], ['Bottomed out', bots.length, 'turning up from oversold', '#e0e1e0'],
+  [['Bid-ready', bid.length, 'all 7 gates pass', '#34d399'], ['Worth watching', watch.length, 'close to bid-ready', '#ee6a4b'], ['Chart patterns', pats.length, `${pats.filter((r) => r.patReady).length} bid-ready`, '#a78bfa'], ['Bottomed out', bots.length, 'turning up from oversold', '#e0e1e0'],
     ['Open positions', `${openCount()}`, 'signals still open or waiting', '#e0e1e0'],
     ['Signal log', closed.length ? `${Math.round(wins / closed.length * 100)}%` : '—', closed.length ? `win rate · avg ${rr(avg)} · ${closed.length} closed` : 'no closed signals yet', '#a8a8a8']]
     .forEach(([l, v, n, c]) => { const d = el('div', 'tile'); d.style.setProperty('--c', c); d.append(el('div', 'lbl', l), el('div', 'big', v), el('div', 'nt', n)); t.append(d); });
@@ -565,6 +568,19 @@ function stamp() {
     const sh = $('setupHint'); if (sh) { const need = []; sh.hidden = !need.length; sh.textContent = need.length ? 'Reminder: finish setting up ' + need.join(', ') + '. GitHub repo → Settings → Secrets and variables → Actions.' : ''; }
     hl.hidden = !issues.length; hl.textContent = issues.length ? 'Schedule warning: ' + issues.join('; ') + '. GitHub may have skipped runs; open the Actions tab and run it manually.' : ''; }
 }
+
+// ---------- tidy: fold the explanatory notes, and the hidden rhino menu ----------
+function tidy() {
+  document.querySelectorAll('.card > p.note').forEach((p) => { const d = el('details', 'about'), s = el('summary', null, 'ⓘ About this section'); p.replaceWith(d); d.append(s, p); });
+  const gh = (() => { const m = location.hostname.match(/^([^.]+)\.github\.io$/), seg = location.pathname.split('/').filter(Boolean)[0]; return m && seg && !/\.(html?|js)$/.test(seg) ? { o: m[1], r: seg } : null; })();
+  const rh = $('rhino'), menu = $('rmenu'); if (!rh || !menu) return;
+  const close = () => { menu.hidden = true; rh.setAttribute('aria-expanded', 'false'); };
+  rh.addEventListener('click', (e) => { e.stopPropagation(); menu.hidden = !menu.hidden; rh.setAttribute('aria-expanded', String(!menu.hidden)); });
+  document.addEventListener('click', (e) => { if (!menu.hidden && !menu.contains(e.target)) close(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+  $('rReload').addEventListener('click', () => { close(); refresh(true); });
+  if (gh) { const a = $('rScan'); a.href = `https://github.com/${gh.o}/${gh.r}/actions/workflows/scan.yml`; a.hidden = false; $('rNote').hidden = false; a.addEventListener('click', () => setTimeout(close, 200)); }
+}
 // ---------- refresh ----------
 let refreshing = false;
 async function refresh(manual) {
@@ -576,7 +592,7 @@ async function refresh(manual) {
   refreshing = false;
 }
 (async () => {
-  await loadAll(); stamp(); setInterval(stamp, 60000);
+  tidy(); await loadAll(); stamp(); setInterval(stamp, 60000);
   const b = $('refreshBtn'); if (b) b.addEventListener('click', () => refresh(true));
   setInterval(() => { if (!document.hidden) refresh(false); }, 5 * 60000);          // quiet refresh every 5 minutes
   document.addEventListener('visibilitychange', () => { if (!document.hidden && S.meta && Date.now() - Date.parse(S.meta.scannedAt) > 20 * 60000) refresh(false); }); // coming back to the tab
