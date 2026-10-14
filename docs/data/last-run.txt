@@ -1,5 +1,5 @@
-Full scan 03:08 Brisbane: 73 scanned, 56 scored, 5 above 65. On-chain volume Strong (1.25x 7-day avg).
-NEW watch: ARC (Solana) Bottom reversal, opp 74, checks 5/6, stop 28.8% away, upside 146.1%; more sellers than buyers in the last hour.
+Full scan 08:01 Brisbane: 77 scanned, 57 scored, 5 above 65. On-chain volume Strong (1.38x 7-day avg).
+Signal DELTA: stopped out, result -1.11R.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Removed for token safety: WNEAR (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
