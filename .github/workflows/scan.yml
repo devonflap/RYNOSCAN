@@ -4,12 +4,17 @@ on:
     # hourly, 6am-10pm Brisbane (UTC+10). Right after each 4h candle closes (every 4th hour) it is a full discovery scan; the hours in between
     # are light refreshes of the tracked coins using DexScreener. Three attempts an hour: if GitHub skips one, the next covers it, and the scan
     # skips itself if one already ran in the last 40 minutes. Manual runs are always full scans.
-    - cron: "10 20-23,0-12 * * *"
-    - cron: "25 20-23,0-12 * * *"
-    - cron: "40 20-23,0-12 * * *"
-  workflow_dispatch: {}
+    - cron: "10 * * * *"
+    - cron: "25 * * * *"
+    - cron: "40 * * * *"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "leave as manual; 'chain' is used by the self-restarting loop"
+        default: manual
 permissions:
   contents: write
+  actions: write
 concurrency:
   group: rynoscan
   cancel-in-progress: false
@@ -26,6 +31,7 @@ jobs:
         env:
           CG_API_KEY: ${{ secrets.CG_API_KEY }}
           CG_PLAN: ${{ vars.CG_PLAN }}
+          RS_SOURCE: ${{ inputs.source }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: node src/scan.mjs
       - name: Save results
@@ -40,3 +46,27 @@ jobs:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: |
           [ -n "$NTFY_TOPIC" ] && curl -s -H "Title: RynoScan failed" -H "Priority: default" -H "Tags: warning" -H "Click: https://github.com/${{ github.repository }}/actions" -d "The scan run failed. Tap to open the run log. The dashboard keeps showing the last good data." "https://ntfy.sh/$NTFY_TOPIC" || true
+
+  # Self-restarting loop: GitHub's own schedule is best-effort and can go quiet for hours. So when a scan finishes, this job waits for the
+  # next hour slot (:10 past), pokes the entry watcher every 15 minutes while it waits, then starts the next scan itself. The cron lines
+  # above and the watchdog stay as backups. It never starts a second loop if a scan is already queued.
+  chain:
+    needs: scan
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - name: Wait, keep the watcher going, start the next scan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          now=$(date +%s); next=$(( (now/3600+1)*3600 + 600 ))
+          [ $((next-now)) -lt 900 ] && next=$((next+3600))
+          while [ $(date +%s) -lt $((next-60)) ]; do
+            gh workflow run watch.yml -f source=chain || true
+            left=$((next-$(date +%s))); [ $left -gt 900 ] && left=900
+            [ $left -gt 0 ] && sleep $left
+          done
+          n=$(gh run list --workflow scan.yml --limit 10 --json status --jq '[.[] | select(.status=="queued" or .status=="waiting" or .status=="pending")] | length' || echo 0)
+          if [ "${n:-0}" -eq 0 ]; then gh workflow run scan.yml -f source=chain; else echo "a scan is already queued; not starting another loop"; fi

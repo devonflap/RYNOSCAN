@@ -2,9 +2,12 @@ name: RynoScan entry watcher
 on:
   schedule:
     # four slots an hour (GitHub skips some); the script ignores a slot if the watcher ran in the last 12 minutes. 6am-10pm Brisbane.
-    - cron: "5,35 20-23,0-12 * * *"
-    - cron: "20,50 20-23,0-12 * * *"
-  workflow_dispatch: {}
+    - cron: "5,35 * * * *"
+    - cron: "20,50 * * * *"
+  workflow_dispatch:
+    inputs:
+      source:
+        default: manual
 permissions:
   contents: write
 concurrency:
