@@ -275,11 +275,12 @@ export async function crossCheck(rows,{getJson,sleep,log=()=>{}}){
 
 // Walk an existing signal forward over new hourly candles (fill within 48h, a third sold at each TP,
 // stop to breakeven after TP1, 7-day time exit). Result in R.
-export function evaluate(s,h1,at){const t0=Date.parse(s.signalAt)/1000;const bars=h1.filter(b=>b[0]>=t0);let filled=null,stop=s.stop,hit=0,R=0,left=1,status='waiting for entry',closedAt=null;
+export function evaluate(s,h1,at,opts={}){const k1=opts.tp1Stop??0,ladder=!!opts.ladder; // k1: stop after TP1 sits k1 x risk below entry (0 = breakeven, 1 = keep the original stop); ladder: after TP2 the stop moves up to TP1
+const t0=Date.parse(s.signalAt)/1000;const bars=h1.filter(b=>b[0]>=t0);let filled=null,stop=s.stop,hit=0,R=0,left=1,status='waiting for entry',closedAt=null;
  const risk=s.entryMid-s.stop;
  for(const b of bars){if(!filled){if(b[0]>t0+48*3600){status='expired (no fill)';closedAt=b[0];break;}if(b[3]<=s.entryHigh){filled=b[0];status='open';}else continue;}
   if(b[3]<=stop){R+=left*((stop-s.entryMid)/risk);left=0;status=hit?'stopped after TP'+hit:'stopped out';closedAt=b[0];break;}
-  const tps=[s.tp1,s.tp2,s.tp3];while(hit<3&&b[2]>=tps[hit]){R+=(1/3)*((tps[hit]-s.entryMid)/risk);left-=1/3;hit++;if(hit===1)stop=s.entryMid;}
+  const tps=[s.tp1,s.tp2,s.tp3];while(hit<3&&b[2]>=tps[hit]){R+=(1/3)*((tps[hit]-s.entryMid)/risk);left-=1/3;hit++;if(hit===1)stop=Math.max(stop,s.entryMid-k1*risk);if(hit===2&&ladder)stop=Math.max(stop,s.tp1);}
   if(hit===3){left=0;status='hit TP3';closedAt=b[0];break;}
   if(b[0]>filled+7*86400){R+=left*((b[4]-s.entryMid)/risk);left=0;status='time exit (7 days)';closedAt=b[0];break;}}
  return {...s,status,tpHit:hit,resultR:status==='open'||status==='waiting for entry'?null:+R.toFixed(2),openR:status==='open'?+(R+left*(((bars.length?bars[bars.length-1][4]:s.entryMid)-s.entryMid)/risk)).toFixed(2):null,

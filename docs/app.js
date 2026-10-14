@@ -292,6 +292,8 @@ function drawBacktest() {
     : o.avgR > 0.1 && o.profitFactor > 1.3 ? `On this replay the rules came out ahead: ${Math.round(o.winRate * 100)}% winners, average ${rr(o.avgR)} per trade, profit factor ${o.profitFactor}. That is encouraging, not proof; see the caveats below.`
     : `On this replay the rules did not show a clear edge (average ${rr(o.avgR)} per trade, profit factor ${o.profitFactor ?? '—'}). Trade smaller than usual and favour the setups with the best rows below.`;
   $('btVerdict').textContent = `${v} Replay of ${b.coins} coins over about ${b.days} days, run ${(b.at || '').slice(0, 10)}.`;
+  const xw = $('btExitWrap'), xb = $('btExit').tBodies[0]; xb.replaceChildren();
+  if (b.exitVariants && b.exitVariants.length) { xw.hidden = false; b.exitVariants.forEach((x) => { const tr = el('tr'); tr.append(el('td', null, x.name), el('td', 'n', x.closed), el('td', 'n', x.winRate != null ? Math.round(x.winRate * 100) + '%' : '—'), el('td', 'n ' + (x.avgR > 0 ? 'pos' : 'neg'), x.avgR != null ? rr(x.avgR) : '—'), el('td', 'n', x.profitFactor ?? '—')); xb.append(tr); }); } else xw.hidden = true;
   const ul = $('btNotes'); ul.replaceChildren(); b.notes.forEach((n) => ul.append(el('li', null, n)));
 }
 function wireSize() {
