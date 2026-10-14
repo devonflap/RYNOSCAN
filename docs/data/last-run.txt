@@ -1,5 +1,4 @@
-Full scan 08:01 Brisbane: 77 scanned, 57 scored, 5 above 65. On-chain volume Strong (1.38x 7-day avg).
-Signal DELTA: stopped out, result -1.11R.
+Full scan 08:54 Brisbane: 77 scanned, 58 scored, 4 above 65. On-chain volume Strong (1.39x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Removed for token safety: WNEAR (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
