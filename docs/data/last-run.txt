@@ -1,3 +1,8 @@
-Hourly refresh 19:10 Brisbane: 5 tracked coins refreshed, 5 scored, 2 above 65. On-chain volume Strong (1.95x 7-day avg).
+Full scan 20:11 Brisbane: 73 scanned, 59 scored, 8 above 65. On-chain volume Strong (2.05x 7-day avg).
+NEW watch: UP (Robinhood) Breakout retest, opp 72, checks 4/6, stop 28.3% away, upside 84.9%; more sellers than buyers in the last hour; volume fading.
+NEW watch: SI (Solana) Bottom reversal, opp 71, checks 5/6, stop 35.5% away, upside 166.8%; volume fading.
+NEW watch: INDEX (Robinhood) Bottom reversal, opp 68, checks 6/6, stop 9.9% away, upside 92%.
+NEW watch: CARDS (Solana) Trend pullback, opp 66, checks 4/6, stop 12.2% away, upside 25.6%; more sellers than buyers in the last hour; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: WNEAR (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
