@@ -12,7 +12,7 @@ import { pickMode, poolsFromTracked } from './lightpool.mjs';
 import { enrich as enrichHolders } from './holders.mjs';
 import { enrich as enrichSocial } from './social.mjs';
 import * as shadow from './shadow.mjs';
-import { funnel, oneAway } from './funnel.mjs';
+import { funnel, oneAway, compact as funnelCompact, appendHistory as funnelAppend } from './funnel.mjs';
 import { due as digestDue, compose as digestCompose } from './digest.mjs';
 import { simulate } from '../docs/paper.mjs';
 import { pickCandidates, trim as trimFwd, MAX_EVAL } from './forward.mjs';
@@ -172,6 +172,7 @@ const charts = kept.filter(C.chartWorthy).sort((a, b) => (b.mine ? 1 : 0) - (a.m
 const meta = { scannedAt: at, mode, fullAt: mode === 'full' ? at : (lastMeta && lastMeta.fullAt) || at, refreshedN: scannedN, scannedN: mode === 'full' ? scannedN : (lastMeta && lastMeta.scannedN) || scannedN, scoredN: mode === 'full' ? scoredN : (lastMeta && lastMeta.scoredN) || scoredN, kept: out.length, minOpp: cfg.minOpp, seconds: Math.round((Date.now() - t0) / 1000), plan: api.plan, mine: mineList, regime, excluded, safetyOn: cfg.safetyChecks, regimeFilter: cfg.regimeFilter, hs: hsStatus, hsLooked, hsApplied };
 try { meta.funnel = funnel(allRows, { minVolume: cfg.minVolume ?? settings.minVolume, minLiquidity: cfg.minLiquidity ?? settings.minLiquidity, maxPools: cfg.maxPools ?? settings.maxPools }); } catch (e) { say('gate funnel skipped: ' + (e.message || e)); }
 const w = (f, d) => fs.writeFileSync(path.join(OUT, f), JSON.stringify(d));
+try { if (meta.funnel) { const fh = path.join(OUT, 'funnel-history.json'); fs.writeFileSync(fh, JSON.stringify(funnelAppend(readJson(fh, []), funnelCompact(meta.funnel, at), Date.now(), 14))); } } catch (e) { say('funnel history skipped: ' + (e.message || e)); }
 if (cfg.safetyChecks) fs.writeFileSync(cachePath, JSON.stringify(cache));
 w('setups.json', out); w('signals.json', log); w('charts.json', charts); if (mode === 'full') w('chainvol.json', market); w('meta.json', meta);
 say(`wrote ${out.length} coins, ${charts.length} charts, ${log.length} logged signals`);
