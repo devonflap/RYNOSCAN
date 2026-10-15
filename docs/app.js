@@ -581,6 +581,15 @@ function drawEdge(L) {
   if (E.gates && E.gates.length) sec('Gate study: does waiting for confirmation pay?', E.gates, (x) => `${x.family}: confirmed ${x.confirmed.n} trades (${x.confirmed.avgR != null ? rr(x.confirmed.avgR) : '—'}), early ${x.early.n} trades (${x.early.avgR != null ? rr(x.early.avgR) : '—'}). ${x.comment}`);
   sec('What to do next', E.next, (x) => x);
 }
+function drawGates(L) {
+  const box = $('gateBox'); if (!box) return; box.replaceChildren(); const G = L && L.gates; if (!G) return;
+  box.append(el('h3', null, 'Gate report'), el('p', 'meta', `Which gates earn their place and which ones block searches. Based on ${G.scans} scans of history and tracked trades. Report only: no rule is changed.`));
+  if (G.summary && G.summary.length) { const u = el('ul', 'note'); G.summary.forEach((x) => u.append(el('li', null, x))); box.append(u); }
+  const tag = { keep: ' - KEEP', relax: ' - CONSIDER RELAXING' };
+  [['reversal', 'Reversal gates'], ['breakout', 'Breakout gates']].forEach(([k, t]) => { const rows = G[k] || []; if (!rows.length) return; box.append(el('h4', null, t)); const u = el('ul', 'note');
+    rows.forEach((r) => u.append(el('li', null, `${r.label}${tag[r.verdict] || ''}: ${r.failPct != null ? `fails for ${r.failPct}% of coins, sole blocker ${r.solePerScan || 0} per scan. ` : ''}${r.comment}`))); box.append(u); });
+  (G.notes || []).forEach((n) => box.append(el('p', 'meta', n)));
+}
 function drawAnalysts(L) {
   const box = $('analystBox'); if (!box) return; box.replaceChildren(); const A = L && Array.isArray(L.analysts) ? L.analysts : []; if (!A.length) return;
   box.append(el('h3', null, 'Pattern analysts'), el('p', 'meta', 'One analyst per chart pattern: how it has done, how it loses, where it works and where it does not, and what to do with it. Items marked reliable passed a luck test; the rest are hints.'));
@@ -604,7 +613,7 @@ function drawLearn() {
   L.setups.forEach((x) => { const tr = el('tr'); tr.append(el('td', null, x.setup + (x.live ? '' : ' (candidate, not live)')), el('td', 'n', x.n), el('td', 'n', Math.round(x.winRate * 100) + '%'), el('td', 'n ' + (x.avgR > 0 ? 'pos' : 'neg'), rr(x.avgR)),
     el('td', 'n', x.lo90 != null ? `${rr(x.lo90)} to ${rr(x.hi90)}` : '—'), el('td', 'v-' + x.verdict, lab[x.verdict] + (x.need ? ` (needs ~${x.need} more)` : ''))); tb.append(tr); });
   (L.insights || []).forEach((i) => ul.append(el('li', null, i)));
-  drawEdge(L); drawAnalysts(L);
+  drawEdge(L); drawGates(L); drawAnalysts(L);
   if (L.best && L.best.length) ul.append(el('li', null, 'Best trades so far: ' + L.best.map((b) => `${b.coin} ${b.setup} ${rr(b.resultR)}`).join(' · ')));
 }
 // ---------- data loading ----------
