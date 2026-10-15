@@ -1,7 +1,3 @@
-Full scan 12:11 Brisbane: 71 scanned, 59 scored, 4 above 65. On-chain volume Strong (1.58x 7-day avg).
-NEW watch: OTC (Solana) Falling wedge, opp 68, checks 6/6, stop 23.4% away, upside 61.8%.
-NEW watch: CATE (Solana) Falling wedge, opp 68, checks 5/6, stop 25.1% away, upside 75.4%; volume fading.
-NEW watch: TRUMP (Solana) Falling wedge, opp 68, checks 5/6, stop 5.3% away, upside 10.6%; more sellers than buyers in the last hour.
+Hourly refresh 13:10 Brisbane: 6 tracked coins refreshed, 6 scored, 4 above 65. On-chain volume Strong (1.58x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: WNEAR (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
