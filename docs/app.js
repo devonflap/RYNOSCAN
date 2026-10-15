@@ -498,6 +498,11 @@ function header() {
   if (S.usage && S.usage.calls != null) line('Data use this month', `${Math.round(S.usage.calls / 1000)}k of ${Math.round((m.cgLimit || 100000) / 1000)}k calls`);
   const nx = new Date(Date.parse(m.scannedAt) + 4 * 3600e3); if (m.mode !== 'light') line('Next full scan', brisbane(nx.toISOString()));
   if (m.hsApplied) line('Holder data', `${m.hsApplied} coins`);
+  if (m.funnel && m.funnel.inPlay != null) { const f = m.funnel, top = (g, n) => g.gates.filter((x) => x.fail > 0).slice(0, 3).map((x) => `${x.label} ${x.fail}/${n}`).join(' · ') || 'none';
+    line('Coins worth a look', `${f.inPlay} scoring 50+ · ${f.ready} bid-ready${f.zoneOrder ? ` (${f.zoneOrder} as resting-limit calls)` : ''} · ${f.oneAway} one gate away`);
+    if (f.reversal.coins) line('Reversal setups blocked by', top(f.reversal, f.reversal.coins));
+    if (f.breakout.coins) line('Breakout setups blocked by', top(f.breakout, f.breakout.coins));
+    if (f.floors && f.floors.minVolume != null) line('Discovery floors', `$${Math.round(f.floors.minVolume / 1000)}k 24h volume, $${Math.round(f.floors.minLiquidity / 1000)}k liquidity, up to ${f.floors.maxPools} pools. Lower them in config/settings.json to widen the net (more candidates, more junk).`); }
   // the market-risk banner lives with the verdict; the market tab shows the trend tiles
 }
 
@@ -573,6 +578,7 @@ function drawEdge(L) {
   sec('What winners had in common', E.profiles, (x) => `${x.setup} (${x.wins} wins, ${x.losses} losses): ${x.comment}`);
   sec('Candidate rules, checked on older and newer trades', E.rules, (x) => `${x.rule}: ${x.trades} trades averaged ${rr(x.avgR)} against ${rr(x.keepAvgR)} for the rest (${x.gain > 0 ? '+' : ''}${x.gain}R if skipped). ${x.status}.`);
   if (E.exits && E.exits.rows) { box.append(el('h4', null, `Exit study (${E.exits.n} tracked trades, current exits average ${rr(E.exits.actualAvgR)})`)); const u = el('ul', 'note'); E.exits.rows.forEach((x) => u.append(el('li', null, `Take all profit at ${x.target}R: ${rr(x.avgR)} average, ${x.reachPct}% of trades got that far.`))); box.append(u); box.append(el('p', 'meta', 'An estimate that ignores exit slippage. It shows where the money is made or given back, and is not applied automatically.')); }
+  if (E.gates && E.gates.length) sec('Gate study: does waiting for confirmation pay?', E.gates, (x) => `${x.family}: confirmed ${x.confirmed.n} trades (${x.confirmed.avgR != null ? rr(x.confirmed.avgR) : '—'}), early ${x.early.n} trades (${x.early.avgR != null ? rr(x.early.avgR) : '—'}). ${x.comment}`);
   sec('What to do next', E.next, (x) => x);
 }
 function drawAnalysts(L) {

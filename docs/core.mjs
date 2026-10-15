@@ -181,7 +181,7 @@ export function detectPatterns(h4){
   out.push({...p,plan,vb,ud,dist:+((trig/price-1)*100).toFixed(1),gates:g,n});}
  return out.sort((a,b)=>b.quality-a.quality);}
 
-export const RULES={v2:!(typeof process!=='undefined'&&process.env&&process.env.RS_RULES==='v1'),off:[],shadow:[],neverOff:true,allowShadow:false}; // shadow: new candidate patterns, detected only in the backtest until the data proves them (see src/learn.mjs). // off: pattern names switched off (Trend pullback went 0/7 in the backtest).  // v2 = rules revised after the backtest; set false to reproduce the original v10 behaviour
+export const RULES={v2:!(typeof process!=='undefined'&&process.env&&process.env.RS_RULES==='v1'),off:[],shadow:[],neverOff:true,zoneAsOrder:true,allowShadow:false}; // shadow: new candidate patterns, detected only in the backtest until the data proves them (see src/learn.mjs). // off: pattern names switched off (Trend pullback went 0/7 in the backtest).  // v2 = rules revised after the backtest; set false to reproduce the original v10 behaviour
 export function scoreList(list,now){
 list.forEach(p=>{p.ageD=p.created?+((now-Date.parse(p.created))/864e5).toFixed(1):null;const fl=[];
  if(p.liq<100000)fl.push('thin liquidity');if(p.ageD!=null&&p.ageD<7)fl.push('new pool');if(p.fdv&&p.fdv/p.liq>60)fl.push('high FDV/liquidity');
@@ -214,7 +214,7 @@ list.forEach(p=>{p.ageD=p.created?+((now-Date.parse(p.created))/864e5).toFixed(1
   zone:!!(pl&&pl.valid&&inZone),
   structure:!!(b&&(b.higherLow||b.macdRising||b.macdCross||b.stochCross)&&(a&&(a.lastGreen||a.rsi>a.rsiPrev))),
   safe:!!(p.liq>=100000&&!ext&&!collapsing&&p.ageD!=null&&p.ageD>=3)};
- p.gates=G;p.gatesPassed=Object.values(G).filter(Boolean).length;p.ready=p.gatesPassed===7;
+ p.gates=G;p.gatesPassed=Object.values(G).filter(Boolean).length;p.ready=p.gatesPassed===7;p.zoneOrder=false;{const nearZone=!!(pl&&pl.valid&&p.lastClose>=pl.stop&&p.lastClose<=pl.entryHigh*1.08);if(RULES.v2&&RULES.zoneAsOrder&&!G.zone&&p.gatesPassed===6&&nearZone){p.ready=true;p.zoneOrder=true;}} // zoneAsOrder: the buy-zone gate is about timing, and you rest a limit order in the zone anyway, so six quality gates plus a reachable zone (price within 8% above it) is bid-ready
  p.bottomed=!!(p.checks.oversold&&b&&b.offLow<=40&&(p.checks.higherLow||p.checks.rsiTurning||p.checks.divergence)&&b.rsi<60&&!collapsing);
  {const rsi4=b?b.rsi:null,rsi1=a?a.rsi:null,room=!(rsi4!=null&&rsi4>72)&&!(rsi1!=null&&rsi1>78),safe0=p.liq>=100000&&!collapsing&&p.ageD!=null&&p.ageD>=3;
   (p.pats||[]).forEach(q=>{const g=q.gates;q.pg={shape:g.pattern,brk:g.trigger,volume:g.volume,buyers:G.buyers,room,safe:safe0,reward:g.reward};q.passed=Object.values(q.pg).filter(Boolean).length;q.ready=q.passed===7;
@@ -340,4 +340,4 @@ const t0=Date.parse(s.signalAt)/1000;const bars=h1.filter(b=>b[0]>=t0);let fille
 export function newSignal(p,at){const id=CH[p.chain].slice(0,3).toUpperCase()+':'+p.sym,day=at.slice(0,10),pl=p.sp;
  return {signalId:id+'@'+day,setup:p.setupType,id,coin:p.sym,chain:CH[p.chain],pool:p.pool,signalAt:at,score:p.score,confluence:p.confluence,priceAtSignal:sig5(p.lastClose),
   entryLow:sig5(pl.entryLow),entryHigh:sig5(pl.entryHigh),entryMid:sig5(pl.entryMid),stop:sig5(pl.stop),tp1:sig5(pl.tp1),tp2:sig5(pl.tp2),tp3:sig5(pl.tp3),
-  status:'waiting for entry',tpHit:0,resultR:null,openR:null,closedAt:null,checkedAt:at,opp:p.opp==null?null:p.opp,regime:p.regime||null,liq:p.liq!=null?Math.round(p.liq):null,age:p.ageD??null,rvol:p.tf&&p.tf['4h']&&p.tf['4h'].rvol!=null?+(+p.tf['4h'].rvol).toFixed(2):null,bs:p.bs24??null,rr2:pl&&pl.rr2!=null?+(+pl.rr2).toFixed(2):null,pq:p.pat&&p.pat.quality!=null?p.pat.quality:null,soc:p.soc?p.soc.level:null,hsD7:p.hs&&p.hs.growPct!=null&&p.hs.growDays>=3?p.hs.growPct:null};}
+  status:'waiting for entry',tpHit:0,resultR:null,openR:null,closedAt:null,checkedAt:at,opp:p.opp==null?null:p.opp,regime:p.regime||null,liq:p.liq!=null?Math.round(p.liq):null,age:p.ageD??null,rvol:p.tf&&p.tf['4h']&&p.tf['4h'].rvol!=null?+(+p.tf['4h'].rvol).toFixed(2):null,bs:p.bs24??null,rr2:pl&&pl.rr2!=null?+(+pl.rr2).toFixed(2):null,pq:p.pat&&p.pat.quality!=null?p.pat.quality:null,zr:p.zoneOrder?'order':'zone',miss:p.lead==='pattern'&&p.pat?p.pat.missing.join(','):p.gates?Object.keys(p.gates).filter(k=>!p.gates[k]).join(','):null,gp:(p.lead==='pattern'&&p.pat?p.pat.passed:p.gates?p.gatesPassed:null)??null,conf:p.signal==='Entry signal'?'confirmed':'early',soc:p.soc?p.soc.level:null,hsD7:p.hs&&p.hs.growPct!=null&&p.hs.growDays>=3?p.hs.growPct:null};}
