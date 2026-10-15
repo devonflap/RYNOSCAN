@@ -22,6 +22,10 @@ jobs:
           CG_API_KEY: ${{ secrets.CG_API_KEY }}
           CG_PLAN: ${{ vars.CG_PLAN }}
         run: node src/backtest.mjs
+      - name: Weekly gate report to phone
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: node src/weekly.mjs || true
       - name: Save results
         run: |
           git config user.name "rynoscan-bot"
