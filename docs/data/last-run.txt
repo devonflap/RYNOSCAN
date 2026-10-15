@@ -1,4 +1,5 @@
-Hourly refresh 03:10 Brisbane: 12 tracked coins refreshed, 12 scored, 4 above 65. On-chain volume Strong (2.27x 7-day avg).
-NEW watch: OTC (Solana) Falling wedge, opp 70, checks 6/6, stop 42.1% away, upside 126.3%.
+Hourly refresh 04:10 Brisbane: 6 tracked coins refreshed, 6 scored, 2 above 65. On-chain volume Strong (2.27x 7-day avg).
+NEW watch: STONK (Solana) Bottom reversal, opp 67, checks 5/6, stop 13.6% away, upside 54.8%; more sellers than buyers in the last hour.
+Signal OTC: open (TP2 hit), open 1.46R.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
