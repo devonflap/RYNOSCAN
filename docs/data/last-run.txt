@@ -1,7 +1,4 @@
-Full scan 05:11 Brisbane: 76 scanned, 62 scored, 4 above 65. On-chain volume Strong (2.17x 7-day avg).
-NEW watch: INDEX (Robinhood) Bottom reversal, opp 72, checks 6/6, stop 15.6% away, upside 79.7%.
-NEW watch: OTC (Solana) Falling wedge, opp 70, checks 6/6, stop 42.1% away, upside 126.3%.
-NEW watch: CLAUDIA (Solana) Bottom reversal, opp 67, checks 5/6, stop 41.6% away, upside 214.3%; more sellers than buyers in the last hour.
+Hourly refresh 06:10 Brisbane: 5 tracked coins refreshed, 5 scored, 1 above 65. On-chain volume Strong (2.17x 7-day avg).
+NEW watch: STONK (Solana) Liquidity sweep reclaim, opp 74, checks 5/6, stop 18.5% away, upside 46.1%; more sellers than buyers in the last hour.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: TTWO (Mint Authority still enabled), MU (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
