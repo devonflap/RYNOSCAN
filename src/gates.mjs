@@ -15,7 +15,7 @@ const REVERSAL = ['Bottom reversal', 'Double bottom', 'Inverse H&S', 'Falling we
 const famOf = (st) => (REVERSAL.includes(st) ? 'reversal' : 'breakout');
 
 // trades: tracked trades (resultR set, miss recorded). hist: funnel history records from src/funnel.mjs compact().
-export function gateReport(trades, hist = [], now = new Date()) {
+export function gateReport(trades, hist = [], now = new Date(), earlyTrades = []) {
   const out = { at: now.toISOString().slice(0, 19) + 'Z', scans: Array.isArray(hist) ? hist.length : 0, reversal: [], breakout: [], summary: [], notes: [] };
   const T = (Array.isArray(trades) ? trades : []).filter((s) => s && s.resultR != null && isFinite(+s.resultR) && s.status !== 'expired (no fill)' && s.miss != null && s.setup);
   // history -> per-gate bottleneck numbers
@@ -46,6 +46,15 @@ export function gateReport(trades, hist = [], now = new Date()) {
     if (relax.length) out.summary.push(`${title}: consider relaxing ${relax.map(nm).join(', ')}.`);
     if (!keep.length && !relax.length) out.summary.push(`${title}: not enough early-versus-confirmed trades yet to say which gates should be used.`);
   }
+  // early-1h experiment: trades entered on the still-forming 4h candle versus the same family after every gate passed on a closed candle
+  { const E = (Array.isArray(earlyTrades) ? earlyTrades : []).map((s) => +s.resultR).filter(isFinite), C = T.filter((s) => famOf(s.setup) === 'reversal' && s.miss === '' && s.conf !== 'early').map((s) => +s.resultR);
+    const e = { early: { n: E.length, avgR: E.length ? r2(mean(E)) : null }, confirmed: { n: C.length, avgR: C.length ? r2(mean(C)) : null }, verdict: 'unclear' };
+    if (E.length >= 8 && C.length >= 8) { const d = mean(E) - mean(C), p = permDiff([...E, ...C], E.length, d); e.p = +p.toFixed(3);
+      if (d >= 0.3 && p <= 0.1) { e.verdict = 'early-better'; e.comment = `Entering on the forming 4h candle averaged ${sgn(mean(E))} against ${sgn(mean(C))} after the close. Waiting for the 4h close is costing you.`; }
+      else if (d <= -0.3 && p <= 0.1) { e.verdict = 'wait'; e.comment = `Entering early averaged ${sgn(mean(E))} against ${sgn(mean(C))} after the close. Waiting for the 4h close pays: early entries get caught by fakeouts.`; }
+      else e.comment = `No clear difference yet (early ${sgn(mean(E))}, after the close ${sgn(mean(C))}).`; }
+    else e.comment = `Not enough data yet: needs 8 early and 8 confirmed trades (has ${E.length} and ${C.length}).`;
+    out.early = e; out.summary.push('Early entry on the forming 4h candle: ' + e.comment); }
   if (!out.scans) out.notes.push('No scan history yet: bottleneck numbers appear after a few days of scans.');
   return out;
 }

@@ -12,6 +12,7 @@ import { pickMode, poolsFromTracked } from './lightpool.mjs';
 import { enrich as enrichHolders } from './holders.mjs';
 import { enrich as enrichSocial } from './social.mjs';
 import * as shadow from './shadow.mjs';
+import * as early from './early.mjs';
 import { funnel, oneAway, compact as funnelCompact, appendHistory as funnelAppend } from './funnel.mjs';
 import { due as digestDue, compose as digestCompose } from './digest.mjs';
 import { simulate } from '../docs/paper.mjs';
@@ -157,11 +158,14 @@ log.sort((a, b) => String(b.signalAt || '').localeCompare(String(a.signalAt || '
 // 4b. forward test of near-miss candidates (opp 40 to the cut-off): logged when they appear, followed with the same rules.
 // Full scans only, so the extra candle calls stay small. Failure here never stops the scan.
 let fwdN = 0;
+let earlyNew = [];
 if (mode === 'full') { try {
   const fwd0 = readJson(path.join(OUT, 'forward.json'), []).filter(s => s && typeof s === 'object'), fwd = []; let used = 0;
   for (const s of fwd0) { if ((s.status === 'open' || s.status === 'waiting for entry') && used < MAX_EVAL) { used++; try { fwd.push(await evalOne(s)); } catch { fwd.push(s); } } else fwd.push(s); }
   const fresh = pickCandidates(allRows, fwd, at, (p, t) => { const g = C.newSignal(p, t); g.volDay = volDay; return g; }, cfg.minOpp);
   let shN = 0; try { const sh = shadow.pick(shadow.candidates(allRows, C), fwd, at, (p, t) => { const g = C.newSignal(p, t); g.volDay = volDay; return g; }); fwd.push(...sh); shN = sh.length; } catch (e) { say('shadow tracking skipped: ' + (e.message || e)); }
+  let earlyN = 0; try { const ec = early.candidates(allRows, C), ep = early.pick(ec, fwd, at, (p, t) => { const g = C.newSignal(p, t); g.volDay = volDay; return g; }); fwd.push(...ep); earlyN = ep.length; earlyNew = ep; } catch (e) { say('early-1h tracking skipped: ' + (e.message || e)); }
+  if (earlyN) say(`early-1h: ${earlyN} early entries logged (${earlyNew.map(x => x.coin).join(', ')})`);
   if (shN) say(`shadow patterns: ${shN} background trades logged (${[...new Set(fwd.filter(x => x.shadow).map(x => x.setup))].join(', ')})`);
   fwd.push(...fresh); const keep = trimFwd(fwd); fs.writeFileSync(path.join(OUT, 'forward.json'), JSON.stringify(keep)); fwdN = fresh.length; say(`forward test: ${fresh.length} new candidates, ${keep.length} tracked`);
 } catch (e) { say('forward test skipped: ' + (e.message || e)); } }
@@ -242,6 +246,17 @@ if (topic && !alertEntry.length && !alertHot.length) { try {
     say('one-gate-away alert sent: ' + r.status); if (r.ok) { const now = new Date().toISOString(); near.forEach(n => sent['N|' + CHID(n.p) + '|' + n.gate] = now); }
   }
 } catch (e) { say('one-gate-away alert skipped: ' + (e.message || e)); } }
+
+// early-1h alert: unconfirmed, tracked experiment. Low priority, capped, once per coin per day. Turn off with "earlyAlert": false in config/settings.json.
+if (topic && settings.earlyAlert !== false && earlyNew.length) { try {
+  const sg = x => (x == null ? '' : String(Number(Number(x).toPrecision(5))));
+  const ne = earlyNew.filter(x => fresh('E|' + x.signalId)).slice(0, 3);
+  if (ne.length) {
+    const body = ne.map(x => `${x.coin} (${x.chain}) ${String(x.setup).replace(' [early 1h]', '')}, opp ${x.opp}: every gate passes on the still-forming 4h candle. Entry ${sg(x.entryLow)}-${sg(x.entryHigh)}, stop ${sg(x.stop)}, TP1 ${sg(x.tp1)}.`).join('\n');
+    const r = await fetch('https://ntfy.sh/' + encodeURIComponent(topic), { method: 'POST', body: body + '\n\nEARLY, not confirmed: the 4h candle has not closed and it can still fail. Tracked as an experiment to test whether waiting costs entries.', headers: { Title: `Early: ${ne[0].coin} (4h candle still open)`, Priority: 'low', Tags: 'rhinoceros,hourglass_flowing_sand', ...(site ? { Click: site } : {}) } });
+    say('early-1h alert sent: ' + r.status); if (r.ok) { const now = new Date().toISOString(); ne.forEach(x => sent['E|' + x.signalId] = now); }
+  }
+} catch (e) { say('early-1h alert skipped: ' + (e.message || e)); } }
 
 // safeguard 2: daily check-in (proves the scanner is alive) and a bid-ready digest at most every 6 hours, so a missed alert never hides a chart
 if (topic) { try {

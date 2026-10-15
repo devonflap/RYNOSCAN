@@ -25,6 +25,7 @@ const bucket = (v, edges, labels) => { for (let i = 0; i < edges.length; i++) if
 
 // signals: [{setup, chain, at, resultR, riskPct, opp, status, source}], defaults: {off:[], shadow:[]} (what is not live by default)
 export function learn(signals, defaults = { off: [], shadow: [] }, now = new Date(), extra = {}) {
+  const earlyAll = signals.filter(s => s && s.early1h && s.resultR != null && s.status !== 'expired (no fill)' && isFinite(+s.resultR)); signals = signals.filter(s => !(s && s.early1h)); // early-1h trades are an experiment: compared in the gate report, never mixed into setup stats
   const closedAll = signals.filter(s => s.resultR != null && s.status !== 'expired (no fill)' && isFinite(+s.resultR)), closed = closedAll.filter(s => !String(s.setup || '').startsWith('Near-miss'));
   const by = (key, src = closed) => { const m = new Map(); for (const s of src) { const k = key(s); if (k == null) continue; if (!m.has(k)) m.set(k, []); m.get(k).push(+s.resultR); } return m; };
   const notLive = new Set([...(defaults.off || []), ...(defaults.shadow || [])]);
@@ -40,7 +41,7 @@ export function learn(signals, defaults = { off: [], shadow: [] }, now = new Dat
   for (const f of feat) { if (f.hi90 != null && f.hi90 < 0) insights.push(`${f.feature} ${f.bucket}: ${f.avgR}R average over ${f.n} trades is reliably negative.`); else if (f.lo90 != null && f.lo90 > 0) insights.push(`${f.feature} ${f.bucket}: ${f.avgR}R average over ${f.n} trades is reliably positive.`); }
   const all = stat(closed.map(s => +s.resultR));
   const pool = closedAll.map(s => NM(s.setup) ? { ...s, setup: s.setupBase || String(s.setup).replace(/^Near-miss: /, ''), tier: 'near-miss' } : s), edgeReport = edge(closed, FEATS, setups, all, pool);
-  return { at: now.toISOString().slice(0, 19) + 'Z', total: all, setups, promote, demote, features: feat, insights, edge: edgeReport, filters: edgeReport.filters || [], analysts: analysts(pool, FEATS, notLive), gates: gateReport(pool, extra.funnelHistory || [], now),
+  return { at: now.toISOString().slice(0, 19) + 'Z', total: all, setups, promote, demote, features: feat, insights, edge: edgeReport, filters: edgeReport.filters || [], analysts: analysts(pool, FEATS, notLive), gates: gateReport(pool, extra.funnelHistory || [], now, earlyAll),
     best: closed.slice().sort((a, b) => b.resultR - a.resultR).slice(0, 5).map(s => ({ coin: s.coin, setup: s.setup, resultR: s.resultR, at: s.at || s.signalAt })),
     rules: { minDemote: MIN_DEMOTE, minPromote: MIN_PROMOTE, confidence: '90%' },
     notes: ['Learned from the replay of recent hourly candles plus the live signal log. The replay covers a couple of weeks of one market regime, so treat even a "proven" setup as provisional.', 'A pattern is only promoted or flagged as failing when the 90% confidence interval clears zero with at least ' + MIN_PROMOTE + ' (promote) or ' + MIN_DEMOTE + ' (flag) closed trades. Flagged patterns keep running and alerting: nothing is switched off automatically.'] };
