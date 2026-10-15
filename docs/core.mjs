@@ -249,7 +249,8 @@ export function techFromRaw(p,raw,nowMs){
  if(!raw||raw.length<22){if(raw)p.young=true;return false;}
  const all=cleanBars(raw);if(all.length<22){p.young=true;return false;}
  const h1=RULES.v2?closedOnly(all,nowMs):all;if(h1.length<22){p.young=true;return false;}
- let h4=resample(h1,14400);if(RULES.v2&&h4.length&&h1[h1.length-1][0]<h4[h4.length-1][0]+3*3600)h4=h4.slice(0,-1); // drop an unfinished 4h candle
+ let h4=resample(h1,14400);if(RULES.v2&&h4.length&&h1[h1.length-1][0]<h4[h4.length-1][0]+3*3600)h4=h4.slice(0,-1);; p.h4f=null; // drop an unfinished 4h candle
+ if(RULES.v2){const hf=resample(h1,14400);if(hf.length>h4.length&&hf.length>=45)p.h4f=hf;} // keep the version WITH the unfinished candle for the early-1h experiment (tracking only)
  const d1=resample(h1,86400);
  p.tf={'1h':analyse(h1,24),'4h':analyse(h4,18),'1d':d1.length>=20?analyse(d1,10):null};p.plan=plan(h4);p.lastClose=all[all.length-1][4];p.h4=h4;p.pats=detectPatterns(h4).filter(q=>q.quality>=50&&!(q.status==='forming'&&q.dist>12));
  const bs1=p.s1?p.b1/p.s1:null,bs24=p.s24?p.b24/p.s24:null,vacc=p.v24?p.v1/(p.v24/24):null;p.bs1=bs1&&+bs1.toFixed(2);p.bs24=bs24&&+bs24.toFixed(2);p.vacc=vacc&&+vacc.toFixed(2);
