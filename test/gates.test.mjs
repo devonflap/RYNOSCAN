@@ -17,4 +17,10 @@ const h=appendHistory([{t:'2020-01-01T00:00:00Z'}],{t:new Date().toISOString()},
 ok(h.length===1,'old history trimmed');
 ok(compose({gates:g}).body.includes('Report only'),'weekly message composed');
 ok(compose(null)===null,'weekly handles no data');
+{ const m=(n,miss,R,st)=>Array.from({length:n},(_,i)=>({setup:'Bottom reversal',miss,conf:'confirmed',resultR:R+(i%3-1)*0.1,status:st}));
+  let q=gateReport([...m(10,'',0.8,'hit TP3'),...m(10,'zone',-0.7,'stopped out')],[]);
+  ok(q.filter.verdict==='works'&&q.filter.rejected.stopPct===100,'filter audit: rejected coins did worse');
+  q=gateReport([...m(10,'',-0.5,'stopped out'),...m(10,'zone',0.8,'hit TP3')],[]);
+  ok(q.filter.verdict==='backwards','filter audit flags a filter rejecting winners');
+  ok(gateReport([],[]).filter.verdict==='unclear','filter audit needs data'); }
 process.exit(f);
