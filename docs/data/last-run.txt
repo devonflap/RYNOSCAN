@@ -1,4 +1,8 @@
-Hourly refresh 06:10 Brisbane: 5 tracked coins refreshed, 5 scored, 1 above 65. On-chain volume Strong (2.17x 7-day avg).
-NEW watch: STONK (Solana) Liquidity sweep reclaim, opp 74, checks 5/6, stop 18.5% away, upside 46.1%; more sellers than buyers in the last hour.
+Full scan 07:11 Brisbane: 73 scanned, 60 scored, 5 above 65. On-chain volume Strong (2.22x 7-day avg).
+NEW watch: VRAX (Robinhood) Bull flag, opp 80, checks 6/6, stop null% away, upside null%.
+NEW watch: TRUMP (Solana) Bottom reversal, opp 71, checks 5/6, stop 7.7% away, upside 23.1%; more sellers than buyers in the last hour.
+NEW watch: JEANPHIL (Solana) Bottom reversal, opp 71, checks 5/6, stop 33.5% away, upside 132.3%; more sellers than buyers in the last hour.
+NEW watch: OTC (Solana) Falling wedge, opp 68, checks 6/6, stop 44.5% away, upside 133.4%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: TTWO (Mint Authority still enabled), MU (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
