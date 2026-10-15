@@ -1,4 +1,7 @@
-Full scan 08:54 Brisbane: 77 scanned, 58 scored, 4 above 65. On-chain volume Strong (1.39x 7-day avg).
+Full scan 10:11 Brisbane: 74 scanned, 57 scored, 4 above 65. On-chain volume Strong (1.49x 7-day avg).
+NEW watch: CATE (Solana) Falling wedge, opp 68, checks 5/6, stop 25.1% away, upside 75.4%; volume fading.
+NEW watch: INDEX (Robinhood) Bottom reversal, opp 66, checks 5/6, stop 16.5% away, upside 77.9%; volume fading.
+Signal ASTEROID: stopped out, result -1.21R.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: WNEAR (Mint Authority still enabled).
+Removed for token safety: WNEAR (Mint Authority still enabled), SPCX (Mint Authority still enabled), CRCLX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
