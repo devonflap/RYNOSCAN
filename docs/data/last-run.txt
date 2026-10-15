@@ -1,5 +1,5 @@
-Full scan 17:11 Brisbane: 78 scanned, 60 scored, 1 above 65. On-chain volume Strong (1.93x 7-day avg).
-NEW watch: TRUMP (Solana) Falling wedge, opp 80, checks 6/6, stop 3.2% away, upside 10.4%.
+Full scan 18:11 Brisbane: 79 scanned, 60 scored, 3 above 65. On-chain volume Strong (1.95x 7-day avg).
+NEW watch: SI (Solana) Bottom reversal, opp 84, checks 6/6, stop 35.5% away, upside 166.8%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: CRCLX (Mint Authority still enabled), SPCX (Mint Authority still enabled), WNEAR (Mint Authority still enabled).
+Removed for token safety: WNEAR (Mint Authority still enabled), CRCLX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
