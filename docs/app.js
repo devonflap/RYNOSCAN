@@ -588,6 +588,7 @@ function drawGates(L) {
   const tag = { keep: ' - KEEP', relax: ' - CONSIDER RELAXING' };
   [['reversal', 'Reversal gates'], ['breakout', 'Breakout gates']].forEach(([k, t]) => { const rows = G[k] || []; if (!rows.length) return; box.append(el('h4', null, t)); const u = el('ul', 'note');
     rows.forEach((r) => u.append(el('li', null, `${r.label}${tag[r.verdict] || ''}: ${r.failPct != null ? `fails for ${r.failPct}% of coins, sole blocker ${r.solePerScan || 0} per scan. ` : ''}${r.comment}`))); box.append(u); });
+  if (G.early) box.append(el('h4', null, 'Early entry experiment (1h, forming 4h candle)'), el('p', 'note', `${G.early.comment} Early: ${G.early.early.n} trades. Confirmed: ${G.early.confirmed.n} trades.`));
   (G.notes || []).forEach((n) => box.append(el('p', 'meta', n)));
 }
 function drawAnalysts(L) {
