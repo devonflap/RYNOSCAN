@@ -181,7 +181,7 @@ export function detectPatterns(h4){
   out.push({...p,plan,vb,ud,dist:+((trig/price-1)*100).toFixed(1),gates:g,n});}
  return out.sort((a,b)=>b.quality-a.quality);}
 
-export const RULES={v2:!(typeof process!=='undefined'&&process.env&&process.env.RS_RULES==='v1'),off:['Trend pullback'],shadow:['Ascending triangle','Base breakout','Breakout retest','Liquidity sweep reclaim','Volume breakout'],allowShadow:false}; // shadow: new candidate patterns, detected only in the backtest until the data proves them (see src/learn.mjs). // off: pattern names switched off (Trend pullback went 0/7 in the backtest).  // v2 = rules revised after the backtest; set false to reproduce the original v10 behaviour
+export const RULES={v2:!(typeof process!=='undefined'&&process.env&&process.env.RS_RULES==='v1'),off:[],shadow:[],neverOff:true,allowShadow:false}; // shadow: new candidate patterns, detected only in the backtest until the data proves them (see src/learn.mjs). // off: pattern names switched off (Trend pullback went 0/7 in the backtest).  // v2 = rules revised after the backtest; set false to reproduce the original v10 behaviour
 export function scoreList(list,now){
 list.forEach(p=>{p.ageD=p.created?+((now-Date.parse(p.created))/864e5).toFixed(1):null;const fl=[];
  if(p.liq<100000)fl.push('thin liquidity');if(p.ageD!=null&&p.ageD<7)fl.push('new pool');if(p.fdv&&p.fdv/p.liq>60)fl.push('high FDV/liquidity');
@@ -319,24 +319,25 @@ export async function crossCheck(rows,{getJson,sleep,log=()=>{}}){
 
 // Apply what src/learn.mjs decided: patterns proven by the data go live, patterns that keep losing are switched off.
 export function applyLearned(L){if(!L||typeof L!=='object'||!RULES.v2)return;const dem=Array.isArray(L.demote)?L.demote.filter(x=>typeof x==='string'):[],pro=Array.isArray(L.promote)?L.promote.filter(x=>typeof x==='string'):[];
- RULES.shadow=RULES.shadow.filter(x=>!pro.includes(x));RULES.off=[...new Set([...RULES.off.filter(x=>!pro.includes(x)),...dem])];}
+ RULES.shadow=RULES.shadow.filter(x=>!pro.includes(x));RULES.off=[...new Set([...RULES.off.filter(x=>!pro.includes(x)),...(RULES.neverOff?[]:dem)])];} // neverOff: the data may flag a pattern as failing, but it keeps running and alerting (owner's rule)
 // Walk an existing signal forward over new hourly candles (fill within 48h, a third sold at each TP,
 // stop to breakeven after TP1, 7-day time exit). Result in R.
 export function evaluate(s,h1,at,opts={}){const k1=opts.tp1Stop??0,ladder=!!opts.ladder; // k1: stop after TP1 sits k1 x risk below entry (0 = breakeven, 1 = keep the original stop); ladder: after TP2 the stop moves up to TP1
 // fillAt: 'mid' (default, optimistic) or 'high' (limit order resting at the top of the zone, which is what actually fills). slipPct: round-trip slippage and fees as % of the fill price, charged in R.
 const E=opts.fillAt==='high'?s.entryHigh:opts.fillAt==='low'?s.entryLow:s.entryMid,slipPct=opts.slipPct??0;
-const t0=Date.parse(s.signalAt)/1000;const bars=h1.filter(b=>b[0]>=t0);let filled=null,stop=s.stop,hit=0,R=0,left=1,status='waiting for entry',closedAt=null;
+const t0=Date.parse(s.signalAt)/1000;const bars=h1.filter(b=>b[0]>=t0);let filled=null,stop=s.stop,hit=0,R=0,left=1,status='waiting for entry',closedAt=null,hiMax=-Infinity,loMin=Infinity;
  const risk=E-s.stop,slipR=risk>0?E*slipPct/100/risk:0;
  if(!(risk>0))return {...s,status:'invalid plan',tpHit:0,resultR:null,openR:null,closedAt:null,checkedAt:at};
  for(const b of bars){if(!filled){if(b[0]>t0+48*3600){status='expired (no fill)';closedAt=b[0];break;}if(b[3]<=s.entryHigh){filled=b[0];status='open';R=-slipR;}else continue;}
-  if(b[3]<=stop){R+=left*((stop-E)/risk);left=0;status=hit?'stopped after TP'+hit:'stopped out';closedAt=b[0];break;}
-  const tps=[s.tp1,s.tp2,s.tp3];while(hit<3&&b[2]>=tps[hit]){R+=(1/3)*((tps[hit]-E)/risk);left-=1/3;hit++;if(hit===1)stop=Math.max(stop,E-k1*risk);if(hit===2&&ladder)stop=Math.max(stop,s.tp1);}
+  loMin=Math.min(loMin,b[3]);if(b[3]<=stop){R+=left*((stop-E)/risk);left=0;status=hit?'stopped after TP'+hit:'stopped out';closedAt=b[0];break;}
+  hiMax=Math.max(hiMax,b[2]);const tps=[s.tp1,s.tp2,s.tp3];while(hit<3&&b[2]>=tps[hit]){R+=(1/3)*((tps[hit]-E)/risk);left-=1/3;hit++;if(hit===1)stop=Math.max(stop,E-k1*risk);if(hit===2&&ladder)stop=Math.max(stop,s.tp1);}
   if(hit===3){left=0;status='hit TP3';closedAt=b[0];break;}
   if(b[0]>filled+7*86400){R+=left*((b[4]-E)/risk);left=0;status='time exit (7 days)';closedAt=b[0];break;}}
  return {...s,status,tpHit:hit,resultR:status==='open'||status==='waiting for entry'||status==='expired (no fill)'?null:+R.toFixed(2),openR:status==='open'?+(R+left*(((bars.length?bars[bars.length-1][4]:E)-E)/risk)).toFixed(2):null,
+  mfeR:filled&&isFinite(hiMax)?+Math.max(0,(hiMax-E)/risk).toFixed(2):null,maeR:filled&&isFinite(loMin)?+Math.max(0,(E-loMin)/risk).toFixed(2):null,
   closedAt:closedAt?new Date(closedAt*1000).toISOString().slice(0,16)+'Z':null,checkedAt:at};}
 
 export function newSignal(p,at){const id=CH[p.chain].slice(0,3).toUpperCase()+':'+p.sym,day=at.slice(0,10),pl=p.sp;
  return {signalId:id+'@'+day,setup:p.setupType,id,coin:p.sym,chain:CH[p.chain],pool:p.pool,signalAt:at,score:p.score,confluence:p.confluence,priceAtSignal:sig5(p.lastClose),
   entryLow:sig5(pl.entryLow),entryHigh:sig5(pl.entryHigh),entryMid:sig5(pl.entryMid),stop:sig5(pl.stop),tp1:sig5(pl.tp1),tp2:sig5(pl.tp2),tp3:sig5(pl.tp3),
-  status:'waiting for entry',tpHit:0,resultR:null,openR:null,closedAt:null,checkedAt:at,opp:p.opp==null?null:p.opp,regime:p.regime||null,hsD7:p.hs&&p.hs.growPct!=null&&p.hs.growDays>=3?p.hs.growPct:null};}
+  status:'waiting for entry',tpHit:0,resultR:null,openR:null,closedAt:null,checkedAt:at,opp:p.opp==null?null:p.opp,regime:p.regime||null,liq:p.liq!=null?Math.round(p.liq):null,age:p.ageD??null,rvol:p.tf&&p.tf['4h']&&p.tf['4h'].rvol!=null?+(+p.tf['4h'].rvol).toFixed(2):null,bs:p.bs24??null,rr2:pl&&pl.rr2!=null?+(+pl.rr2).toFixed(2):null,pq:p.pat&&p.pat.quality!=null?p.pat.quality:null,soc:p.soc?p.soc.level:null,hsD7:p.hs&&p.hs.growPct!=null&&p.hs.growDays>=3?p.hs.growPct:null};}

@@ -138,6 +138,12 @@ function holderLine(r) {
   if (h.top10Pct != null) { parts.push(`top 10 wallets hold ${h.top10Pct}%`); if (h.top10Pct >= 50) bad.push('very concentrated: a few wallets can dump on you'); else if (h.top10Pct >= 35) bad.push('fairly concentrated'); }
   return { cls: bad.length ? 'caut' : 'meta', txt: parts.join(' · ') + (bad.length ? ' (' + bad.join('; ') + ')' : '') + '. Shown for your judgement; it does not change the score.' };
 }
+function socialLine(r) {
+  const o = r.soc; if (!o) return null;
+  const parts = [], a = (t, u) => u && parts.push({ t, u });
+  a('X', o.x); a('Telegram', o.tg); a('Discord', o.dc); a('Website', o.web);
+  return { none: o.n === 0, parts, txt: o.n === 0 ? 'Socials: no X, Telegram or website on the listing (nobody is vouching for it)' : 'Socials:' };
+}
 // ---------- coin card ----------
 function takeLine(r) {
   const pos = [], neg = [];
@@ -288,6 +294,7 @@ function card(r, cr) {
   if (r.regime === 'Risk-off') c.append(el('p', 'caut', 'Market is risk-off for this chain: reversals fail more often. Size down.'));
   if (r.missing && !r.bidReady && !(r._pat && r.patReady)) c.append(el('p', 'caut', 'Still needs: ' + r.missing.split(',').filter(Boolean).join(', ')));
   { const hl = holderLine(r); if (hl) c.append(el('p', hl.cls, hl.txt.replace(/ Shown for your judgement[^.]*\./, ''))); }
+  { const sl = socialLine(r); if (sl) { const p = el('p', sl.none ? 'caut' : 'meta', sl.txt + (sl.none ? '.' : ' ')); sl.parts.forEach((x, i) => { if (i) p.append(' · '); const a = el('a', '', x.t); if (/^https?:\/\//i.test(x.u)) { a.href = x.u; a.target = '_blank'; a.rel = 'noopener noreferrer'; } p.append(a); }); c.append(p); } }
   const more = el('details', 'more'), ms = el('summary', null, `Details · ${r._g.filter(([k]) => r[k]).length}/${r._g.length} checks · facts`); more.append(ms);
   const g = el('div', 'gates'); r._g.forEach(([k, lab]) => g.append(el('span', 'g ' + (r[k] ? 'y' : 'n'), (r[k] ? '✓ ' : '✗ ') + lab))); more.append(g);
   if (r.rug === 'ok') more.append(el('p', 'ok-line', '✓ Token checks clear (no mint/freeze control, honeypot or tax flags found)'));
@@ -330,7 +337,8 @@ function drawPaper() {
     tbl.append(tb); const sc = el('div', 'scroll'); sc.append(tbl); host.append(sc);
   }
   const f = fwdSummary(S.fwd);
-  host.append(el('p', 'meta', f.total ? `Near-miss forward test (setups scoring 50 to 65, not shown as trades): ${f.total} logged, ${f.closed} closed` + (f.avgR != null ? `, ${rr(f.avgR)} average, ${Math.round(f.win * 100)}% won.` : '.') + ' Used by the learning loop to check whether the 65 cut-off is in the right place.' : 'Near-miss forward test: collecting. Setups scoring 50 to 65 are logged on each full scan and followed with the same rules.'));
+  { const sh = (Array.isArray(S.fwd) ? S.fwd : []).filter((x) => x && x.shadow), cl = sh.filter((x) => x.resultR != null && x.status !== 'expired (no fill)'); if (sh.length) host.append(el('p', 'meta', `Background tracking of candidate patterns that are not live: ${sh.length} logged, ${cl.length} closed. Their results feed the learning loop, which can switch a pattern on once the data supports it.`)); }
+  host.append(el('p', 'meta', f.total ? `Near-miss forward test (setups scoring 40 to 65, not shown as trades): ${f.total} logged, ${f.closed} closed` + (f.avgR != null ? `, ${rr(f.avgR)} average, ${Math.round(f.win * 100)}% won.` : '.') + ' Used by the learning loop to check whether the 65 cut-off is in the right place.' : 'Near-miss forward test: collecting. Setups scoring 40 to 65 are logged on each full scan and followed with the same rules.'));
 }
 
 // ---------- main ----------
@@ -486,7 +494,7 @@ function header() {
   line('Type', m.mode === 'light' ? `Hourly refresh of ${m.refreshedN} tracked coins (last full discovery scan ${m.fullAt ? ago(m.fullAt) : 'n/a'})` : 'Full discovery scan');
   line('Coins scored', `${m.scoredN} of ${m.scannedN}, ${m.kept} above ${m.minOpp}`);
   line('Right now', `${bid.length} bid-ready · ${watch.length} worth watching · ${pats.length} chart patterns`);
-  line('Schedule', 'hourly 6am–10pm Brisbane, full discovery every 4 hours' + (S.watchAt ? `, entry prices checked ${ago(S.watchAt)}` : ''));
+  line('Schedule', 'hourly, 24 hours a day, full discovery every 4 hours' + (S.watchAt ? `, entry prices checked ${ago(S.watchAt)}` : ''));
   if (S.usage && S.usage.calls != null) line('Data use this month', `${Math.round(S.usage.calls / 1000)}k of ${Math.round((m.cgLimit || 100000) / 1000)}k calls`);
   const nx = new Date(Date.parse(m.scannedAt) + 4 * 3600e3); if (m.mode !== 'light') line('Next full scan', brisbane(nx.toISOString()));
   if (m.hsApplied) line('Holder data', `${m.hsApplied} coins`);
@@ -555,16 +563,42 @@ function drawBacktest() {
   if (b.exitVariants && b.exitVariants.length) { xw.hidden = false; b.exitVariants.forEach((x) => { const tr = el('tr'); tr.append(el('td', null, x.name), el('td', 'n', x.closed), el('td', 'n', x.winRate != null ? Math.round(x.winRate * 100) + '%' : '—'), el('td', 'n ' + (x.avgR > 0 ? 'pos' : 'neg'), x.avgR != null ? rr(x.avgR) : '—'), el('td', 'n', x.profitFactor ?? '—')); xb.append(tr); }); } else xw.hidden = true;
   const ul = $('btNotes'); ul.replaceChildren(); b.notes.forEach((n) => ul.append(el('li', null, n)));
 }
+function drawEdge(L) {
+  const box = $('edgeBox'); if (!box) return; box.replaceChildren(); const E = L && L.edge; if (!E) return;
+  const h = el('h3', null, 'Edge report'), p = el('p', 'tip ' + (E.status === 'edge-candidate' ? 'pos' : E.status === 'negative' ? 'neg' : ''), E.headline); box.append(h, p);
+  const sec = (title, items, fmt) => { if (!items || !items.length) return; box.append(el('h4', null, title)); const u = el('ul', 'note'); items.forEach((x) => u.append(el('li', null, fmt(x)))); box.append(u); };
+  sec('Rules the scanner is applying now (found by the data, re-tested weekly)', E.filters, (x) => `${x.label}: ${x.trades} past trades averaged ${rr(x.avgR)}. Matching coins get a strong warning in the panel.`);
+  if (E.tested) box.append(el('p', 'meta', `${E.tested} possible rules were tried. Because that many were tried, some look good by pure luck, so every rule is corrected for it and must also hold on older and newer trades.`));
+  sec('What each pattern needs', E.patterns, (x) => `${x.setup}${x.live ? '' : ' (background tracking)'}: ${x.comment}`);
+  sec('What winners had in common', E.profiles, (x) => `${x.setup} (${x.wins} wins, ${x.losses} losses): ${x.comment}`);
+  sec('Candidate rules, checked on older and newer trades', E.rules, (x) => `${x.rule}: ${x.trades} trades averaged ${rr(x.avgR)} against ${rr(x.keepAvgR)} for the rest (${x.gain > 0 ? '+' : ''}${x.gain}R if skipped). ${x.status}.`);
+  if (E.exits && E.exits.rows) { box.append(el('h4', null, `Exit study (${E.exits.n} tracked trades, current exits average ${rr(E.exits.actualAvgR)})`)); const u = el('ul', 'note'); E.exits.rows.forEach((x) => u.append(el('li', null, `Take all profit at ${x.target}R: ${rr(x.avgR)} average, ${x.reachPct}% of trades got that far.`))); box.append(u); box.append(el('p', 'meta', 'An estimate that ignores exit slippage. It shows where the money is made or given back, and is not applied automatically.')); }
+  sec('What to do next', E.next, (x) => x);
+}
+function drawAnalysts(L) {
+  const box = $('analystBox'); if (!box) return; box.replaceChildren(); const A = L && Array.isArray(L.analysts) ? L.analysts : []; if (!A.length) return;
+  box.append(el('h3', null, 'Pattern analysts'), el('p', 'meta', 'One analyst per chart pattern: how it has done, how it loses, where it works and where it does not, and what to do with it. Items marked reliable passed a luck test; the rest are hints.'));
+  const li = (u, t) => u.append(el('li', null, t)), cond = (c) => `${c.text} (${c.n} trades, ${rr(c.avgR)} against ${rr(c.restAvgR)} otherwise)${c.reliable ? ' - reliable' : ' - hint'}`;
+  A.forEach((d) => { const det = el('details', 'card fold'), sm = el('summary', null, `${d.setup}${d.live ? '' : ' (background tracking)'}: ${d.n} trades, ${d.avgR != null ? rr(d.avgR) : '—'}`); det.append(sm); det.append(el('p', 'tip', d.headline)); const u = el('ul', 'note');
+    li(u, 'Recommendation: ' + d.recommendation);
+    if (d.loses) li(u, 'How it loses: ' + d.loses.comment);
+    d.conditions.best.forEach((c) => li(u, 'Works best when ' + cond(c))); d.conditions.avoid.forEach((c) => li(u, 'Does worst when ' + cond(c)));
+    if (d.quality) li(u, 'Pattern quality: ' + d.quality.comment);
+    if (d.exit) li(u, 'Exit: ' + d.exit.comment);
+    if (d.recent) li(u, 'Recent form: ' + d.recent.comment);
+    det.append(u); box.append(det); });
+}
 function drawLearn() {
   const L = S.learned, tb = $('learnTbl') && $('learnTbl').tBodies[0]; if (!tb) return; tb.replaceChildren();
   const tip = $('learnTip'), ul = $('learnIns'); ul.replaceChildren();
   if (!L || !L.setups || !L.setups.length) { tip.textContent = 'Nothing learned yet. This fills after the first weekly backtest.'; return; }
-  const t = L.total; tip.textContent = (L.promote.length ? `Promoted to live by the data: ${L.promote.join(', ')}. ` : '') + (L.demote.length ? `Switched off by the data: ${L.demote.join(', ')}. ` : '') +
+  const t = L.total; tip.textContent = (L.promote.length ? `Promoted to live by the data: ${L.promote.join(', ')}. ` : '') + (L.demote.length ? `Flagged as failing by the data (still running, alerts unchanged): ${L.demote.join(', ')}. ` : '') +
     (!L.promote.length && !L.demote.length ? 'No setup has earned or lost its place yet. Candidate patterns are tracked silently and only go live once their results clear zero with a 90% confidence interval. ' : '') + `Overall ${t.n} closed trades, ${rr(t.avgR)} average.`;
   const lab = { proven: 'Proven', failing: 'Failing', promising: 'Promising', weak: 'Weak', unproven: 'Unproven' };
   L.setups.forEach((x) => { const tr = el('tr'); tr.append(el('td', null, x.setup + (x.live ? '' : ' (candidate, not live)')), el('td', 'n', x.n), el('td', 'n', Math.round(x.winRate * 100) + '%'), el('td', 'n ' + (x.avgR > 0 ? 'pos' : 'neg'), rr(x.avgR)),
     el('td', 'n', x.lo90 != null ? `${rr(x.lo90)} to ${rr(x.hi90)}` : '—'), el('td', 'v-' + x.verdict, lab[x.verdict] + (x.need ? ` (needs ~${x.need} more)` : ''))); tb.append(tr); });
   (L.insights || []).forEach((i) => ul.append(el('li', null, i)));
+  drawEdge(L); drawAnalysts(L);
   if (L.best && L.best.length) ul.append(el('li', null, 'Best trades so far: ' + L.best.map((b) => `${b.coin} ${b.setup} ${rr(b.resultR)}`).join(' · ')));
 }
 // ---------- data loading ----------
@@ -588,7 +622,7 @@ function stamp() {
   let when; try { when = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true }).format(t) + ' Brisbane time'; } catch { when = t.toLocaleString(); }
   u.textContent = `Last updated: ${when} (${ago})`; u.classList.toggle('stale', mins > 120);
   // health: GitHub sometimes skips scheduled runs; say so when a run is overdue during the Brisbane day (7am-10pm)
-  const hl = $('health'); if (hl) { const bh = Number(new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', hour: 'numeric', hour12: false }).format(new Date())) % 24, day = bh >= 7 && bh < 22, wm = S.watchAt ? Math.round((Date.now() - Date.parse(S.watchAt)) / 60000) : null, issues = [];
+  const hl = $('health'); if (hl) { const bh = Number(new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Brisbane', hour: 'numeric', hour12: false }).format(new Date())) % 24, day = true, wm = S.watchAt ? Math.round((Date.now() - Date.parse(S.watchAt)) / 60000) : null, issues = [];
     if (day && mins > 110) issues.push(`the last scan is ${Math.round(mins / 60 * 10) / 10} h old (it should run every hour)`);
     if (day && wm != null && wm > 100) issues.push(`entry prices were last checked ${Math.round(wm / 60 * 10) / 10} h ago (should be every 30 minutes)`); else if (day && wm == null && mins > 110) issues.push('the entry watcher has not reported yet');
     const sh = $('setupHint'); if (sh) { const need = []; sh.hidden = !need.length; sh.textContent = need.length ? 'Reminder: finish setting up ' + need.join(', ') + '. GitHub repo → Settings → Secrets and variables → Actions.' : ''; }
