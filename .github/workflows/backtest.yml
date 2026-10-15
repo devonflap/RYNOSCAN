@@ -6,7 +6,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: rynoscan
+  group: rynoscan-backtest
   cancel-in-progress: false
 jobs:
   backtest:
