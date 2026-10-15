@@ -46,6 +46,14 @@ export function gateReport(trades, hist = [], now = new Date(), earlyTrades = []
     if (relax.length) out.summary.push(`${title}: consider relaxing ${relax.map(nm).join(', ')}.`);
     if (!keep.length && !relax.length) out.summary.push(`${title}: not enough early-versus-confirmed trades yet to say which gates should be used.`);
   }
+  // filter audit: does the filter keep you out of garbage? Tracked coins that passed every gate versus tracked coins the filter rejected (near-misses).
+  { const acc = T.filter((s) => s.miss === '' && s.conf !== 'early'), rej = T.filter((s) => s.miss !== '');
+    const sm = (a) => ({ n: a.length, avgR: a.length ? r2(mean(a.map((s) => +s.resultR))) : null, stopPct: a.length ? Math.round(a.filter((s) => String(s.status).startsWith('stopped out')).length / a.length * 100) : null });
+    const A = sm(acc), R = sm(rej), f = { accepted: A, rejected: R, verdict: 'unclear' };
+    if (A.n >= 8 && R.n >= 8) { const d = A.avgR - R.avgR; f.verdict = d >= 0.3 ? 'works' : d <= -0.3 ? 'backwards' : 'no-difference';
+      f.comment = f.verdict === 'works' ? `The filter is earning its keep: accepted coins averaged ${sgn(A.avgR)} against ${sgn(R.avgR)} for rejected ones (${A.stopPct}% against ${R.stopPct}% stopped out).` : f.verdict === 'backwards' ? `Warning: rejected coins averaged ${sgn(R.avgR)}, better than the ${sgn(A.avgR)} of accepted ones. The filter may be rejecting winners.` : `Accepted (${sgn(A.avgR)}) and rejected (${sgn(R.avgR)}) coins did about the same so far: no proof yet that the filter keeps you out of garbage.`; }
+    else f.comment = `Not enough tracked trades yet to test whether the filter works (accepted ${A.n}, rejected ${R.n}; needs 8 each).`;
+    out.filter = f; out.summary.push('Filter audit: ' + f.comment); }
   // early-1h experiment: trades entered on the still-forming 4h candle versus the same family after every gate passed on a closed candle
   { const E = (Array.isArray(earlyTrades) ? earlyTrades : []).map((s) => +s.resultR).filter(isFinite), C = T.filter((s) => famOf(s.setup) === 'reversal' && s.miss === '' && s.conf !== 'early').map((s) => +s.resultR);
     const e = { early: { n: E.length, avgR: E.length ? r2(mean(E)) : null }, confirmed: { n: C.length, avgR: C.length ? r2(mean(C)) : null }, verdict: 'unclear' };
