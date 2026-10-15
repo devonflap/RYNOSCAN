@@ -1,3 +1,4 @@
-Hourly refresh 00:10 Brisbane: 6 tracked coins refreshed, 6 scored, 3 above 65. On-chain volume Strong (2.1x 7-day avg).
+Hourly refresh 01:10 Brisbane: 6 tracked coins refreshed, 6 scored, 4 above 65. On-chain volume Strong (2.1x 7-day avg).
+Signal OTC: open (TP1 hit), open 0.92R.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
