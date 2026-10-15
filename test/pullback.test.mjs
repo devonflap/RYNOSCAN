@@ -13,4 +13,4 @@ console.log(C.detectPatterns(h4b).some(x => x.name === 'Trend pullback') ? 'FAIL
 process.exitCode = pb ? 0 : 1;
 
 C.RULES.off = wasOff;
-console.log(C.detectPatterns(h4).some(x => x.name === 'Trend pullback') ? 'FAIL pullback not switched off by default' : 'PASS Trend pullback is off by default');
+console.log(C.detectPatterns(h4).some(x => x.name === 'Trend pullback') ? 'PASS Trend pullback keeps running by default (no pattern is switched off)' : 'FAIL Trend pullback should run by default');
