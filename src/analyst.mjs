@@ -54,11 +54,11 @@ export function dossier(setup, trades, FEATS, live = true) {
 
   // recommendation
   const relBest = d.conditions.best.filter((c) => c.reliable), relAvoid = d.conditions.avoid.filter((c) => c.reliable);
-  if (v === 'failing') d.recommendation = live ? 'Switch off: reliably negative. The weekly loop will do this on its own.' : 'Keep off: reliably negative.';
+  if (v === 'failing') d.recommendation = 'Reliably negative so far. It keeps running and alerting as you asked, but treat its calls with extra caution and size down.';
   else if (v === 'proven') d.recommendation = (live ? 'Keep on.' : 'Eligible to go live.') + (relAvoid.length ? ` Avoid: ${relAvoid.map((c) => c.text.toLowerCase()).join('; ')}.` : '');
   else if (v === 'unproven') d.recommendation = `Keep collecting: about ${Math.max(0, 12 - n)} more closed trades before a first verdict.`;
   else if (relBest.length && st.avgR <= 0) d.recommendation = `Weak overall, but reliably better when ${relBest.map((c) => c.text.toLowerCase()).join('; ')}. A narrower version of this pattern may be worth testing.`;
-  else d.recommendation = st.avgR > 0 ? 'Promising but not proven: keep tracking, no change.' : 'Not working so far. If it stays negative at 12+ trades it is switched off.';
+  else d.recommendation = st.avgR > 0 ? 'Promising but not proven: keep tracking, no change.' : 'Not working so far. If it stays negative at 12+ trades it is flagged as failing, but it keeps running.';
   return d;
 }
 

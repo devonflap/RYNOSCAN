@@ -29,10 +29,10 @@ export function edge(closed, FEATS, setups, all, poolIn) {
     if (String(s.setup).startsWith('Near-miss')) continue;
     let c;
     if (s.verdict === 'unproven') c = `${s.n} closed trades so far, needs about ${s.need} more before a verdict.`;
-    else if (s.verdict === 'failing') c = `${sgn(s.avgR)} over ${s.n} trades and reliably negative. ${s.live ? 'The weekly loop will switch it off.' : 'Keep it off.'}`;
+    else if (s.verdict === 'failing') c = `${sgn(s.avgR)} over ${s.n} trades and reliably negative. It is flagged as failing but keeps running, so any bid-ready call still alerts you.`;
     else if (s.verdict === 'proven') c = `${sgn(s.avgR)} over ${s.n} trades, reliably positive with profit factor ${s.pf}. ${s.live ? 'Keep it on.' : 'Eligible to go live.'}`;
     else if (s.verdict === 'promising') c = `${sgn(s.avgR)} over ${s.n} trades but the range still includes zero. ${s.live ? 'Keep watching.' : 'Needs ' + (s.need || 'more') + ' more trades to qualify for live.'}`;
-    else c = `${sgn(s.avgR)} over ${s.n} trades, leaning negative but not yet reliably. Gets switched off if it stays this way.`;
+    else c = `${sgn(s.avgR)} over ${s.n} trades, leaning negative but not yet reliably. Flagged as failing if it stays this way (it still keeps running).`;
     { const list = closed.filter((x) => x.setup === s.setup).sort((a, b) => String(a.at || a.signalAt || '').localeCompare(String(b.at || b.signalAt || ''))), RR = list.map((x) => +x.resultR);
       if (RR.length >= 20) { const last = mean(RR.slice(-10)); if (last < mean(RR) - 0.5) c += ` Recent form is fading: the last 10 trades average ${sgn(last)}.`; else if (last > mean(RR) + 0.5) c += ` Recent form is improving: the last 10 trades average ${sgn(last)}.`; }
       if ((s.verdict === 'promising' || s.verdict === 'weak') && s.avgR > 0 && RR.length > 3) { const sd = Math.sqrt(RR.reduce((a, b) => a + (b - mean(RR)) ** 2, 0) / (RR.length - 1)), need = Math.ceil((1.645 * sd / s.avgR) ** 2); if (isFinite(need) && need > s.n) c += ` At this size of result, about ${need} trades are needed to be reasonably sure.`; } }
