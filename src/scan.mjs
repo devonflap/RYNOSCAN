@@ -12,6 +12,7 @@ import { pickMode, poolsFromTracked } from './lightpool.mjs';
 import { enrich as enrichHolders } from './holders.mjs';
 import { enrich as enrichSocial } from './social.mjs';
 import * as shadow from './shadow.mjs';
+import { funnel, oneAway } from './funnel.mjs';
 import { due as digestDue, compose as digestCompose } from './digest.mjs';
 import { simulate } from '../docs/paper.mjs';
 import { pickCandidates, trim as trimFwd, MAX_EVAL } from './forward.mjs';
@@ -166,9 +167,10 @@ if (mode === 'full') { try {
 } catch (e) { say('forward test skipped: ' + (e.message || e)); } }
 
 // 5. export
-const out = kept.map(p => { const r = C.toRow(p, at); if (p.rug) r.rug = p.rug; if (p.rugFlags) r.rugFlags = p.rugFlags; if (p.regime) r.regime = p.regime; if (p.hs) r.hs = p.hs; if (p.soc) r.soc = p.soc; return r; });
+const out = kept.map(p => { const r = C.toRow(p, at); if (p.rug) r.rug = p.rug; if (p.rugFlags) r.rugFlags = p.rugFlags; if (p.regime) r.regime = p.regime; if (p.hs) r.hs = p.hs; if (p.soc) r.soc = p.soc; if (p.zoneOrder && p.lead !== 'pattern') r.zoneOrder = 1; return r; });
 const charts = kept.filter(C.chartWorthy).sort((a, b) => (b.mine ? 1 : 0) - (a.mine ? 1 : 0) || (b.opp ?? 0) - (a.opp ?? 0)).slice(0, 32).map(C.toChart);
 const meta = { scannedAt: at, mode, fullAt: mode === 'full' ? at : (lastMeta && lastMeta.fullAt) || at, refreshedN: scannedN, scannedN: mode === 'full' ? scannedN : (lastMeta && lastMeta.scannedN) || scannedN, scoredN: mode === 'full' ? scoredN : (lastMeta && lastMeta.scoredN) || scoredN, kept: out.length, minOpp: cfg.minOpp, seconds: Math.round((Date.now() - t0) / 1000), plan: api.plan, mine: mineList, regime, excluded, safetyOn: cfg.safetyChecks, regimeFilter: cfg.regimeFilter, hs: hsStatus, hsLooked, hsApplied };
+try { meta.funnel = funnel(allRows, { minVolume: cfg.minVolume ?? settings.minVolume, minLiquidity: cfg.minLiquidity ?? settings.minLiquidity, maxPools: cfg.maxPools ?? settings.maxPools }); } catch (e) { say('gate funnel skipped: ' + (e.message || e)); }
 const w = (f, d) => fs.writeFileSync(path.join(OUT, f), JSON.stringify(d));
 if (cfg.safetyChecks) fs.writeFileSync(cachePath, JSON.stringify(cache));
 w('setups.json', out); w('signals.json', log); w('charts.json', charts); if (mode === 'full') w('chainvol.json', market); w('meta.json', meta);
@@ -206,7 +208,8 @@ const topic = (process.env.NTFY_TOPIC || '').trim();
 const alertsPath = path.join(OUT, 'alerts.json'), sent = readJson(alertsPath, {});
 for (const k of Object.keys(sent)) if (Date.now() - Date.parse(sent[k]) > 3 * 86400e3) delete sent[k];
 const fresh = key => !sent[key] || Date.now() - Date.parse(sent[key]) > 24 * 3600e3;
-const stillInZone = r => r.price != null && r.entryHigh != null && r.stop != null && r.price <= r.entryHigh * 1.01 && r.price > r.stop;
+// a zone-order call (six quality gates, price above the zone) can be up to 8% above it: you rest a limit order rather than chase
+const stillInZone = r => r.price != null && r.entryHigh != null && r.stop != null && r.price <= r.entryHigh * (r.zoneOrder ? 1.08 : 1.01) && r.price > r.stop;
 const site = process.env.GITHUB_REPOSITORY ? `https://${process.env.GITHUB_REPOSITORY.split('/')[0]}.github.io/${process.env.GITHUB_REPOSITORY.split('/')[1]}/` : '';
 const h4close = (() => { const n = (Math.floor(Date.now() / 14400e3) + 1) * 14400e3; return new Date(n + 10 * 3600e3).toISOString().slice(11, 16); })();
 const winTxt = ' Fill window 48h; the next 4h candle closes ' + h4close + ' Brisbane, so a signal can change until then.';
@@ -218,7 +221,7 @@ const alertHot = newWatch.filter(r => r.opp >= 75 && stillInZone(r) && fresh('W|
 const alertHits = hitEvents.filter(s => fresh(`H|${s.signalId}|${s.status}|${s.tpHit}`));
 if (topic && (alertEntry.length || alertHot.length || alertHits.length)) {
   const a = alertEntry[0], h = alertHot[0], pa = a ? opinion(kept.find(p => CHID(p) === a.id)) : h ? opinion(kept.find(p => CHID(p) === h.id)) : null, paTxt = pa ? ` Panel: ${pa.verdict} (bull ${pa.bullScore} vs bear ${pa.bearScore}). ${pa.why}` : '';
-  const head = a ? `New bid-ready: ${a.coin} (${a.chain}), opp ${a.opp}. Buy ${a.entryLow}-${a.entryHigh}, stop ${a.stop} (${a.riskPct}% away).${maxPos(a)}${regTxt(a)}${paTxt}${winTxt}`
+  const head = a ? `New bid-ready: ${a.coin} (${a.chain}), opp ${a.opp}. Buy ${a.entryLow}-${a.entryHigh}, stop ${a.stop} (${a.riskPct}% away).${maxPos(a)}${a.zoneOrder && a.price > a.entryHigh ? ` Price is ${((a.price / a.entryHigh - 1) * 100).toFixed(1)}% above the zone: rest a limit order at ${a.entryHigh}, do not chase.` : ''}${regTxt(a)}${paTxt}${winTxt}`
     : alertHits.length ? `Signal update: ${alertHits[0].coin} ${alertHits[0].status}`
     : `New watch: ${h.coin} (${h.chain}), opp ${h.opp}, entry ${h.entryLow}-${h.entryHigh}, stop ${h.stop}.${maxPos(h)}${regTxt(h)}${paTxt}${winTxt}`;
   try {
@@ -227,6 +230,17 @@ if (topic && (alertEntry.length || alertHot.length || alertHits.length)) {
     if (r.ok) { const now = new Date().toISOString(); alertEntry.forEach(r => sent['E|' + r.id] = now); alertHot.forEach(r => sent['W|' + r.id] = now); alertHits.forEach(s => sent[`H|${s.signalId}|${s.status}|${s.tpHit}`] = now); }
   } catch (e) { say('alert failed: ' + e.message); }
 } else if (topic) say('no alert: nothing new that is still inside its entry zone');
+
+// one-gate-away alert: a coin that is exactly one gate from bid-ready, so you can rest a limit order ahead of time (low priority, once a day per coin and gate)
+if (topic && !alertEntry.length && !alertHot.length) { try {
+  const sg = x => (x == null ? '' : String(Number(Number(x).toPrecision(5))));
+  const near = oneAway(allRows, { minOpp: 70, max: 2 }).filter(n => n.p.sp && fresh('N|' + CHID(n.p) + '|' + n.gate));
+  if (near.length) {
+    const body = near.map(n => `${n.p.sym} (${C.CH[n.p.chain]}) ${n.p.setupType}, opp ${n.p.opp}: one gate from bid-ready, waiting on ${n.label}. Entry ${sg(n.p.sp.entryLow)}-${sg(n.p.sp.entryHigh)}, stop ${sg(n.p.sp.stop)}. A limit order at ${sg(n.p.sp.entryHigh)} gets you in early.`).join('\n');
+    const r = await fetch('https://ntfy.sh/' + encodeURIComponent(topic), { method: 'POST', body: body + '\n\nOne gate away is not bid-ready: the rules still want every gate.', headers: { Title: `Close: ${near[0].p.sym} is one gate away`, Priority: 'low', Tags: 'rhinoceros,eyes', ...(site ? { Click: site } : {}) } });
+    say('one-gate-away alert sent: ' + r.status); if (r.ok) { const now = new Date().toISOString(); near.forEach(n => sent['N|' + CHID(n.p) + '|' + n.gate] = now); }
+  }
+} catch (e) { say('one-gate-away alert skipped: ' + (e.message || e)); } }
 
 // safeguard 2: daily check-in (proves the scanner is alive) and a bid-ready digest at most every 6 hours, so a missed alert never hides a chart
 if (topic) { try {
