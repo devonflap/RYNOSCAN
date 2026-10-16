@@ -1,5 +1,4 @@
-Full scan 18:11 Brisbane: 70 scanned, 61 scored, 1 above 65. On-chain volume Strong (1.75x 7-day avg).
-NEW watch: PORKU (Robinhood) Bottom reversal, opp 73, checks 5/6, stop 7.5% away, upside 142.6%; no socials/website listed.
+Full scan 19:11 Brisbane: 72 scanned, 61 scored, 3 above 65. On-chain volume Strong (1.72x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: TTWO (Mint Authority still enabled), TSLAX (Mint Authority still enabled).
+Removed for token safety: TTWO (Mint Authority still enabled), WNEAR (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
