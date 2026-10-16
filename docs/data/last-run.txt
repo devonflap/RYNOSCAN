@@ -1,4 +1,6 @@
-Hourly refresh 01:10 Brisbane: 6 tracked coins refreshed, 6 scored, 3 above 65. On-chain volume Strong (1.64x 7-day avg).
-NEW watch: PORKU (Robinhood) Bottom reversal, opp 66, checks 4/6, stop 7.7% away, upside 141.2%; more sellers than buyers in the last hour; no socials/website listed.
+Full scan 02:11 Brisbane: 70 scanned, 57 scored, 5 above 65. On-chain volume Strong (1.57x 7-day avg).
+NEW watch: HOOKR (Robinhood) Cup & handle, opp 88, checks 6/6, stop null% away, upside null%.
+NEW watch: ZEREBRO (Solana) Breakout retest, opp 70, checks 5/6, stop null% away, upside null%; weak last 6h.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: NVDAX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
