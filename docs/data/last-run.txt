@@ -1,3 +1,4 @@
-Hourly refresh 00:10 Brisbane: 6 tracked coins refreshed, 6 scored, 3 above 65. On-chain volume Strong (1.64x 7-day avg).
+Hourly refresh 01:10 Brisbane: 6 tracked coins refreshed, 6 scored, 3 above 65. On-chain volume Strong (1.64x 7-day avg).
+NEW watch: PORKU (Robinhood) Bottom reversal, opp 66, checks 4/6, stop 7.7% away, upside 141.2%; more sellers than buyers in the last hour; no socials/website listed.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
