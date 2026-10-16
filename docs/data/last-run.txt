@@ -1,3 +1,7 @@
-Hourly refresh 09:10 Brisbane: 5 tracked coins refreshed, 5 scored, 2 above 65. On-chain volume Strong (2.22x 7-day avg).
+Full scan 10:11 Brisbane: 72 scanned, 62 scored, 6 above 65. On-chain volume Strong (2.1x 7-day avg).
+NEW watch: V4 (Robinhood) Falling wedge, opp 70, checks 6/6, stop 40.3% away, upside 120.8%.
+NEW watch: TRUMP (Solana) Bottom reversal, opp 69, checks 5/6, stop 8.3% away, upside 24.9%; more sellers than buyers in the last hour.
+NEW watch: CASHCAT (Robinhood) Bottom reversal, opp 67, checks 5/6, stop 23.8% away, upside 71.4%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: TTWO (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
