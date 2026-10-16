@@ -1,5 +1,4 @@
-Full scan 06:11 Brisbane: 68 scanned, 58 scored, 3 above 65. On-chain volume Strong (1.56x 7-day avg).
-NEW watch: V4 (Robinhood) Falling wedge, opp 68, checks 5/6, stop 38.5% away, upside 115.6%; volume fading.
+Hourly refresh 07:10 Brisbane: 6 tracked coins refreshed, 6 scored, 2 above 65. On-chain volume Strong (1.56x 7-day avg).
+Signal INDEX: stopped out, result -1.05R.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: TSLAX (Mint Authority still enabled), SPCX (Mint Authority still enabled), WNEAR (Mint Authority still enabled), CRCLX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
