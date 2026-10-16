@@ -1,4 +1,4 @@
-Hourly refresh 07:10 Brisbane: 6 tracked coins refreshed, 6 scored, 2 above 65. On-chain volume Strong (1.56x 7-day avg).
-Signal INDEX: stopped out, result -1.05R.
+Full scan 08:11 Brisbane: 73 scanned, 57 scored, 1 above 65. On-chain volume Strong (1.47x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: WNEAR (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
