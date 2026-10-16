@@ -1,5 +1,6 @@
-Full scan 12:11 Brisbane: 75 scanned, 62 scored, 1 above 65. On-chain volume Strong (2.1x 7-day avg).
-NEW watch: JEANPHIL (Solana) Trend pullback, opp 75, checks 6/6, stop 34.6% away, upside 128.2%.
+Full scan 13:11 Brisbane: 72 scanned, 59 scored, 3 above 65. On-chain volume Strong (2.14x 7-day avg).
+NEW watch: TRUMP (Solana) Bottom reversal, opp 69, checks 5/6, stop 8.3% away, upside 24.9%; volume fading.
+NEW watch: OTC (Solana) Falling wedge, opp 69, checks 6/6, stop 43.2% away, upside 129.6%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: TTWO (Mint Authority still enabled).
+Removed for token safety: TTWO (Mint Authority still enabled), SPCX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
