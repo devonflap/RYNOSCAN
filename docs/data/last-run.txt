@@ -1,3 +1,5 @@
-Hourly refresh 11:10 Brisbane: 9 tracked coins refreshed, 9 scored, 1 above 65. On-chain volume Strong (2.1x 7-day avg).
+Full scan 12:11 Brisbane: 75 scanned, 62 scored, 1 above 65. On-chain volume Strong (2.1x 7-day avg).
+NEW watch: JEANPHIL (Solana) Trend pullback, opp 75, checks 6/6, stop 34.6% away, upside 128.2%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: TTWO (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
