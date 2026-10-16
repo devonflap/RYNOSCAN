@@ -1,3 +1,6 @@
-Hourly refresh 20:10 Brisbane: 6 tracked coins refreshed, 6 scored, 1 above 65. On-chain volume Strong (1.72x 7-day avg).
+Full scan 21:11 Brisbane: 69 scanned, 60 scored, 4 above 65. On-chain volume Strong (1.64x 7-day avg).
+NEW watch: PORKU (Robinhood) Bottom reversal, opp 74, checks 5/6, stop 7.5% away, upside 142.6%; no socials/website listed.
+NEW watch: ORBIO (Robinhood) Bottom reversal, opp 67, checks 5/6, stop 35.4% away, upside 165%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: TTWO (Mint Authority still enabled), WNEAR (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
