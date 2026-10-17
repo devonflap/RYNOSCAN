@@ -1,3 +1,7 @@
-Hourly refresh 15:10 Brisbane: 6 tracked coins refreshed, 6 scored, 2 above 65. On-chain volume Strong (1.43x 7-day avg).
+Full scan 16:11 Brisbane: 69 scanned, 50 scored, 5 above 65. On-chain volume Strong (1.41x 7-day avg).
+NEW watch: WTH (Robinhood) Inverse H&S, opp 73, checks 6/6, stop null% away, upside null%.
+NEW watch: ZEREBRO (Solana) Breakout retest, opp 69, checks 5/6, stop null% away, upside null%; volume fading.
+NEW watch: VRAX (Robinhood) Breakout retest, opp 67, checks 5/6, stop 47.9% away, upside 143.6%; volume fading; paid DexScreener boost active (promotion, not organic demand).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: TSLAX (Mint Authority still enabled), NVDAX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
