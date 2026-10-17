@@ -1,8 +1,4 @@
-Full scan 21:11 Brisbane: 69 scanned, 51 scored, 6 above 65. On-chain volume Strong (1.25x 7-day avg).
-NEW watch: STANDARD (Robinhood) Breakout retest, opp 83, checks 5/6, stop 4.4% away, upside 49.4%; more sellers than buyers in the last hour.
-NEW watch: VRAX (Robinhood) Breakout retest, opp 73, checks 6/6, stop 47.2% away, upside 141.5%.
-NEW watch: WTH (Robinhood) Inverse H&S, opp 73, checks 6/6, stop null% away, upside null%.
-NEW watch: BONER (Robinhood) Bottom reversal, opp 67, checks 5/6, stop 21.1% away, upside 203.5%; volume fading.
+Hourly refresh 22:10 Brisbane: 8 tracked coins refreshed, 8 scored, 4 above 65. On-chain volume Strong (1.25x 7-day avg).
+NEW watch: OTC (Solana) Bottom reversal, opp 67, checks 5/6, stop 41.4% away, upside 124.3%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: SPCX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
