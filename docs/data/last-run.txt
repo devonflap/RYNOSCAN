@@ -1,3 +1,6 @@
-Hourly refresh 13:10 Brisbane: 5 tracked coins refreshed, 5 scored, 4 above 65. On-chain volume Strong (1.42x 7-day avg).
+Full scan 14:11 Brisbane: 74 scanned, 53 scored, 5 above 65. On-chain volume Strong (1.43x 7-day avg).
+NEW watch: WTH (Robinhood) Inverse H&S, opp 73, checks 6/6, stop null% away, upside null%.
+NEW watch: CATE (Solana) Ascending triangle, opp 68, checks 5/6, stop null% away, upside null%; more sellers than buyers in the last hour.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: SPCX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
