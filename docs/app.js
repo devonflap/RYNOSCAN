@@ -610,7 +610,7 @@ function drawLearn() {
   const tip = $('learnTip'), ul = $('learnIns'); ul.replaceChildren();
   if (!L || !L.setups || !L.setups.length) { tip.textContent = 'Nothing learned yet. This fills after the first weekly backtest.'; return; }
   const t = L.total; tip.textContent = (L.promote.length ? `Promoted to live by the data: ${L.promote.join(', ')}. ` : '') + (L.demote.length ? `Flagged as failing by the data (still running, alerts unchanged): ${L.demote.join(', ')}. ` : '') +
-    (!L.promote.length && !L.demote.length ? 'No setup has earned or lost its place yet. Candidate patterns are tracked silently and only go live once their results clear zero with a 90% confidence interval. ' : '') + `Overall ${t.n} closed trades, ${rr(t.avgR)} average.`;
+    (!L.promote.length && !L.demote.length ? 'Every pattern is running live and alerting. The data only reports on them: nothing is switched off or on automatically. ' : '') + `Overall ${t.n} closed trades, ${rr(t.avgR)} average.`;
   const lab = { proven: 'Proven', failing: 'Failing', promising: 'Promising', weak: 'Weak', unproven: 'Unproven' };
   L.setups.forEach((x) => { const tr = el('tr'); tr.append(el('td', null, x.setup + (x.live ? '' : ' (candidate, not live)')), el('td', 'n', x.n), el('td', 'n', Math.round(x.winRate * 100) + '%'), el('td', 'n ' + (x.avgR > 0 ? 'pos' : 'neg'), rr(x.avgR)),
     el('td', 'n', x.lo90 != null ? `${rr(x.lo90)} to ${rr(x.hi90)}` : '—'), el('td', 'v-' + x.verdict, lab[x.verdict] + (x.need ? ` (needs ~${x.need} more)` : ''))); tb.append(tr); });
