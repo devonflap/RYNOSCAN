@@ -16,7 +16,7 @@ const sgn = (x) => (x > 0 ? '+' : '') + r2(x) + 'R';
 
 export function edge(closed, FEATS, setups, all, poolIn) {
   const pool = Array.isArray(poolIn) && poolIn.length ? poolIn : closed; // pool: real trades plus the below-cut-off near-misses, so the cut-off itself gets tested
-  const n = closed.length, out = { headline: '', status: 'too-early', patterns: [], rules: [], profiles: [], next: [], filters: [], tested: 0, exits: null };
+  const n = closed.length, out = { headline: '', status: 'too-early', patterns: [], rules: [], profiles: [], next: [], filters: [], tested: 0, exits: null, gates: null };
   if (!n) { out.headline = 'No closed trades yet. Nothing can be said about an edge until trades have finished.'; out.next.push('Let the scanner run: every closed trade, including the background tracking of candidate patterns, adds evidence.'); return out; }
   // headline
   if (n < 30) { out.status = 'too-early'; out.headline = `Too early to call. ${n} closed trades (${sgn(all.avgR)} average). Below about 30 trades a streak is indistinguishable from luck, so no rule should be changed on this.`; }
@@ -88,6 +88,16 @@ export function edge(closed, FEATS, setups, all, poolIn) {
       const best = rows.slice().sort((a, b) => b.avgR - a.avgR)[0]; out.exits = { n: ex.length, actualAvgR: r2(actual), rows, best };
       if (best.avgR - actual >= 0.15 && ex.length >= 30) out.next.push(`Exit study (${ex.length} tracked trades): taking all profit at ${best.target}R would have averaged ${sgn(best.avgR)} against ${sgn(actual)} with the current 3-step exits (${best.reachPct}% of trades got that far). An estimate before exit slippage, worth testing as a rule.`);
       else if (ex.length >= 30) out.next.push(`Exit study (${ex.length} tracked trades): no fixed profit target beats the current 3-step exits by a meaningful margin.`); } }
+  // gate study: does waiting for every gate and a 4h close (confirmed) actually pay, compared with early calls? Split by pattern family,
+  // because reversal setups need confirmation more than breakouts, where the breakout is itself the confirmation.
+  { const fam = (st) => (['Bottom reversal', 'Double bottom', 'Inverse H&S', 'Falling wedge', 'Liquidity sweep reclaim'].includes(st) ? 'Reversal' : 'Breakout / continuation'), rows = [];
+    for (const f of ['Reversal', 'Breakout / continuation']) { const T = pool.filter((s) => fam(s.setup) === f && s.conf); const C = T.filter((s) => s.conf === 'confirmed'), E = T.filter((s) => s.conf === 'early'); if (!C.length && !E.length) continue;
+      const row = { family: f, confirmed: { n: C.length, avgR: C.length ? r2(mean(C.map((s) => +s.resultR))) : null }, early: { n: E.length, avgR: E.length ? r2(mean(E.map((s) => +s.resultR))) : null }, comment: '' };
+      if (C.length >= 8 && E.length >= 8) { const d = row.confirmed.avgR - row.early.avgR, p = permP(T.map((s) => +s.resultR), C.length, mean(C.map((s) => +s.resultR)), 400), pl = permP(T.map((s) => +s.resultR), E.length, mean(E.map((s) => +s.resultR)), 400);
+        row.comment = d >= 0.3 ? `Waiting for confirmation pays here: confirmed calls average ${sgn(row.confirmed.avgR)} against ${sgn(row.early.avgR)} for early ones${C.length >= 15 && E.length >= 15 && pl <= 0.1 ? ' (reliable)' : ' (a hint, still few trades)'}. Keep the rule.` : d <= -0.3 ? `Waiting costs money here: early calls average ${sgn(row.early.avgR)} against ${sgn(row.confirmed.avgR)} for confirmed ones${C.length >= 15 && E.length >= 15 && p <= 0.1 ? ' (reliable)' : ' (a hint, still few trades)'}. Consider alerting earlier, or a limit order near the breakout level.` : 'No clear difference between confirmed and early calls yet.'; }
+      else row.comment = `Not enough of both kinds yet (confirmed ${C.length}, early ${E.length}); needs 8 of each to compare.`;
+      rows.push(row); }
+    if (rows.length) { out.gates = rows; const hit = rows.filter((r) => /pays here|costs money/.test(r.comment)); if (hit.length) out.next.push('Gate study: ' + hit.map((r) => `${r.family}: ${r.comment}`).join(' ')); } }
   // does the backtest tell the truth? Compare it with what live and background trades actually did.
   { const g = {}; for (const s of closed) { const k = s.source || 'live'; (g[k] = g[k] || []).push(+s.resultR); }
     const bt = g.backtest, lv = [...(g.live || []), ...(g.shadow || [])];

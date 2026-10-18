@@ -177,6 +177,7 @@ nav{gap:6px}nav a{font-size:.8rem;padding:5px 11px}
 .sitem svg{flex:0 0 auto}.sitem:hover{color:var(--fg);background:var(--panel2)}
 .sitem.on,.sitem.cur{color:var(--warn);background:var(--panel);border-color:var(--brand)}
 .side .vtab{flex-direction:row;width:100%;font-size:.85rem;padding:9px 10px}
-@media(max-width:900px){.side{flex-basis:54px;padding:12px 5px;align-items:center}.side .sitem{justify-content:center;padding:10px 0}.side .sitem span{display:none}.sgroup{font-size:0;padding:6px 0;width:60%;border-top:1px solid var(--line);margin:4px 0 0;height:1px}.sgroup:first-child{border:0}.side .vtab{width:100%}}
+@media(max-width:900px){.shell{flex-direction:column;align-items:stretch}.side{position:sticky;top:0;z-index:30;height:auto;width:100%;flex:0 0 auto;flex-direction:row;align-items:center;gap:2px;padding:6px 8px;overflow-x:auto;overflow-y:hidden;border-right:0;border-bottom:1px solid var(--line);background:#1c1c1c;-webkit-overflow-scrolling:touch}.side .sitem{width:auto;flex:0 0 auto;justify-content:center;padding:9px 11px}.side .sitem span{display:none}.sgroup{font-size:0;padding:0;width:1px;height:22px;margin:0 4px;background:var(--line);flex:0 0 1px}.sgroup:first-child{display:none}.side .vtab{width:auto;flex:0 0 auto}}
 
 @media(max-width:560px){.hero .logo{width:74px}.hero h1{font-size:2.15rem}.hero{gap:10px}}
+#edgeBox h3{margin:18px 0 4px;font-size:1rem}#edgeBox h4{margin:12px 0 2px;font-size:.85rem;color:var(--mut);font-weight:600}

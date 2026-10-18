@@ -35,7 +35,7 @@ export function simulate(signals, { start = 10000, pct = 5 } = {}) {
 
 // near-miss forward log: how candidates below the 65 cut-off are doing against the same rules
 export function fwdSummary(rows) {
-  const list = (Array.isArray(rows) ? rows : []).filter((s) => s && typeof s === 'object'), by = new Map();
+  const list = (Array.isArray(rows) ? rows : []).filter((s) => s && typeof s === 'object' && !s.shadow), by = new Map();
   for (const s of list) { const k = s.setup || 'Unknown'; if (!by.has(k)) by.set(k, { setup: k, n: 0, closed: 0, wins: 0, sum: 0 }); const g = by.get(k); g.n++; if (num(s.resultR) != null && s.status !== 'expired (no fill)') { g.closed++; g.sum += +s.resultR; if (+s.resultR > 0) g.wins++; } }
   const t = [...by.values()].map((g) => ({ ...g, win: g.closed ? g.wins / g.closed : null, avgR: g.closed ? g.sum / g.closed : null })).sort((a, b) => b.closed - a.closed);
   const all = t.reduce((a, g) => ({ n: a.n + g.n, closed: a.closed + g.closed, wins: a.wins + g.wins, sum: a.sum + g.sum }), { n: 0, closed: 0, wins: 0, sum: 0 });

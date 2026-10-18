@@ -81,3 +81,16 @@ import { dossier, analysts } from '../src/analyst.mjs';
 { const t = [...Array.from({ length: 14 }, (_, i) => mk(i, 'A', i % 2 ? 1 : -1)), ...Array.from({ length: 14 }, (_, i) => mk(20 + i, 'B', -1)), ...Array.from({ length: 8 }, (_, i) => ({ ...mk(40 + i, 'Near-miss: A', -1), setupBase: 'A', source: 'near-miss' }))];
   const L = learn(t); const names = L.analysts.map((a) => a.setup).sort().join(); ok(names === 'A,B', 'analyst: one dossier per real pattern, near-misses folded in under the real name');
   ok(L.analysts.find((a) => a.setup === 'B').recommendation.includes('Switch off') || L.analysts.find((a) => a.setup === 'B').verdict === 'failing', 'analyst: a failing pattern is told to switch off'); }
+// ---- gate study, pattern family, gates / entry timing features ----
+import { familyOf } from '../docs/features.mjs';
+{ ok(familyOf('Bottom reversal') === 'Reversal' && familyOf('Volume breakout') === 'Breakout / continuation' && familyOf(null) === null, 'family: reversal vs breakout');
+  const f = Object.fromEntries(FEATS.map((x) => [x[0], x[1]]));
+  ok(f['Gates passed (of 7)']({ gp: 7 }) === '7' && f['Gates passed (of 7)']({ gp: 3 }) === '4 or fewer' && f['Gates passed (of 7)']({}) === null && /confirmed/.test(f['Entry timing']({ conf: 'confirmed' })) && /early/.test(f['Entry timing']({ conf: 'early' })) && f['Entry timing']({}) === null && f['Pattern family']({ setup: 'Cup & handle' }) === 'Breakout / continuation', 'features: gates, entry timing, family'); }
+{ // confirmation helps reversals, hurts breakouts
+  const t = []; for (let i = 0; i < 20; i++) { t.push({ ...mk(i, 'Bottom reversal', i % 2 ? 1.2 : -0.6), conf: 'confirmed' }); t.push({ ...mk(30 + i, 'Bottom reversal', -0.8), conf: 'early' }); t.push({ ...mk(60 + i, 'Volume breakout', i % 2 ? 0.2 : -0.6), conf: 'confirmed' }); t.push({ ...mk(90 + i, 'Volume breakout', i % 2 ? 1.5 : -0.2), conf: 'early' }); }
+  const g = learn(t).edge.gates; const rev = g.find((x) => x.family === 'Reversal'), brk = g.find((x) => x.family === 'Breakout / continuation');
+  ok(/Waiting for confirmation pays/.test(rev.comment) && /Waiting costs money/.test(brk.comment) && /alerting earlier|limit order/.test(brk.comment), 'gate study: tells reversals to keep confirmation and breakouts to consider earlier entries');
+  ok(learn(t).edge.next.some((x) => /Gate study/.test(x)), 'gate study: surfaced in what to do next'); }
+{ const g = learn([mk(1, 'Bottom reversal', 1)]).edge.gates; ok(g === null, 'gate study: nothing to compare without confirmation data'); }
+{ const d = debate({ setupType: 'Volume breakout', entryLow: 1, entryHigh: 1.02, stop: .9, riskPct: 5, tp1: 1.1, tp2: 1.2, tp3: 1.3, rr2: 3, _ready: false }, {}); ok(d && /breakout-type setup/.test(d.why), 'panel: breakout setups get the limit-order-at-the-retest tip when not ready');
+  const d2 = debate({ setupType: 'Bottom reversal', entryLow: 1, entryHigh: 1.02, stop: .9, riskPct: 5, tp1: 1.1, tp2: 1.2, tp3: 1.3, rr2: 3, _ready: false }, {}); ok(d2 && !/breakout-type/.test(d2.why), 'panel: reversal setups keep the plain confirmation message'); }

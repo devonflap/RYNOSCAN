@@ -3,6 +3,7 @@
 // logged and later scored against what actually happened (src/learn.mjs does that). The neutral voice is an evidence judge with veto power,
 // not a mediator: a mediator with no data just splits the difference, while a judge that checks the track record and the hard safety rules
 // stops two persuasive speakers from talking each other into a bad trade.
+import { matchFilters, familyOf } from './features.mjs';
 const num = (v, d = 1) => (v == null || !isFinite(v) ? '—' : Number(v).toFixed(d));
 const has = (v) => v != null && isFinite(Number(v));
 
@@ -75,6 +76,8 @@ export function debate(r0, ctx = {}) {
   if (r.buySell24h != null && r.buySell24h < 0.9) add(bear, 'sellers', 2, `Sellers lead the last 24h (${num(r.buySell24h, 2)}).`);
   if (w && has(w.h1b) && has(w.h1s) && w.h1s > w.h1b * 1.5) add(bear, 'sellers', 1, `Sellers dominate the last hour (${w.h1s} sells vs ${w.h1b} buys).`);
   if (has(r.ageDays) && r.ageDays < 7) add(bear, 'young', 1, `Only ${num(r.ageDays, 0)} days old.`);
+  // rules the learning loop found and validated on past trades (skip filters only; they can only make a verdict more cautious)
+  { let hits = []; try { hits = matchFilters(r, L && L.filters); } catch { hits = []; } if (hits.length) add(bear, 'learned', 3, `Learned rule: ${hits[0].label.replace(/^Skip /, 'coins like this lose money: ')} (${hits[0].trades} past trades averaged ${num(hits[0].avgR, 2)}R).`); }
   if (!t) add(bear, 'track', 2, `No closed trades yet for ${setup}: it is unproven.`);
   else if (t.verdict === 'failing') add(bear, 'track', 3, `${setup} keeps losing: ${num(t.avgR, 2)}R average over ${t.n} closed trades.`);
   else if (t.verdict === 'weak') add(bear, 'track', 2, `${setup} is negative so far (${num(t.avgR, 2)}R over ${t.n} trades).`);
@@ -94,7 +97,7 @@ export function debate(r0, ctx = {}) {
   let verdict, tone, why;
   if (veto) { verdict = 'PASS'; tone = 'pass'; why = `Veto: ${veto}.`; }
   else if (evidence === 'failing') { verdict = 'PASS'; tone = 'pass'; why = `The data says ${setup} loses money, which outweighs this chart.`; }
-  else if (!r._ready) { verdict = 'WAIT'; tone = 'wait'; why = 'Not bid-ready yet: the rules want every gate and a 4h close before an entry.'; }
+  else if (!r._ready) { verdict = 'WAIT'; tone = 'wait'; why = 'Not bid-ready yet: the rules want every gate and a 4h close before an entry.' + (familyOf(setup) === 'Breakout / continuation' ? ' This is a breakout-type setup, where the breakout itself is the confirmation: a resting limit order near the breakout level or its retest is usually a better entry than waiting for another close.' : ''); }
   else if (dz > 3 || (w && w.state === 'far')) { verdict = 'WAIT'; tone = 'wait'; why = `Price is above the zone. Place a limit order at ${r.entryHigh} and let it come to you.`; }
   else if (net <= -2) { verdict = 'PASS'; tone = 'pass'; why = `The bear's case (${ew}) beats the bull's (${bw}).`; }
   else if (net >= 4 && evidence === 'proven') { verdict = 'ENTER'; tone = 'go'; why = `The bull's case (${bw}) clearly beats the bear's (${ew}) and ${setup} has a proven record.`; }
