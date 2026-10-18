@@ -1,3 +1,5 @@
-Hourly refresh 23:10 Brisbane: 4 tracked coins refreshed, 4 scored, 1 above 65. On-chain volume Normal (0.9x 7-day avg).
+Full scan 00:11 Brisbane: 65 scanned, 43 scored, 2 above 65. On-chain volume Below normal (0.82x 7-day avg).
+On-chain volume is weak today, so keep trades at none or minimum.
+Signal STONK: stopped out, result -1.07R.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
