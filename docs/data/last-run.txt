@@ -1,3 +1,6 @@
-Hourly refresh 15:10 Brisbane: 4 tracked coins refreshed, 4 scored, 1 above 65. On-chain volume Normal (0.9x 7-day avg).
+Full scan 16:11 Brisbane: 65 scanned, 39 scored, 3 above 65. On-chain volume Normal (0.89x 7-day avg).
+NEW watch: FONE (Solana) Breakout retest, opp 82, checks 5/6, stop 21.2% away, upside 63.7%; volume fading.
+NEW watch: JEANPHIL (Solana) Falling wedge, opp 71, checks 6/6, stop 32.4% away, upside 126.9%.
+NEW watch: WTH (Robinhood) Breakout retest, opp 66, checks 5/6, stop null% away, upside null%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
