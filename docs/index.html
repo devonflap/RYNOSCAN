@@ -110,12 +110,12 @@ crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)).then(function(b){if(
     <div id="paperOut"></div>
   </section>
 
-  <section class="card" id="log">
-    <h2>Signal log &amp; results</h2>
+  <details class="card fold" id="log">
+    <summary><h2 style="display:inline">Signal log &amp; results (audit trail)</h2></summary>
     <p class="note">Every bid-ready signal the rules have fired, re-checked against new candles on each scan: filled inside 48 hours, a third sold at each target, stop moved to breakeven after TP1, 7-day time exit. Results are in R (1R = the distance from entry to stop).</p>
     <div id="rChart"></div>
-    <div class="scroll"><table class="tbl" id="logTbl"><thead><tr><th>Signal</th><th>Coin</th><th>Setup</th><th>Entry</th><th>Stop</th><th>Status</th><th class="n">Result</th></tr></thead><tbody></tbody></table></div>
-  </section>
+    <div class="scroll"><table class="tbl" id="logTbl"><thead><tr><th>Signal</th><th>Coin</th><th>Setup</th><th>Kind</th><th>Entry</th><th>Stop</th><th>Price now</th><th>Why it ended</th><th class="n">Result</th></tr></thead><tbody></tbody></table></div>
+  </details>
 
   <details class="card" id="all">
     <summary><h2 style="display:inline">Review every coin above 65</h2></summary>
@@ -146,6 +146,6 @@ crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)).then(function(b){if(
   <p class="foot">Rule-based screen, not financial advice. Rules are untested until the signal log has about 30 closed signals. Meme coins can go to zero and stops can gap on thin liquidity.</p>
 </div>
 </div>
-<script type="module" src="app.js?v=20261018h"></script>
+<script type="module" src="app.js?v=20261018j"></script>
 </body>
 </html>

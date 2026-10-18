@@ -363,12 +363,44 @@ function deskView(host, p, o) {
     const u = el('ul', 'note'); p.bySetup.forEach((g) => u.append(el('li', null, `${g.setup}: ${usdS(g.pnl)} over ${g.n} trade${g.n === 1 ? '' : 's'} (${g.closed} closed${g.closed ? ', ' + Math.round(g.wins / g.closed * 100) + '% won' : ''}).`))); d.append(u); });
   fold('How this desk works', 'sizing, fills and what it leaves out', (d) => { const u = el('ul', 'note'); o.notes.forEach((t) => u.append(el('li', null, t))); d.append(u); });
 }
+// ---- live price action for the runners (hourly candles from the scan, refreshed in this page from the free GeckoTerminal feed) ----
+const RT = { tf: '1h' };
+function aggBars(bars, tf) { if (tf !== '4h') return bars; const g = new Map(); for (const b of bars) { const k = Math.floor(b[0] / 14400); const x = g.get(k); if (!x) g.set(k, [k * 14400, b[1], b[2], b[3], b[4]]); else { x[2] = Math.max(x[2], b[2]); x[3] = Math.min(x[3], b[3]); x[4] = b[4]; } } return [...g.values()]; }
+function candleSvg(bars, ref) {
+  const W = 320, H = 120, P = 4, n = bars.length; const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('class', 'rn-svg'); svg.setAttribute('role', 'img');
+  if (n < 3) return svg; const hi = Math.max(...bars.map((b) => b[2]), ref || 0), lo = Math.min(...bars.map((b) => b[3]), ref || Infinity), y = (v) => P + (H - 2 * P) * (1 - (v - lo) / (hi - lo || 1)), step = (W - 2 * P) / n, w = Math.max(1.5, step * 0.62);
+  const mk = (t, a) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); svg.append(e); return e; };
+  if (ref) mk('line', { x1: P, x2: W - P, y1: y(ref), y2: y(ref), stroke: '#9a9a9a', 'stroke-width': 1, 'stroke-dasharray': '3 3', opacity: .7 });
+  bars.forEach((b, i) => { const x = P + step * (i + 0.5), up = b[4] >= b[1], col = up ? '#34d399' : '#f87171'; mk('line', { x1: x, x2: x, y1: y(b[2]), y2: y(b[3]), stroke: col, 'stroke-width': 1 }); mk('rect', { x: x - w / 2, y: Math.min(y(b[1]), y(b[4])), width: w, height: Math.max(1, Math.abs(y(b[1]) - y(b[4]))), fill: col }); });
+  return svg;
+}
+function paintRunner(pool) {
+  const o = S.rcards.get(pool); if (!o) return; const bars = o.bars, last = bars.length ? bars[bars.length - 1][4] : null, r = o.r, ref = +r.price || null;
+  o.live.replaceChildren();
+  if (last != null && ref) { const d = (last / ref - 1) * 100; o.live.append(el('span', 'rn-dot' + (o.liveAt ? ' on' : '')), document.createTextNode(`${o.liveAt ? 'Live' : 'At scan'} ${fp(last)} · ${d >= 0 ? '+' : ''}${d.toFixed(1)}% since the scan priced it at ${fp(ref)}${o.liveAt ? ' · updated ' + new Date(o.liveAt).toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' }) : ''}`)); }
+  else o.live.append(document.createTextNode('No price history for this coin yet.'));
+  o.ch.replaceChildren(); const agg = aggBars(bars, RT.tf); o.ch.append(candleSvg(agg, ref));
+  o.ch.append(el('div', 'dk-meta', `${RT.tf === '4h' ? '4-hour' : 'Hourly'} candles, last ${agg.length}. Dashed line = price when the scan listed it.`));
+}
+const RNET = { solana: 'solana', ethereum: 'ethereum', robinhood: 'robinhood' };
+let rliveTimer = null, rliveBusy = false, rliveIdx = 0, rliveBackoff = 0;
+async function runnerLiveTick() {
+  if (rliveBusy || document.hidden) return; const sec = $('runners'); if (!sec) return; const rc = sec.getBoundingClientRect(); if (rc.bottom < -200 || rc.top > innerHeight + 400) return;
+  if (rliveBackoff > Date.now()) return; const ids = [...S.rcards.keys()]; if (!ids.length) return; rliveBusy = true;
+  try { const pool = ids[rliveIdx++ % ids.length], o = S.rcards.get(pool), net = (o.r.net || '').toLowerCase(); if (!net) return;
+    const res = await fetch(`${GT}/networks/${net}/pools/${pool}/ohlcv/hour?aggregate=1&limit=72&currency=usd&token=base`, { headers: { accept: 'application/json;version=20230302' } });
+    if (res.status === 429) { rliveBackoff = Date.now() + 60000; return; } if (!res.ok) return; const j = await res.json(), raw = j && j.data && j.data.attributes && j.data.attributes.ohlcv_list;
+    if (Array.isArray(raw) && raw.length > 3) { o.bars = raw.slice().sort((a, b) => a[0] - b[0]).map((q) => q.slice(0, 5).map(Number)); o.liveAt = Date.now(); paintRunner(pool); } } catch { /* keep the scan's chart */ } finally { rliveBusy = false; }
+}
+function startRunnerLive() { if (rliveTimer) return; rliveTimer = setInterval(runnerLiveTick, 5000); setTimeout(runnerLiveTick, 800); }
 function drawRunners() {
-  const host = $('runList'), em = $('runEmpty'); if (!host) return; host.replaceChildren(); const R = S.runners, all = R && Array.isArray(R.items) ? R.items : [], items = all.filter((r) => !(r.vetoed && r.vetoed.length)), dropped = all.filter((r) => r.vetoed && r.vetoed.length);
+  const prevC = S.rcards || new Map(); S.rcards = new Map(); startRunnerLive(); { let ctl = $('runCtl'); if (!ctl) { ctl = el('p', 'dk-meta'); ctl.id = 'runCtl'; const l = $('runList'); if (l && l.parentNode) l.parentNode.insertBefore(ctl, l); } ctl.replaceChildren(document.createTextNode('Chart candles: ')); ['1h', '4h'].forEach((k) => { const b = el('button', 'dk-tab' + (RT.tf === k ? ' on' : ''), k); b.type = 'button'; b.addEventListener('click', () => { RT.tf = k; S.rcards.forEach((_, pool) => paintRunner(pool)); ctl.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x.textContent === k)); }); ctl.append(b); }); ctl.append(document.createTextNode(' Prices refresh live in this page while the section is on screen.')); }
+    const host = $('runList'), em = $('runEmpty'); if (!host) return; host.replaceChildren(); const R = S.runners, all = R && Array.isArray(R.items) ? R.items : [], items = all.filter((r) => !(r.vetoed && r.vetoed.length)), dropped = all.filter((r) => r.vetoed && r.vetoed.length);
   em.hidden = false;
   if (!all.length) { em.textContent = 'No coin is showing a high-volume run with buyers leading right now. This fills on each full scan.'; return; }
   em.textContent = 'As of ' + whenS(R.at) + '. ' + items.length + ' coin' + (items.length === 1 ? '' : 's') + ' listed' + (dropped.length ? ', ' + dropped.length + ' dropped by the risk rules.' : '.');
   items.forEach((r) => { const c = el('div', 'plan'), t = el('div', 't'), nm = el('b'); nm.append(dexLink({ coin: r.coin, chain: r.chain, pool: r.pool }, 'coinlink', r.coin)); nm.append(el('span', 'dk-tag', r.chain)); t.append(nm, el('span', 'badge ' + (r.passed >= 4 ? 'pos' : ''), `${r.tier} · ${r.passed} of 4 checks`)); c.append(t);
+    { const live = el('p', 'dk-meta rn-live'), ch = el('div', 'rn-chart'); c.append(live, ch); { const pv = prevC.get(r.pool); S.rcards.set(r.pool, { r, live, ch, bars: pv && pv.liveAt ? pv.bars : Array.isArray(r.bars) ? r.bars : [], liveAt: pv && pv.liveAt ? pv.liveAt : null }); } paintRunner(r.pool); }
     const ck = el('div', 'dk-chips'); (r.checks || []).forEach((x) => ck.append(el('span', 'dk-chip ' + (x.ok === true ? 'ok' : x.ok === false ? 'no' : ''), (x.ok === true ? '✓ ' : x.ok === false ? '✗ ' : '? ') + x.k))); c.append(ck);
     const u = el('ul', 'note'); (r.checks || []).forEach((x) => u.append(el('li', null, `${x.k}: ${x.note}`))); const m = r.m || {}; u.append(el('li', null, `24h ${m.ch24 != null ? (m.ch24 >= 0 ? '+' : '') + m.ch24.toFixed(0) + '%' : '—'} · liquidity ${usd0(m.liq || 0)}${m.ageD != null ? ' · ' + m.ageD.toFixed(1) + ' days old' : ''}${r.hs && r.hs.holders != null ? ' · ' + Number(r.hs.holders).toLocaleString('en') + ' holders' : ''}${r.hs && r.hs.top10 != null ? ', top 10 hold ' + Math.round(r.hs.top10) + '%' : ''}${r.paper ? ' · in the degen paper desk' : ''}`)); c.append(u);
     if (r.flags && r.flags.length) c.append(el('p', 'caut', 'Watch out: ' + r.flags.join(' · '))); host.append(c); });
@@ -470,14 +502,7 @@ function draw() {
   if (S.patFilter === 'All') list = [...pv, ...bv.filter((b) => !pv.some((p) => p.id === b.id))]; else if (S.patFilter === 'Bottomed out') list = bv; else list = pv.filter((r) => r.patName === S.patFilter);
   list.sort((a, b) => (b.patReady || b.bidReady ? 1 : 0) - (a.patReady || a.bidReady ? 1 : 0) || cmp()(a, b));
   fill($('patList'), list.slice(0, 24), null, 'No coins match this filter in the latest scan.');
-  // log
-  { const sec = $('log'), since = S.paperCfg && S.paperCfg.since, hid = S.signals.length - (since ? S.signals.filter((s) => String(s.signalAt || '') >= since).length : S.signals.length); let bar = $('logBar'); if (!bar) { bar = el('p', 'meta'); bar.id = 'logBar'; const t = $('rChart'); if (sec && t) sec.insertBefore(bar, t); } bar.replaceChildren();
-    if (since && (hid > 0 || S.showOld)) { bar.append(`Showing signals since the fresh start on ${whenS(since)}. `); const b = el('button', 'dk-tab', S.showOld ? 'Hide earlier signals' : `Show ${hid} earlier signal${hid === 1 ? '' : 's'}`); b.type = 'button'; b.addEventListener('click', () => { S.showOld = !S.showOld; draw(); drawPaper(); }); bar.append(b); } }
-  const tb = $('logTbl').tBodies[0]; tb.replaceChildren();
-  if (!logRows().length) { const tr = el('tr'); const td = el('td', null, 'No bid-ready signals logged yet.'); td.colSpan = 7; tr.append(td); tb.append(tr); }
-  logRows().forEach((s) => { const tr = el('tr'); const res = s.resultR != null ? s.resultR : s.openR; const c7 = el('td', 'n ' + (res > 0 ? 'pos' : res < 0 ? 'neg' : ''), res == null ? '—' : rr(res) + (s.resultR == null ? ' (open)' : ''));
-    tr.append(el('td', null, (s.signalAt || '').slice(0, 16).replace('T', ' ')), coinCell(s), el('td', null, s.setup || 'Setup not recorded'), el('td', null, `${fp(s.entryLow)}–${fp(s.entryHigh)}`), el('td', null, fp(s.stop)),
-      el('td', null, s.status + (s.tpHit ? ` · TP${s.tpHit} hit` : '')), c7); tb.append(tr); });
+  drawLogPanel();
   rChart();
   // all coins
   const ab = $('allTbl').tBodies[0]; ab.replaceChildren();
@@ -614,6 +639,49 @@ async function lookup(q) {
 }
 $('lookupForm').addEventListener('submit', (e) => { e.preventDefault(); const q = $('lookupQ').value.trim(); if (q) lookup(q); });
 
+
+// ---------- signal log & results (audit trail) ----------
+const LF = { q: '', setup: 'All', state: 'All', cost: 0 };
+const logKind = (s) => (s.kind === 'replay' ? 'Replay' : s.kind === 'near-miss' ? 'Near-miss' : 'Live');
+const logWhy = (s) => { const st = s.status || ''; if (st === 'expired (no fill)') return 'never reached the entry zone'; if (st === 'waiting for entry') return 'waiting for price to reach the entry zone'; if (st === 'open') return s.tpHit ? `open, TP${s.tpHit} already hit` : 'open, no target hit yet';
+  if (st === 'stopped out') return 'stopped out before any target'; if (st.startsWith('stopped after TP')) return 'hit ' + st.replace('stopped after ', '') + ', then stopped at breakeven'; if (st.startsWith('time exit')) return 'sold at the 7-day time limit'; if (st.startsWith('closed')) return st; return st || '—'; };
+const logState = (s) => (s.status === 'expired (no fill)' ? 'never filled' : s.status === 'open' || s.status === 'waiting for entry' ? 'open' : 'closed');
+function drawLogPanel() {
+  const sec = $('log'); if (!sec) return; const since = S.paperCfg && S.paperCfg.since, hid = S.signals.length - (since ? S.signals.filter((s) => String(s.signalAt || '') >= since).length : S.signals.length);
+  let bar = $('logBar'); if (!bar) { bar = el('div'); bar.id = 'logBar'; const t = $('rChart'); if (t) sec.insertBefore(bar, t); } bar.replaceChildren();
+  const all = logRows(), net = (s) => Number(s.resultR) - LF.cost, closed = all.filter((s) => logState(s) === 'closed' && s.resultR != null), wins = closed.filter((s) => net(s) > 0).length, avg = closed.length ? closed.reduce((a, s) => a + net(s), 0) / closed.length : null;
+  const h = el('p', 'tip'); h.textContent = closed.length ? `${closed.length} of 30 closed live signals (30 needed before reading results) · win rate ${Math.round(wins / closed.length * 100)}% · average ${rr(avg)}${LF.cost ? ' after ' + LF.cost + 'R cost per trade' : ''}.` : `0 of 30 closed live signals (30 needed before reading results). Nothing has closed yet, so there is no result to judge.`; bar.append(h);
+  const b = S.bt && S.bt.overall, ctx = []; if (b) ctx.push(`Backtest replay (not live): ${b.closed} closed, average ${b.avgR != null ? rr(b.avgR) : '—'}. Only the live line above is real.`);
+  const sol = S.meta && S.meta.regime && S.meta.regime.sol; if (sol && sol.chg7 != null) ctx.push(`For context, SOL moved ${pct(sol.chg7)} over the last 7 days (a market move in %, not comparable with R, but a rising market flatters any long-only strategy).`);
+  const rc = S.learned && S.learned.runners && S.learned.runners.control; if (rc && rc.comment) ctx.push('Runners list against random coins: ' + rc.comment);
+  ctx.forEach((t) => bar.append(el('p', 'meta', t)));
+  if (since && (hid > 0 || S.showOld)) { const p = el('p', 'meta'); p.append(`Showing signals since the fresh start on ${whenS(since)}. `); const bt = el('button', 'dk-tab', S.showOld ? 'Hide earlier signals' : `Show ${hid} earlier signal${hid === 1 ? '' : 's'}`); bt.type = 'button'; bt.addEventListener('click', () => { S.showOld = !S.showOld; draw(); drawPaper(); }); p.append(bt); bar.append(p); }
+  // filters, cost and download
+  const tools = el('div', 'dk-tabs'), mk = (tag, a) => Object.assign(document.createElement(tag), a);
+  const q = mk('input', { type: 'search', placeholder: 'Coin', value: LF.q, className: 'dk-in' }), su = mk('select', { className: 'dk-in' }), st = mk('select', { className: 'dk-in' }), co = mk('select', { className: 'dk-in', title: 'Extra cost per trade to subtract (gas and exit slippage are not in the log)' });
+  ['All', ...new Set(all.map((s) => s.setup || 'Setup not recorded'))].forEach((x) => su.append(mk('option', { value: x, textContent: x === 'All' ? 'All setups' : x, selected: LF.setup === x })));
+  [['All', 'All states'], ['open', 'Open'], ['closed', 'Closed'], ['never filled', 'Never filled']].forEach(([v, t]) => st.append(mk('option', { value: v, textContent: t, selected: LF.state === v })));
+  [[0, 'No extra cost'], [0.1, 'Subtract 0.1R per trade'], [0.2, 'Subtract 0.2R per trade'], [0.3, 'Subtract 0.3R per trade']].forEach(([v, t]) => co.append(mk('option', { value: v, textContent: t, selected: LF.cost === v })));
+  const dl = el('button', 'dk-tab', 'Download CSV'); dl.type = 'button';
+  q.addEventListener('input', () => { LF.q = q.value; drawLogTable(); }); su.addEventListener('change', () => { LF.setup = su.value; drawLogTable(); }); st.addEventListener('change', () => { LF.state = st.value; drawLogTable(); }); co.addEventListener('change', () => { LF.cost = Number(co.value); drawLogPanel(); });
+  dl.addEventListener('click', () => { const rows = logFiltered(), head = ['signalAt', 'coin', 'chain', 'setup', 'kind', 'state', 'entryLow', 'entryHigh', 'stop', 'status', 'tpHit', 'resultR', 'openR', 'why'], esc = (v) => { v = v == null ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+    const csv = [head.join(','), ...rows.map((s) => head.map((k) => esc(k === 'kind' ? logKind(s) : k === 'state' ? logState(s) : k === 'why' ? logWhy(s) : s[k])).join(','))].join('\n'); try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'rynoscan-signal-log.csv'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); } catch { /* download not available */ } });
+  tools.append(q, su, st, co, dl); bar.append(tools);
+  drawLogTable();
+}
+const logFiltered = () => logRows().filter((s) => (!LF.q || String(s.coin || s.id || '').toLowerCase().includes(LF.q.toLowerCase())) && (LF.setup === 'All' || (s.setup || 'Setup not recorded') === LF.setup) && (LF.state === 'All' || logState(s) === LF.state));
+function drawLogTable() {
+  const tb = $('logTbl') && $('logTbl').tBodies[0]; if (!tb) return; tb.replaceChildren(); const rows = logFiltered();
+  if (!rows.length) { const tr = el('tr'), td = el('td', null, S.signals.length ? 'No signals match this filter.' : 'No bid-ready signals logged yet.'); td.colSpan = 9; tr.append(td); tb.append(tr); return; }
+  const px = (s) => { const r = S.setups.find((x) => x.id === s.id); return r && r.price != null ? +r.price : null; };
+  [['open', 'Open'], ['closed', 'Closed'], ['never filled', 'Never filled (no money used)']].forEach(([k, label]) => {
+    const g = rows.filter((s) => logState(s) === k).sort((a, b) => String(b.signalAt || '').localeCompare(String(a.signalAt || ''))); if (!g.length) return;
+    const hr = el('tr', 'dk-grp'), hd = el('td', null, `${label} (${g.length})`); hd.colSpan = 9; hr.append(hd); tb.append(hr);
+    g.forEach((s) => { const tr = el('tr'); let res = s.resultR != null ? Number(s.resultR) - LF.cost : s.openR != null ? Number(s.openR) : null;
+      const c7 = el('td', 'n ' + (res > 0 ? 'pos' : res < 0 ? 'neg' : ''), res == null ? '—' : rr(res) + (s.resultR == null ? ' (open)' : '')); let now = '—';
+      if (k === 'open') { const p = px(s); if (p) { const ent = (+s.entryLow + +s.entryHigh) / 2; now = `${fp(p)} · ${((p / ent - 1) * 100).toFixed(1)}% vs entry · ${((p / +s.stop - 1) * 100).toFixed(1)}% above stop`; } }
+      tr.append(el('td', null, (s.signalAt || '').slice(0, 16).replace('T', ' ')), coinCell(s), el('td', null, s.setup || 'Setup not recorded'), el('td', null, logKind(s)), el('td', null, `${fp(s.entryLow)}–${fp(s.entryHigh)}`), el('td', null, fp(s.stop)), el('td', null, now), el('td', null, logWhy(s)), c7); tb.append(tr); }); });
+}
 // ---------- backtest ----------
 function drawBacktest() {
   const b = S.bt; if (!b) return;
