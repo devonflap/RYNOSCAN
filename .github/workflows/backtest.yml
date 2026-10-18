@@ -5,7 +5,7 @@ on:
   workflow_dispatch: {}
 permissions:
   contents: write
-concurrency: group: rynoscan-backtest
+concurrency:
   group: rynoscan-backtest
   cancel-in-progress: false
 jobs:
