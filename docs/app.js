@@ -314,27 +314,84 @@ function card(r, cr) {
 
 // ---------- paper trading: $10,000, 5% of the account on every bid-ready setup ----------
 const usd0 = (v) => (v < 0 ? '−$' : '$') + Math.abs(Math.round(v)).toLocaleString('en');
+const fpx = (v) => { if (v == null || !isFinite(v)) return '—'; const a = Math.abs(v); return '$' + (a >= 100 ? v.toLocaleString('en', { maximumFractionDigits: 2 }) : a >= 1 ? v.toFixed(3) : a >= 0.0001 ? String(Number(v.toPrecision(3))) : v.toFixed(8).replace(/0+$/, '')); };
+const usdS = (v) => (v < 0 ? '−$' : '+$') + Math.abs(v).toLocaleString('en', { maximumFractionDigits: 0 });
+const whenS = (iso) => { const d = new Date(iso); return isFinite(d) ? d.toLocaleString('en-AU', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '—'; };
+function deskView(host, p, o) {
+  const gain = p.equity - p.start, cls = gain > 0 ? 'pos' : gain < 0 ? 'neg' : '';
+  const chips = el('div', 'dk-chips'); chips.append(el('span', 'dk-chip ok', 'Paper money only · nothing is traded for real'), el('span', 'dk-chip', o.sizing), el('span', 'dk-chip', p.openN ? `${p.openN} open · ${p.waitingN} waiting` : `${p.waitingN} waiting for entry`)); host.append(chips);
+  const hero = el('div', 'dk-hero');
+  const stat = (k, v, sub, c) => { const d = el('div', 'dk-stat'); d.append(el('div', 'dk-k', k), el('div', 'dk-v ' + (c || ''), v), el('div', 'dk-s', sub)); hero.append(d); return d; };
+  stat('Desk value', '$' + p.equity.toLocaleString('en', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), 'cash and open trades at the latest prices', cls);
+  { const d = stat('Gain since day one', usdS(gain) + (gain ? '' : ''), `peak value $${Math.round(p.peakEq).toLocaleString('en')}${p.belowPeakPct > 0.05 ? `, now ${p.belowPeakPct.toFixed(1)}% below it` : ', at its peak'}`, cls); d.querySelector('.dk-v').append(el('span', 'dk-pct', ' ' + pct(p.retPct, 1))); }
+  stat('Started with', '$' + p.start.toLocaleString('en', { minimumFractionDigits: 2 }), p.firstAt ? 'first trade ' + whenS(p.firstAt) : 'paper money');
+  host.append(hero);
+  host.append(el('p', 'dk-sum', `${gain >= 0 ? 'Up' : 'Down'} ${usd0(Math.abs(gain))} since day one: ${usd0(p.realized)} banked, ${usd0(p.openPnl)} open ${p.openPnl >= 0 ? 'profit' : 'loss'}. Slippage is already inside each trade's result.`));
+  host.append(el('p', p.check ? 'dk-ok' : 'dk-bad', p.check ? '✓ Self-check passed: banked plus open equals the total gain.' : '✗ Self-check failed: the figures above do not add up.'));
+  const open = p.trades.filter((t) => t.open);
+  host.append(el('div', 'dk-h', `OPEN TRADES  ${open.length} open · ${usdS(p.openPnl)} open ${p.openPnl >= 0 ? 'profit' : 'loss'} in all`));
+  if (!open.length) host.append(el('p', 'empty', p.trades.length ? 'No trade is open right now.' : 'No bid-ready signal has filled yet, so nothing has been traded. Waiting for entry: ' + p.waitingN + '.'));
+  open.forEach((t) => { const c = el('div', 'dk-trade'), L = el('div', 'dk-l'), nm = el('div', 'dk-nm');
+    if (t.pool) nm.append(dexLink({ coin: t.coin, chain: t.chain, pool: t.pool }, 'coinlink', t.coin)); else nm.append(t.coin); nm.append(el('span', 'dk-tag', t.chain));
+    L.append(nm, el('div', 'dk-meta', 'Setup: ' + (t.setup || '—')), el('span', 'dk-badge ' + (t.pnl >= 0 ? 'up' : 'down'), t.tpHit ? (o.degen ? 'HALF SOLD' : 'BANKING') : t.pnl >= 0 ? 'IN PROFIT' : 'UNDER WATER'));
+    const M = el('div', 'dk-m'); M.append(el('div', 'dk-pnl ' + (t.pnl >= 0 ? 'pos' : 'neg'), usdS(t.pnl)), el('div', 'dk-meta', `${pct(t.size ? t.pnl / t.size * 100 : 0, 1)} on ${usd0(t.size)} in`));
+    const G = el('div', 'dk-g'); const kv = (k, v) => { const d = el('div'); d.append(el('div', 'dk-k', k), el('div', 'dk-kv', v)); G.append(d); };
+    const riskUsd = t.entry && t.stop && t.entry > 0 ? t.size * (t.entry - t.stop) / t.entry : null;
+    kv('Entry', fpx(t.entry)); kv('Now (est.)', fpx(t.nowPx)); kv('Stop', fpx(t.stop) + (riskUsd != null ? ` · ${usd0(riskUsd)} at risk` : '')); kv('Banked', t.tpHit ? (o.degen ? 'half sold at 2x' : `TP${t.tpHit} hit`) : 'nothing yet');
+    G.append(el('div', 'dk-meta dk-wide', o.degen ? `${pct((t.nowPx && t.entry ? (t.nowPx / t.entry - 1) * 100 : 0), 0)} vs entry · half off at ${fpx(t.tp1)} · since ${whenS(t.at)}` : `${rr(t.R)} open · targets ${fpx(t.tp1)} / ${fpx(t.tp2)} / ${fpx(t.tp3)} · since ${whenS(t.at)}`)); if (o.extra) o.extra(t, G);
+    c.append(L, M, G); host.append(c); });
+  if (p.waiting.length) { host.append(el('div', 'dk-h', `WAITING FOR ENTRY  ${p.waiting.length} · limit orders that have not filled yet`)); const u = el('div', 'dk-wait');
+    p.waiting.slice(0, 12).forEach((w) => { const r = el('div', 'dk-wrow'); r.append(el('b', null, w.coin), el('span', 'dk-tag', w.chain), el('span', 'dk-meta', `${w.setup || ''} · buy ${fpx(w.entryLow)} to ${fpx(w.entryHigh)} · stop ${fpx(w.stop)} · called ${whenS(w.at)}`)); u.append(r); }); host.append(u); }
+  if (p.curve.length >= 2) {
+    const W = 640, H = 130, P = 44, pts = p.curve, lo = Math.min(...pts.map((c) => c.eq), p.start), hi = Math.max(...pts.map((c) => c.eq), p.start), sp = hi - lo || 1, x = (i) => P + (W - P - 8) * i / (pts.length - 1), y = (v) => 10 + (H - 24) * (1 - (v - lo) / sp);
+    const svg = sv('svg', { viewBox: `0 0 ${W} ${H}`, class: 'ch', role: 'img', 'aria-label': 'Paper account value over time' });
+    svg.append(sv('line', { x1: P, x2: W - 8, y1: y(p.start), y2: y(p.start), stroke: '#ececec', 'stroke-opacity': .5, 'stroke-dasharray': '4 4' }), sv('text', { x: 2, y: y(p.start) + 3, fill: '#a9a9a9', 'font-size': 9.5 }, usd0(p.start)));
+    svg.append(sv('text', { x: 2, y: 12, fill: '#a9a9a9', 'font-size': 9.5 }, usd0(hi)), sv('text', { x: 2, y: H - 14, fill: '#a9a9a9', 'font-size': 9.5 }, usd0(lo)));
+    svg.append(sv('polyline', { points: pts.map((c, i) => `${x(i)},${y(c.eq)}`).join(' '), fill: 'none', stroke: p.equity >= p.start ? '#34d399' : '#f87171', 'stroke-width': 2.2 }));
+    host.append(el('div', 'dk-h', 'DESK VALUE OVER TIME'), svg);
+  }
+  host.append(el('div', 'dk-h', 'MORE DETAIL  click a row to open it'));
+  const fold = (title, sub, build) => { const d = el('details', 'dk-fold'), sm = el('summary'); sm.append(el('b', null, title), el('span', 'dk-meta', ' ' + sub)); d.append(sm); build(d); host.append(d); };
+  const done = p.trades.filter((t) => !t.open);
+  fold('Closed trades', `${done.length} closed in all · ${usdS(p.realized)} banked${p.winRate != null ? ' · ' + Math.round(p.winRate * 100) + '% won' : ''}${p.closedN ? ' · worst drawdown −' + p.maxDD.toFixed(1) + '%' : ''}`, (d) => {
+    if (!done.length) { d.append(el('p', 'empty', 'Nothing has closed yet.')); return; }
+    const tbl = el('table', 'tbl'), th = el('tr'); ['Opened', 'Coin', 'Setup', 'Position', 'Result', 'P&L'].forEach((h, i) => th.append(el('th', i > 2 ? 'n' : null, h))); const hd = el('thead'); hd.append(th); tbl.append(hd);
+    const tb = el('tbody'); done.slice(0, 40).forEach((t) => { const tr = el('tr'); tr.append(el('td', null, (t.at || '').slice(5, 16).replace('T', ' ')), coinCell({ coin: t.coin, chain: t.chain, pool: t.pool }, true), el('td', null, t.setup || '—'), el('td', 'n', usd0(t.size)), el('td', 'n', `${rr(t.R)} · ${t.status}`), el('td', 'n ' + (t.pnl >= 0 ? 'pos' : 'neg'), usdS(t.pnl))); tb.append(tr); });
+    tbl.append(tb); const sc = el('div', 'scroll'); sc.append(tbl); d.append(sc); });
+  fold('Setups scoreboard', 'which patterns made or lost the money', (d) => {
+    if (!p.bySetup.length) { d.append(el('p', 'empty', 'No trades yet.')); return; }
+    const u = el('ul', 'note'); p.bySetup.forEach((g) => u.append(el('li', null, `${g.setup}: ${usdS(g.pnl)} over ${g.n} trade${g.n === 1 ? '' : 's'} (${g.closed} closed${g.closed ? ', ' + Math.round(g.wins / g.closed * 100) + '% won' : ''}).`))); d.append(u); });
+  fold('How this desk works', 'sizing, fills and what it leaves out', (d) => { const u = el('ul', 'note'); o.notes.forEach((t) => u.append(el('li', null, t))); d.append(u); });
+}
+function drawRunners() {
+  const host = $('runList'), em = $('runEmpty'); if (!host) return; host.replaceChildren(); const R = S.runners, all = R && Array.isArray(R.items) ? R.items : [], items = all.filter((r) => !(r.vetoed && r.vetoed.length)), dropped = all.filter((r) => r.vetoed && r.vetoed.length);
+  em.hidden = false;
+  if (!all.length) { em.textContent = 'No coin is showing a high-volume run with buyers leading right now. This fills on each full scan.'; return; }
+  em.textContent = 'As of ' + whenS(R.at) + '. ' + items.length + ' coin' + (items.length === 1 ? '' : 's') + ' listed' + (dropped.length ? ', ' + dropped.length + ' dropped by the risk rules.' : '.');
+  items.forEach((r) => { const c = el('div', 'plan'), t = el('div', 't'), nm = el('b'); nm.append(dexLink({ coin: r.coin, chain: r.chain, pool: r.pool }, 'coinlink', r.coin)); nm.append(el('span', 'dk-tag', r.chain)); t.append(nm, el('span', 'badge ' + (r.passed >= 4 ? 'pos' : ''), `${r.tier} · ${r.passed} of 4 checks`)); c.append(t);
+    const ck = el('div', 'dk-chips'); (r.checks || []).forEach((x) => ck.append(el('span', 'dk-chip ' + (x.ok === true ? 'ok' : x.ok === false ? 'no' : ''), (x.ok === true ? '✓ ' : x.ok === false ? '✗ ' : '? ') + x.k))); c.append(ck);
+    const u = el('ul', 'note'); (r.checks || []).forEach((x) => u.append(el('li', null, `${x.k}: ${x.note}`))); const m = r.m || {}; u.append(el('li', null, `24h ${m.ch24 != null ? (m.ch24 >= 0 ? '+' : '') + m.ch24.toFixed(0) + '%' : '—'} · liquidity ${usd0(m.liq || 0)}${m.ageD != null ? ' · ' + m.ageD.toFixed(1) + ' days old' : ''}${r.hs && r.hs.holders != null ? ' · ' + Number(r.hs.holders).toLocaleString('en') + ' holders' : ''}${r.hs && r.hs.top10 != null ? ', top 10 hold ' + Math.round(r.hs.top10) + '%' : ''}${r.paper ? ' · in the degen paper desk' : ''}`)); c.append(u);
+    if (r.flags && r.flags.length) c.append(el('p', 'caut', 'Watch out: ' + r.flags.join(' · '))); host.append(c); });
+  if (dropped.length) { const d = el('details', 'dk-fold dk-wide-d'), sm = el('summary'); sm.append(el('b', null, 'Dropped by the risk rules'), el('span', 'dk-meta', ` ${dropped.length} coin${dropped.length === 1 ? '' : 's'} still being tracked to test whether the rules help`)); d.append(sm); const u = el('ul', 'note'); dropped.forEach((r) => u.append(el('li', null, `${r.coin} (${r.chain}): ${r.vetoed.join(', ')}`))); d.append(u); host.append(d); }
+}
+const CONS_NOTES = ['Every bid-ready call is paper-bought with 5% of the desk value at that moment. A call only becomes a trade when the price dips into its entry zone; if that does not happen within 48 hours it is dropped and uses no money.',
+  'Results are the signal log\'s own figures: stops, the three targets, a 7-day time exit and the fill slippage you set are already inside them. "Now (est.)" is worked back from the open result, not a live quote.',
+  'Not modelled: gas, exit liquidity and price impact. On thin new launches the real price you get can be much worse than a paper fill, so a few big paper winners overstate what real money would have made.',
+  'Until 30 or more trades have closed, a good run can be luck. Judge the rules on the Learn tab, not on a couple of runners.'];
+const DEGEN_NOTES = ['High risk on purpose. A runner is paper-bought with 10% of the desk when its volume is at least 2.5x normal, it is up 10% to 400% in 24 hours, buyers are leading and it has at least $50k of liquidity. It does not wait for a chart pattern or a 4h close, so it will often buy near the top.',
+  'Exits: stop 20% below entry. Half is sold at 2x and the rest trails 30% below its high (never below break-even). Everything is sold after 72 hours. Entry is the next hourly open plus 3% slippage. If one hour touches both the stop and the target, the stop is assumed to hit first.',
+  'Wallet check: it counts the wallets buying and selling in the pool\'s recent trades and how much of the volume the top 3 wallets make. Leaning out or a few wallets doing most of the volume rejects the runner. The feed does not say which wallets are good traders, so "smart wallets" only means addresses you add to config/smartwallets.json.',
+  'Not modelled: gas, real exit liquidity and price impact. Rugs and honeypots can make a real exit impossible, which paper money never feels. Treat this desk as a way to measure the strategy, not as a promise.'];
 function drawPaper() {
   const host = $('paperOut'); if (!host) return; host.replaceChildren();
-  const p = simulate(S.signals, { start: 10000, pct: 5 }), cls = p.retPct > 0 ? 'pos' : p.retPct < 0 ? 'neg' : '';
-  const grid = el('div', 'vgrid');
-  const cellp = (k, v, c) => { const d = el('div', 'vcell'); d.append(el('div', 'l', k), el('div', 'v ' + (c || ''), v)); grid.append(d); };
-  cellp('Account now', usd0(p.equity), cls); cellp('Return', pct(p.retPct, 1), cls); cellp('Banked', usd0(p.realized), p.realized >= 0 ? 'pos' : 'neg'); cellp('Open (marked)', usd0(p.openPnl), p.openPnl >= 0 ? 'pos' : 'neg');
-  cellp('Closed trades', `${p.closedN}` + (p.winRate != null ? ` · ${Math.round(p.winRate * 100)}% won` : '')); cellp('Worst drawdown', p.closedN ? '−' + p.maxDD.toFixed(1) + '%' : '—');
-  host.append(grid);
-  if (!p.trades.length) host.append(el('p', 'empty', 'No bid-ready signal has filled yet, so nothing has been traded. Waiting for entry: ' + p.waitingN + '.'));
+  const since = S.paperCfg && S.paperCfg.since || null, tab = S.deskTab === 'degen' ? 'degen' : 'cons';
+  const bar = el('div', 'dk-tabs'); [['cons', 'Conservative desk'], ['degen', 'Degen desk']].forEach(([k, t]) => { const b = el('button', 'dk-tab' + (tab === k ? ' on' : ''), t); b.type = 'button'; b.addEventListener('click', () => { S.deskTab = k; try { drawPaper(); } catch { /* keep going */ } }); bar.append(b); });
+  host.append(bar); if (since) host.append(el('p', 'dk-meta dk-since', 'Both desks started fresh on ' + whenS(since) + '. Older paper trades are hidden.'));
+  const box = el('div'); host.append(box);
+  if (tab === 'cons') { const p = simulate(S.signals, { start: 10000, pct: 5, since }); deskView(box, p, { sizing: '5% of the desk per bid-ready setup', notes: CONS_NOTES }); }
   else {
-    if (p.curve.length >= 2) {
-      const W = 640, H = 130, P = 44, pts = p.curve, lo = Math.min(...pts.map((c) => c.eq), p.start), hi = Math.max(...pts.map((c) => c.eq), p.start), sp = hi - lo || 1, x = (i) => P + (W - P - 8) * i / (pts.length - 1), y = (v) => 10 + (H - 24) * (1 - (v - lo) / sp);
-      const svg = sv('svg', { viewBox: `0 0 ${W} ${H}`, class: 'ch', role: 'img', 'aria-label': 'Paper account value over time' });
-      svg.append(sv('line', { x1: P, x2: W - 8, y1: y(p.start), y2: y(p.start), stroke: '#ececec', 'stroke-opacity': .5, 'stroke-dasharray': '4 4' }), sv('text', { x: 2, y: y(p.start) + 3, fill: '#a9a9a9', 'font-size': 9.5 }, usd0(p.start)));
-      svg.append(sv('text', { x: 2, y: 12, fill: '#a9a9a9', 'font-size': 9.5 }, usd0(hi)), sv('text', { x: 2, y: H - 14, fill: '#a9a9a9', 'font-size': 9.5 }, usd0(lo)));
-      svg.append(sv('polyline', { points: pts.map((c, i) => `${x(i)},${y(c.eq)}`).join(' '), fill: 'none', stroke: p.equity >= p.start ? '#34d399' : '#f87171', 'stroke-width': 2.2 }));
-      host.append(svg);
-    }
-    const tbl = el('table', 'tbl'), th = el('tr'); ['Opened', 'Coin', 'Setup', 'Position', 'Result', 'P&L'].forEach((h, i) => th.append(el('th', i > 2 ? 'n' : null, h))); const hd = el('thead'); hd.append(th); tbl.append(hd);
-    const tb = el('tbody'); p.trades.slice(0, 15).forEach((t) => { const tr = el('tr'); tr.append(el('td', null, (t.at || '').slice(5, 16).replace('T', ' ')), coinCell({ coin: t.coin, chain: t.chain, pool: t.pool }, true), el('td', null, t.setup || '—'), el('td', 'n', usd0(t.size)), el('td', 'n', `${rr(t.R)}${t.open ? ' (open)' : ''}`), el('td', 'n ' + (t.pnl > 0 ? 'pos' : t.pnl < 0 ? 'neg' : ''), (t.pnl >= 0 ? '+' : '') + usd0(t.pnl))); tb.append(tr); });
-    tbl.append(tb); const sc = el('div', 'scroll'); sc.append(tbl); host.append(sc);
+    const p = simulate(S.degen, { start: 10000, pct: 10, since }); const verdict = (w) => w ? `${w.buyers} buyers vs ${w.sellers} sellers · top 3 wallets ${w.top3Share != null ? Math.round(w.top3Share * 100) + '%' : '—'} of volume · net ${usdS(w.netUsd)}${w.smartIn && w.smartIn.length ? ' · smart wallets in: ' + w.smartIn.join(', ') : ''}${w.smartOut && w.smartOut.length ? ' · smart wallets out: ' + w.smartOut.join(', ') : ''}` : 'wallets not checked yet';
+    deskView(box, p, { degen: true, sizing: '10% of the desk per runner · up to 8 open', notes: DEGEN_NOTES, extra: (t, G) => { const sg = t.sig || {}; if (sg.why && sg.why.length) G.append(el('div', 'dk-meta dk-wide', 'Why it was bought: ' + sg.why.join(' · '))); G.append(el('div', 'dk-meta dk-wide', (sg.walletVerdict ? sg.walletVerdict + ': ' : '') + verdict(sg.wallet) + (sg.walletHist && sg.walletHist.length > 1 ? ` (${sg.walletHist.length} checks)` : ''))); } });
   }
   const f = fwdSummary(S.fwd);
   { const sh = (Array.isArray(S.fwd) ? S.fwd : []).filter((x) => x && x.shadow), cl = sh.filter((x) => x.resultR != null && x.status !== 'expired (no fill)'); if (sh.length) host.append(el('p', 'meta', `Background tracking of candidate patterns that are not live: ${sh.length} logged, ${cl.length} closed. Their results feed the learning loop, which can switch a pattern on once the data supports it.`)); }
@@ -342,7 +399,7 @@ function drawPaper() {
 }
 
 // ---------- main ----------
-const S = { fwd: [], setups: [], signals: [], charts: new Map(), vol: [], meta: null, bt: null, watch: new Map(), watchAt: null, learned: null, usage: null, patFilter: 'All', volChain: 'All', chain: 'All', sort: 'opp' };
+const S = { runners: null, degen: [], paperCfg: null, deskTab: 'cons', fwd: [], setups: [], signals: [], charts: new Map(), vol: [], meta: null, bt: null, watch: new Map(), watchAt: null, learned: null, usage: null, patFilter: 'All', volChain: 'All', chain: 'All', sort: 'opp' };
 const openCount = () => S.signals.filter((s) => s.status === 'open' || s.status === 'waiting for entry').length;
 function fill(host, rows, mk, empty) {
   host.replaceChildren();
@@ -592,6 +649,20 @@ function drawGates(L) {
   if (G.early) box.append(el('h4', null, 'Early entry experiment (1h, forming 4h candle)'), el('p', 'note', `${G.early.comment} Early: ${G.early.early.n} trades. Confirmed: ${G.early.confirmed.n} trades.`));
   (G.notes || []).forEach((n) => box.append(el('p', 'meta', n)));
 }
+function drawRunnerStudy(L) {
+  const box = $('runnerBox'); if (!box) return; box.replaceChildren(); const Rr = L && L.runners; if (!Rr) return;
+  box.append(el('h3', null, 'Runner study'), el('p', 'meta', `Every coin on the runners list (and every one the risk rules dropped) is logged as a paper trade with the numbers at that moment. ${Rr.logged} logged, ${Rr.closed} closed. Report only: nothing is changed automatically.`));
+  const u = el('ul', 'note'); (Rr.summary || []).forEach((x) => u.append(el('li', null, x))); box.append(u);
+  if (Rr.checks && Rr.checks.length) { box.append(el('h4', null, 'Does passing more checks help?')); const c = el('ul', 'note'); Rr.checks.forEach((x) => c.append(el('li', null, `${x.passed} of 4 checks: ${x.n} trades averaged ${pct(x.avgRet, 1)}`))); box.append(c); }
+  if (Rr.findings && Rr.findings.length) { box.append(el('h4', null, `Numbers that separated winners from losers (${Rr.tested} tested)`)); const f = el('ul', 'note'); Rr.findings.forEach((x) => f.append(el('li', null, `${x.feature} ${x.bucket}: ${x.n} trades averaged ${pct(x.avgRet, 1)} against ${pct(x.restAvgRet, 1)} for the rest${x.reliable ? ' - reliable' : ' - hint only'}`))); box.append(f); }
+  if (Rr.control && (Rr.control.n || Rr.control.listedN)) { box.append(el('h4', null, 'Against random coins')); box.append(el('p', 'meta', `${Rr.control.comment} Random coins closed: ${Rr.control.n}${Rr.control.avgRet != null ? ', average ' + pct(Rr.control.avgRet, 1) : ''}.`)); }
+  if (Rr.oos) { box.append(el('h4', null, `Locked test from ${Rr.oos.lockedFrom}`)); box.append(el('p', 'meta', `Rules are found only on the ${Rr.oos.discovery} trades before the lock date and judged only on the ${Rr.oos.test} trades after it.`)); if (Rr.oos.rules.length) { const o = el('ul', 'note'); Rr.oos.rules.forEach((x) => o.append(el('li', null, `${x.feature} ${x.bucket}: found at ${pct(x.found, 1)} difference, later ${x.held == null ? 'too few trades (' + x.n + ') to judge' : pct(x.testDiff, 1) + (x.held ? ' - held' : ' - did not hold')}`))); box.append(o); } }
+  if (Rr.risk) { box.append(el('h4', null, 'Risk and position size')); box.append(el('p', 'meta', `Listed runners at ${Rr.risk.sizePct}% per trade: worst drawdown ${Rr.risk.maxDrawdownPct}%, longest losing run ${Rr.risk.longestLosingStreak}, account ${pct(Rr.risk.endEquityPct, 1)}. Suggested size about ${Rr.risk.suggestedSizePct}% per trade.`)); }
+  if (Rr.rolling && Rr.rolling.length) { box.append(el('h4', null, 'Week by week')); const w = el('ul', 'note'); Rr.rolling.forEach((x) => w.append(el('li', null, `${x.feature} ${x.bucket}: pointed the same way in ${x.held} of ${x.weeks} weeks`))); box.append(w); }
+  if (Rr.fills) { box.append(el('h4', null, 'Real fills against paper')); box.append(el('p', 'meta', `${Rr.fills.n} real trades logged: entry ${Rr.fills.entryGapPct}% worse, exit ${Rr.fills.exitGapPct ?? '?'}% worse, fees ${Rr.fills.feePct ?? '?'}% (total ${Rr.fills.totalCostPct}%).`)); }
+  if (Rr.exits && Rr.exits.length) { box.append(el('h4', null, 'Exit study on the same trades')); const e = el('ul', 'note'); Rr.exits.forEach((x) => e.append(el('li', null, `${x.name}: ${pct(x.avgRet, 1)} average (${x.n} trades)`))); box.append(e); }
+  (Rr.notes || []).forEach((n) => box.append(el('p', 'meta', n)));
+}
 function drawAnalysts(L) {
   const box = $('analystBox'); if (!box) return; box.replaceChildren(); const A = L && Array.isArray(L.analysts) ? L.analysts : []; if (!A.length) return;
   box.append(el('h3', null, 'Pattern analysts'), el('p', 'meta', 'One analyst per chart pattern: how it has done, how it loses, where it works and where it does not, and what to do with it. Items marked reliable passed a luck test; the rest are hints.'));
@@ -615,20 +686,20 @@ function drawLearn() {
   L.setups.forEach((x) => { const tr = el('tr'); tr.append(el('td', null, x.setup + (x.live ? '' : ' (candidate, not live)')), el('td', 'n', x.n), el('td', 'n', Math.round(x.winRate * 100) + '%'), el('td', 'n ' + (x.avgR > 0 ? 'pos' : 'neg'), rr(x.avgR)),
     el('td', 'n', x.lo90 != null ? `${rr(x.lo90)} to ${rr(x.hi90)}` : '—'), el('td', 'v-' + x.verdict, lab[x.verdict] + (x.need ? ` (needs ~${x.need} more)` : ''))); tb.append(tr); });
   (L.insights || []).forEach((i) => ul.append(el('li', null, i)));
-  drawEdge(L); drawGates(L); drawAnalysts(L);
+  drawEdge(L); drawGates(L); drawRunnerStudy(L); drawAnalysts(L);
   if (L.best && L.best.length) ul.append(el('li', null, 'Best trades so far: ' + L.best.map((b) => `${b.coin} ${b.setup} ${rr(b.resultR)}`).join(' · ')));
 }
 // ---------- data loading ----------
 const store = { get(k) { try { return localStorage.getItem(k) || ''; } catch { return ''; } }, set(k, v) { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch { /* storage blocked: fine */ } } };
 function guessRepo() { const saved = store.get('rynoRepo'); if (saved) return saved; const m = location.hostname.match(/^([^.]+)\.github\.io$/), p = location.pathname.split('/').filter(Boolean)[0]; return m && p ? m[1] + '/' + p : ''; }
 async function loadAll() {
-  const [setups, signals, charts, vol, meta, bt, watch, learned, usage, fwd] = await Promise.all([getJ('setups.json', []), getJ('signals.json', []), getJ('charts.json', []), getJ('chainvol.json', []), getJ('meta.json', null), getJ('backtest.json', null), getJ('watch.json', null), getJ('learned.json', null), getJ('usage.json', null), getJ('forward.json', [])]);
+  const [setups, signals, charts, vol, meta, bt, watch, learned, usage, fwd, degen, runners] = await Promise.all([getJ('setups.json', []), getJ('signals.json', []), getJ('charts.json', []), getJ('chainvol.json', []), getJ('meta.json', null), getJ('backtest.json', null), getJ('watch.json', null), getJ('learned.json', null), getJ('usage.json', null), getJ('forward.json', []), getJ('degen.json', []), getJ('runners.json', null)]);
   const arr = (x) => (Array.isArray(x) ? x.filter((y) => y && typeof y === 'object') : []), obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : null);
-  S.setups = arr(setups); S.signals = arr(signals); S.fwd = arr(fwd); S.charts = new Map(arr(charts).filter((c) => c.id != null).map((c) => [c.id, c])); S.vol = arr(vol); S.usage = obj(usage) ? usage : null; S.meta = obj(meta) && meta.scannedAt ? meta : null; S.bt = obj(bt) && Array.isArray(bt.byType) && bt.overall ? bt : null;
+  S.degen = arr(degen); S.runners = obj(runners) && Array.isArray(runners.items) ? runners : null; try { const r = await fetch('paper-config.json', { cache: 'no-store' }); S.paperCfg = r.ok ? await r.json() : null; } catch { S.paperCfg = null; } S.setups = arr(setups); S.signals = arr(signals); S.fwd = arr(fwd); S.charts = new Map(arr(charts).filter((c) => c.id != null).map((c) => [c.id, c])); S.vol = arr(vol); S.usage = obj(usage) ? usage : null; S.meta = obj(meta) && meta.scannedAt ? meta : null; S.bt = obj(bt) && Array.isArray(bt.byType) && bt.overall ? bt : null;
   S.learned = obj(learned) && Array.isArray(learned.setups) ? { ...learned, promote: Array.isArray(learned.promote) ? learned.promote : [], demote: Array.isArray(learned.demote) ? learned.demote : [], insights: Array.isArray(learned.insights) ? learned.insights : [], total: obj(learned.total) || {} } : null; try { C.applyLearned(learned); } catch { /* ignore */ }
   S.watch = new Map(arr(watch && watch.items).filter((w) => w.id != null).map((w) => [w.id, w])); S.watchAt = watch && watch.at && watch.scanAt === (meta && meta.scannedAt) ? watch.at : (watch && watch.at) || null;
   if (S.live && S.meta && S.live.at > Date.parse(S.meta.scannedAt)) { const m = S.live; S.setups = S.setups.map((r) => m.fresh.get(r.id) || r).filter((r) => r.mine || r.opp == null || r.opp > (S.meta.minOpp ?? 65) || !m.fresh.has(r.id)); m.charts.forEach((c, id) => S.charts.set(id, c)); }
-  header(); verdict(); draw(); fearGreed(); drawBacktest(); drawLearn(); try { drawPaper(); } catch { /* keep the page alive */ } stamp();
+  header(); verdict(); draw(); fearGreed(); drawBacktest(); drawLearn(); try { drawRunners(); } catch { /* keep the page alive */ } try { drawPaper(); } catch { /* keep the page alive */ } stamp();
 }
 // ---------- boot ----------
 function stamp() {

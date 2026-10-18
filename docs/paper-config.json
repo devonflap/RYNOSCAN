@@ -1,0 +1,4 @@
+{
+  "since": "2026-10-18T06:15:35Z",
+  "note": "Paper desks only count signals fired at or after this time. Change it to a new date and time (UTC) to reset both desks."
+}

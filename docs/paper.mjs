@@ -4,8 +4,9 @@
 const num = (v) => (v == null || v === '' || !isFinite(+v) ? null : +v);
 const ts = (s) => { const t = Date.parse(s || ''); return isFinite(t) ? t : null; };
 
-export function simulate(signals, { start = 10000, pct = 5 } = {}) {
-  const rows = (Array.isArray(signals) ? signals : []).filter((s) => s && typeof s === 'object');
+export function simulate(signals, { start = 10000, pct = 5, since = null } = {}) {
+  const sinceT = since ? Date.parse(since) : NaN;
+  const rows = (Array.isArray(signals) ? signals : []).filter((s) => s && typeof s === 'object' && !(isFinite(sinceT) && (ts(s.signalAt) ?? 0) < sinceT)); // a reset date drops older signals
   const filled = [], waiting = [];
   for (const s of rows) {
     const mid = num(s.entryMid) ?? (num(s.entryLow) != null && num(s.entryHigh) != null ? (+s.entryLow + +s.entryHigh) / 2 : null), stop = num(s.stop), at = ts(s.signalAt);
@@ -28,8 +29,14 @@ export function simulate(signals, { start = 10000, pct = 5 } = {}) {
   const equity = cash + openPnl; if (filled.some((f) => f.open)) curve.push({ t: Date.now(), eq: equity });
   let peak = start, maxDD = 0; for (const c of curve) { peak = Math.max(peak, c.eq); maxDD = Math.max(maxDD, (peak - c.eq) / peak * 100); }
   const done = filled.filter((f) => !f.open), wins = done.filter((f) => f.pnl > 0).length;
-  filled.sort((a, b) => b.at - a.at).forEach((f) => trades.push({ coin: f.s.coin, chain: f.s.chain, setup: f.s.setup, at: f.s.signalAt, status: f.s.status + (f.s.tpHit ? ` · TP${f.s.tpHit}` : ''), size: f.size, R: f.R, pnl: f.pnl, open: f.open, pool: f.s.pool }));
-  return { start, pct, equity, realized: cash - start, openPnl, retPct: (equity / start - 1) * 100, closedN: done.length, openN: filled.length - done.length, waitingN: waiting.length, wins, winRate: done.length ? wins / done.length : null, maxDD, curve, trades,
+  filled.sort((a, b) => b.at - a.at).forEach((f) => { const mid = num(f.s.entryMid) ?? (num(f.s.entryLow) != null && num(f.s.entryHigh) != null ? (+f.s.entryLow + +f.s.entryHigh) / 2 : null), stop = num(f.s.stop);
+    trades.push({ coin: f.s.coin, chain: f.s.chain, setup: f.s.setup, at: f.s.signalAt, closedAt: f.s.closedAt || null, status: f.s.status + (f.s.tpHit ? ` · TP${f.s.tpHit}` : ''), size: f.size, R: f.R, pnl: f.pnl, open: f.open, pool: f.s.pool, sig: f.s,
+      entry: mid, stop, tp1: num(f.s.tp1), tp2: num(f.s.tp2), tp3: num(f.s.tp3), tpHit: f.s.tpHit || 0, nowPx: f.open && mid != null && stop != null ? mid + f.R * (mid - stop) : null }); });
+  const bySetup = new Map(); for (const t of trades) { const k = t.setup || 'Unknown'; if (!bySetup.has(k)) bySetup.set(k, { setup: k, n: 0, closed: 0, wins: 0, pnl: 0 }); const g = bySetup.get(k); g.n++; g.pnl += t.pnl || 0; if (!t.open) { g.closed++; if (t.pnl > 0) g.wins++; } }
+  const waitList = waiting.map((s) => ({ coin: s.coin, chain: s.chain, setup: s.setup, at: s.signalAt, entryLow: num(s.entryLow), entryHigh: num(s.entryHigh), stop: num(s.stop), tp1: num(s.tp1), pool: s.pool, sig: s })).sort((a, b) => (ts(b.at) || 0) - (ts(a.at) || 0));
+  const peakEq = Math.max(peak, equity), firstAt = trades.length ? trades.reduce((m, t) => Math.min(m, ts(t.at) ?? m), Infinity) : null;
+  return { peakEq, belowPeakPct: peakEq > 0 ? (peakEq - equity) / peakEq * 100 : 0, firstAt: firstAt != null && isFinite(firstAt) ? new Date(firstAt).toISOString() : null, bySetup: [...bySetup.values()].sort((a, b) => b.pnl - a.pnl), waiting: waitList, check: Math.abs((cash - start) + openPnl - (equity - start)) < 0.01,
+    start, pct, equity, realized: cash - start, openPnl, retPct: (equity / start - 1) * 100, closedN: done.length, openN: filled.length - done.length, waitingN: waiting.length, wins, winRate: done.length ? wins / done.length : null, maxDD, curve, trades,
     avgR: done.length ? done.reduce((a, f) => a + f.R, 0) / done.length : null };
 }
 
