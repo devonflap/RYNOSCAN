@@ -1,4 +1,6 @@
-Full scan 01:11 Brisbane: 64 scanned, 44 scored, 3 above 65. On-chain volume Below normal (0.84x 7-day avg).
+Hourly refresh 02:10 Brisbane: 4 tracked coins refreshed, 4 scored, 1 above 65. On-chain volume Below normal (0.84x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
+NEW watch: OTC (Solana) Breakout retest, opp 75, checks 5/6, stop 17.1% away, upside 64.6%; weak last 6h.
+Signal OTC: stopped after TP2 (TP2 hit), result 0.93R.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
