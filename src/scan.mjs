@@ -110,7 +110,8 @@ if (cfg.regimeFilter !== 'off') { regime = await fetchRegime(api.getCG); say(`ma
 const excluded = applyOverlays(rows, { safety, regime, regimeFilter: cfg.regimeFilter });
 C.sortRows(rows);
 const allRows = rows, scannedN = allRows.length, scoredN = allRows.filter(p => p.score != null).length;
-if (scoredN < Math.max(5, scannedN * 0.5)) { console.error(`Only ${scoredN}/${scannedN} pools could be scored (candle fetches failing). Leaving the dashboard untouched.`); process.exit(1); }
+// a light scan can track only a few coins, so the minimum scales down with the list
+if (scannedN === 0 || scoredN < (scannedN <= 8 ? Math.ceil(scannedN * 0.5) : Math.max(5, scannedN * 0.5))) { console.error(`Only ${scoredN}/${scannedN} pools could be scored (candle fetches failing). Leaving the dashboard untouched.`); process.exit(1); }
 // cooldown: a coin that just stopped out is not re-signalled as an entry for cfg.cooldownHours
 try { const { applyCooldown } = await import('../docs/overlays.mjs'); if (typeof applyCooldown !== 'function') throw new Error('overlays.mjs is the old version'); const nCool = applyCooldown(rows, prevSignals, settings.cooldownHours ?? 48, C.CH); if (nCool) say(`cooldown: ${nCool} coin(s) held back after a recent stop-out`); } catch (e) { say('cooldown skipped: ' + e.message); }
 const kept = rows.filter(p => p.mine || (p.opp != null && p.opp > cfg.minOpp));
