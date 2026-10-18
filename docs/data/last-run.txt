@@ -1,4 +1,4 @@
-Full scan 10:11 Brisbane: 64 scanned, 42 scored, 3 above 65. On-chain volume Normal (0.94x 7-day avg).
+Full scan 13:11 Brisbane: 67 scanned, 42 scored, 3 above 65. On-chain volume Normal (0.9x 7-day avg).
+NEW watch: MASK (Solana) Breakout retest, opp 67, checks 6/6, stop null% away, upside null%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: SPCX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
