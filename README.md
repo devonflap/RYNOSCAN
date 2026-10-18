@@ -133,3 +133,6 @@ Each full scan also re-scores every coin with the still-forming 4h candle (built
 - **Week by week:** top findings are checked for consistency across separate weeks.
 - **Real fills:** `config/livefills.json` is where you log what a small real trade actually cost versus paper. The study then reports the gap.
 - **Progress:** the weekly phone report states how many closed trades are still needed before reading results (30).
+
+## Signal log & results (audit trail)
+Collapsed by default. Shows the live count toward 30 closed trades, groups rows into Open, Closed and Never filled, labels each row (Live / Replay / Near-miss) with a plain-English "why it ended", filters by coin, setup and state, can subtract an extra cost per trade, and downloads the filtered rows as CSV. The backtest replay and the SOL 7-day move are shown only as context.

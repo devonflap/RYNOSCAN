@@ -69,11 +69,12 @@ if (mode === 'full') {
 }
 
 // 2. candles + indicators + patterns
+const barsMap = new Map();
 let done = 0;
 for (const p of list) {
   const j = await api.get(`/networks/${p.net}/pools/${p.pool}/ohlcv/hour?aggregate=1&limit=1000&currency=usd&token=base`);
   const raw = j?.data?.attributes?.ohlcv_list;
-  if (!raw) api.log.push('nofetch ' + p.sym); else C.techFromRaw(p, raw);
+  if (!raw) api.log.push('nofetch ' + p.sym); else { C.techFromRaw(p, raw); try { barsMap.set(p.pool, raw.slice().sort((x, y) => x[0] - y[0]).slice(-72).map(q => q.slice(0, 5).map(Number))); } catch { /* chart is optional */ } }
   if (++done % 20 === 0) say(`${done}/${list.length} pools`);
 }
 
@@ -199,7 +200,7 @@ try {
     const whPath = path.join(OUT, 'wallethist.json'), wh = readJson(whPath, {}), trends = new Map();
     for (const c of want) { if (wn >= 14) break; wn++; const w = await fetchWallets(api.get, c.p.net, c.p.pool, smart); if (w) { wallets.set(c.p.pool, w); const tr = D.walletTrend(wh[c.p.pool], w, nowIso); if (tr) trends.set(c.p.pool, tr); wh[c.p.pool] = [...(wh[c.p.pool] || []), { t: nowIso, b: w.buyers, s: w.sellers, n: w.netUsd }].slice(-24); } }
     try { const keep = Object.entries(wh).filter(([, a]) => a.length && Date.now() - Date.parse(a[a.length - 1].t) < 48 * 3600e3).slice(-200); fs.writeFileSync(whPath, JSON.stringify(Object.fromEntries(keep))); } catch { /* optional */ }
-    try { const paperIds = new Set(dout.filter(x => x.status === 'open' || x.status === 'waiting for entry').map(x => x.id)); const items = D.buildRunners(rc, wallets, paperIds, trends); runnerItems = items; try { const skip = new Set(D.runnerCandidates(allRows, 100000).map(x => x.p.pool)); controlItems = D.buildRunners(D.controlSample(allRows, skip, 6, Date.parse(nowIso) / 36e5 | 0)); } catch { controlItems = []; } fs.writeFileSync(path.join(OUT, 'runners.json'), JSON.stringify({ at: nowIso, items })); say(`runners: ${items.length} high-risk high-reward coins listed${items[0] ? ' (top: ' + items[0].coin + ' ' + items[0].score + ')' : ''}`); } catch (e) { say('runners skipped: ' + (e.message || e)); }
+    try { const paperIds = new Set(dout.filter(x => x.status === 'open' || x.status === 'waiting for entry').map(x => x.id)); const items = D.buildRunners(rc, wallets, paperIds, trends); runnerItems = items; for (const it of items) it.bars = barsMap.get(it.pool) || null; try { const skip = new Set(D.runnerCandidates(allRows, 100000).map(x => x.p.pool)); controlItems = D.buildRunners(D.controlSample(allRows, skip, 6, Date.parse(nowIso) / 36e5 | 0)); } catch { controlItems = []; } fs.writeFileSync(path.join(OUT, 'runners.json'), JSON.stringify({ at: nowIso, items })); say(`runners: ${items.length} high-risk high-reward coins listed${items[0] ? ' (top: ' + items[0].coin + ' ' + items[0].score + ')' : ''}`); } catch (e) { say('runners skipped: ' + (e.message || e)); }
     degenNew = D.pickNew(cands, dout, nowIso, wallets); dout.push(...degenNew);
     say(`degen desk: ${cands.length} runners met the volume and price rules, ${degenNew.length} new paper trades${degenNew.length ? ' (' + degenNew.map(x => x.coin).join(', ') + ')' : ''}`);
   }
