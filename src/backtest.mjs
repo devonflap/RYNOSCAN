@@ -1,6 +1,7 @@
 // RynoScan backtest: replays the chart rules over the last ~40 days of hourly candles for the coins the scanner
 // currently follows, then walks every signal forward with the same exit rules (fill within 48h, a third sold at each
 // TP, stop to breakeven after TP1, 7-day time exit) and reports results in R. Run: node src/backtest.mjs
+import { runnerReport } from './runnerlearn.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import * as C from '../docs/core.mjs';
@@ -80,6 +81,6 @@ fs.mkdirSync(OUT, { recursive: true });
 fs.writeFileSync(path.join(OUT, 'backtest.json'), JSON.stringify(result));
 { const live = readJson(path.join(OUT, 'signals.json'), []).map(s => ({ source: 'live', gp: s.gp, conf: s.conf, miss: s.miss, zr: s.zr, liq: s.liq, age: s.age, rvol: s.rvol, bs: s.bs, rr2: s.rr2, pq: s.pq, mfeR: s.mfeR, maeR: s.maeR, setup: s.setup, chain: s.chain, at: s.signalAt, coin: s.coin, resultR: s.resultR, status: s.status, riskPct: s.entryHigh && s.stop ? +((s.entryMid - s.stop) / s.entryMid * 100).toFixed(1) : null, opp: s.opp ?? s.score, verdict: s.panel?.verdict, regime: s.regime, volDay: s.volDay, hsD7: s.hsD7, soc: s.soc }));
   const fwd = readJson(path.join(OUT, 'forward.json'), []).map(s => ({ setup: s.shadow || s.early1h ? (s.setup || 'Unknown') : 'Near-miss: ' + (s.setup || 'Unknown'), source: s.early1h ? 'early1h' : s.shadow ? 'shadow' : 'near-miss', early1h: !!s.early1h, gp: s.gp, conf: s.conf, miss: s.miss, zr: s.zr, liq: s.liq, age: s.age, rvol: s.rvol, bs: s.bs, rr2: s.rr2, pq: s.pq, mfeR: s.mfeR, maeR: s.maeR, setupBase: s.setup || 'Unknown', chain: s.chain, at: s.signalAt, coin: s.coin, resultR: s.resultR, status: s.status, riskPct: s.entryHigh && s.stop ? +((s.entryMid - s.stop) / s.entryMid * 100).toFixed(1) : null, opp: s.opp ?? s.score, regime: s.regime, volDay: s.volDay, hsD7: s.hsD7, soc: s.soc }));
-  const L = learn([...result.all, ...nmRows, ...live, ...fwd], { off: DEFAULT_OFF, shadow: DEFAULT_SHADOW }, new Date(), { funnelHistory: readJson(path.join(OUT, 'funnel-history.json'), []) }); fs.writeFileSync(path.join(OUT, 'learned.json'), JSON.stringify(L)); console.log('learned:', JSON.stringify({ promote: L.promote, demote: L.demote, insights: L.insights })); }
+  const L = learn([...result.all, ...nmRows, ...live, ...fwd], { off: DEFAULT_OFF, shadow: DEFAULT_SHADOW }, new Date(), { funnelHistory: readJson(path.join(OUT, 'funnel-history.json'), []) }); try { L.runners = runnerReport(readJson(path.join(OUT, 'runnerlog.json'), []), new Date(), { lockFrom: readJson(path.resolve('config/study.json'), {}).lockedFrom, fills: readJson(path.resolve('config/livefills.json'), {}).fills }); } catch (e) { console.log('runner study skipped: ' + (e.message || e)); } fs.writeFileSync(path.join(OUT, 'learned.json'), JSON.stringify(L)); console.log('learned:', JSON.stringify({ promote: L.promote, demote: L.demote, insights: L.insights })); }
 console.log(JSON.stringify({ overall: result.overall, byType: result.byType }, null, 1));
 say(`done: ${coins} coins, ${cuts} checkpoints, ${signals.length} signals, ${api.stats().calls} data calls`);

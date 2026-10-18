@@ -3,11 +3,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 const OUT = process.env.OUT_DIR || 'docs/data';
 export function compose(L) {
-  if (!L || !L.gates) return null;
-  const G = L.gates, lines = [];
+  if (!L || !(L.gates || L.runners)) return null;
+  const G = L.gates || { summary: [], scans: 0 }, lines = [];
   lines.push(...(G.summary || []));
   const top = (k) => (G[k] || []).filter((r) => r.failPct != null).slice(0, 3).map((r) => `${r.label} ${r.failPct}%`).join(', ');
   if (G.scans) { if (top('reversal')) lines.push('Reversal gates failing most: ' + top('reversal') + '.'); if (top('breakout')) lines.push('Breakout gates failing most: ' + top('breakout') + '.'); }
+  if (L.runners && L.runners.summary) lines.push(...L.runners.summary);
   if (L.edge && L.edge.headline) lines.push('Edge: ' + L.edge.headline);
   lines.push('Report only: nothing was switched off or changed.');
   return { title: 'RynoScan weekly gate report', body: lines.join('\n') };

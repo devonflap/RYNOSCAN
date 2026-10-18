@@ -1,0 +1,4 @@
+{
+  "note": "Optional. After a small real trade, add one entry per trade. paperEntry/paperExit = the price the paper desk used; fillEntry/fillExit = the price you actually got; feesUsd = gas + swap fees in dollars; sizeUsd = amount traded. Never put wallet addresses, keys or seeds here.",
+  "fills": []
+}

@@ -118,3 +118,18 @@ The scan keeps 14 days of gate-failure counts (`docs/data/funnel-history.json`).
 
 ## Early-1h experiment
 Each full scan also re-scores every coin with the still-forming 4h candle (built from closed 1h bars). If every reversal gate passes on that version but not on the closed-candle version, it is logged as `<pattern> [early 1h]`, tracked with the normal fill/exit rules, and sent as a low-priority "Early" phone alert (max 3 per scan, once per coin per day; set `"earlyAlert": false` in `config/settings.json` to stop the alerts and keep tracking). These trades are kept out of the normal setup stats. The weekly Gate report compares them with confirmed trades and says whether waiting for the 4h close costs you entries or saves you from fakeouts.
+
+## Runner study upgrades
+- **Random control group:** each full scan also logs up to 6 random coins that meet the runner size floors but are not on the list, with the same exits. The study compares the list against them.
+- **Liquidity-scaled slippage:** degen and runner-log fills pay the flat 3% plus the price impact of a $1,000 order (size / pool liquidity) on the way in and out.
+- **Locked test:** `config/study.json` holds `lockedFrom`. Rules are found only on trades before that date and judged only on trades after it. Do not move the date after seeing results.
+- **More samples:** up to 20 runners are logged per scan (was 12), from 20 candidates.
+- **Wallet trend:** `data/wallethist.json` keeps recent buyer/seller snapshots per pool; the change in buyers-to-sellers versus an earlier snapshot is logged as `wTrend` and tested as a feature.
+
+## Access code, risk view and real fills
+- **Access code:** the dashboard shows a code screen first (the code is stored only as a SHA-256 hash in `docs/index.html`, and the browser remembers it once entered). This is a screen lock, not real security: the page source and the files under `data/` stay public to anyone who knows the address. Do not rely on it to protect anything sensitive.
+- **Exit-liquidity vetoes:** a runner is dropped if selling $1,000 would move its price over 4%, or if daily volume is over 60x the pool (pump or wash-trading sign). Still logged, so the study can check the rule.
+- **Risk view:** the runner study shows worst drawdown, longest losing run and a suggested position size.
+- **Week by week:** top findings are checked for consistency across separate weeks.
+- **Real fills:** `config/livefills.json` is where you log what a small real trade actually cost versus paper. The study then reports the gap.
+- **Progress:** the weekly phone report states how many closed trades are still needed before reading results (30).
