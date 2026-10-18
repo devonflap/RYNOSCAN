@@ -1,4 +1,3 @@
-Full scan 22:11 Brisbane: 64 scanned, 40 scored, 3 above 65. On-chain volume Normal (0.9x 7-day avg).
-NEW watch: OTC (Solana) Breakout retest, opp 86, checks 5/6, stop 12.5% away, upside 51%; volume fading.
+Hourly refresh 23:10 Brisbane: 4 tracked coins refreshed, 4 scored, 1 above 65. On-chain volume Normal (0.9x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
