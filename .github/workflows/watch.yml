@@ -1,0 +1,40 @@
+name: RynoScan entry watcher
+on:
+  schedule:
+    # four slots an hour (GitHub skips some); the script ignores a slot if the watcher ran in the last 12 minutes. 6am-10pm Brisbane.
+    - cron: "5,35 * * * *"
+    - cron: "20,50 * * * *"
+  workflow_dispatch:
+    inputs:
+      source:
+        default: manual
+permissions:
+  contents: write
+concurrency:
+  group: rynoscan-watch
+  cancel-in-progress: false
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check entry zones
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: node src/watch.mjs
+      - name: Save
+        run: |
+          git config user.name "rynoscan-bot"
+          git config user.email "rynoscan-bot@users.noreply.github.com"
+          git add docs/data/watch.json
+          git diff --cached --quiet && echo "no changes" || (git commit -m "watch $(date -u +%Y-%m-%dT%H:%MZ)" && git pull --rebase -q && git push)
+      - name: Tell me if this failed
+        if: failure()
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: |
+          [ -n "$NTFY_TOPIC" ] && curl -s -H "Title: RynoScan failed" -H "Priority: default" -H "Tags: warning" -H "Click: https://github.com/${{ github.repository }}/actions" -d "The entry watcher run failed. Tap to open the run log. The dashboard keeps showing the last good data." "https://ntfy.sh/$NTFY_TOPIC" || true
