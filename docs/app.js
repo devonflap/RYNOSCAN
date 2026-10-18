@@ -400,7 +400,9 @@ function drawPaper() {
 
 // ---------- main ----------
 const S = { runners: null, degen: [], paperCfg: null, deskTab: 'cons', fwd: [], setups: [], signals: [], charts: new Map(), vol: [], meta: null, bt: null, watch: new Map(), watchAt: null, learned: null, usage: null, patFilter: 'All', volChain: 'All', chain: 'All', sort: 'opp' };
-const openCount = () => S.signals.filter((s) => s.status === 'open' || s.status === 'waiting for entry').length;
+// Signal log, tiles and results follow the same fresh start as the paper desks: signals before the reset date are hidden unless the toggle is on.
+const logRows = () => { const since = S.paperCfg && S.paperCfg.since; return S.showOld || !since ? S.signals : S.signals.filter((s) => String(s.signalAt || '') >= since); };
+const openCount = () => logRows().filter((s) => s.status === 'open' || s.status === 'waiting for entry').length;
 function fill(host, rows, mk, empty) {
   host.replaceChildren();
   if (!rows.length) { host.append(el('p', 'empty', empty)); return; }
@@ -444,7 +446,7 @@ function tiles(rows) {
   const t = $('tiles'); t.replaceChildren();
   const bid = rows.filter((r) => r.bidReady), watch = rows.filter((r) => !r.bidReady && r.signal === 'Watch');
   const pats = rows.filter((r) => r.patName && r.patScore >= 45), bots = rows.filter((r) => r.bottomed);
-  const closed = S.signals.filter((s) => s.resultR != null && s.status !== 'expired (no fill)'), wins = closed.filter((s) => s.resultR > 0).length;
+  const closed = logRows().filter((s) => s.resultR != null && s.status !== 'expired (no fill)'), wins = closed.filter((s) => s.resultR > 0).length;
   const avg = closed.length ? closed.reduce((a, s) => a + Number(s.resultR), 0) / closed.length : null;
   [['Bid-ready', bid.length, 'all 7 gates pass', '#34d399'], ['Worth watching', watch.length, 'close to bid-ready', '#ee6a4b'], ['Chart patterns', pats.length, `${pats.filter((r) => r.patReady).length} bid-ready`, '#a78bfa'], ['Bottomed out', bots.length, 'turning up from oversold', '#e0e1e0'],
     ['Open positions', `${openCount()}`, 'signals still open or waiting', '#e0e1e0'],
@@ -469,9 +471,11 @@ function draw() {
   list.sort((a, b) => (b.patReady || b.bidReady ? 1 : 0) - (a.patReady || a.bidReady ? 1 : 0) || cmp()(a, b));
   fill($('patList'), list.slice(0, 24), null, 'No coins match this filter in the latest scan.');
   // log
+  { const sec = $('log'), since = S.paperCfg && S.paperCfg.since, hid = S.signals.length - (since ? S.signals.filter((s) => String(s.signalAt || '') >= since).length : S.signals.length); let bar = $('logBar'); if (!bar) { bar = el('p', 'meta'); bar.id = 'logBar'; const t = $('rChart'); if (sec && t) sec.insertBefore(bar, t); } bar.replaceChildren();
+    if (since && (hid > 0 || S.showOld)) { bar.append(`Showing signals since the fresh start on ${whenS(since)}. `); const b = el('button', 'dk-tab', S.showOld ? 'Hide earlier signals' : `Show ${hid} earlier signal${hid === 1 ? '' : 's'}`); b.type = 'button'; b.addEventListener('click', () => { S.showOld = !S.showOld; draw(); drawPaper(); }); bar.append(b); } }
   const tb = $('logTbl').tBodies[0]; tb.replaceChildren();
-  if (!S.signals.length) { const tr = el('tr'); const td = el('td', null, 'No bid-ready signals logged yet.'); td.colSpan = 7; tr.append(td); tb.append(tr); }
-  S.signals.forEach((s) => { const tr = el('tr'); const res = s.resultR != null ? s.resultR : s.openR; const c7 = el('td', 'n ' + (res > 0 ? 'pos' : res < 0 ? 'neg' : ''), res == null ? '—' : rr(res) + (s.resultR == null ? ' (open)' : ''));
+  if (!logRows().length) { const tr = el('tr'); const td = el('td', null, 'No bid-ready signals logged yet.'); td.colSpan = 7; tr.append(td); tb.append(tr); }
+  logRows().forEach((s) => { const tr = el('tr'); const res = s.resultR != null ? s.resultR : s.openR; const c7 = el('td', 'n ' + (res > 0 ? 'pos' : res < 0 ? 'neg' : ''), res == null ? '—' : rr(res) + (s.resultR == null ? ' (open)' : ''));
     tr.append(el('td', null, (s.signalAt || '').slice(0, 16).replace('T', ' ')), coinCell(s), el('td', null, s.setup || 'Setup not recorded'), el('td', null, `${fp(s.entryLow)}–${fp(s.entryHigh)}`), el('td', null, fp(s.stop)),
       el('td', null, s.status + (s.tpHit ? ` · TP${s.tpHit} hit` : '')), c7); tb.append(tr); });
   rChart();
@@ -497,7 +501,7 @@ function verdict() {
   if (!S.meta) { sec.hidden = true; return; } sec.hidden = false;
   const rows = S.setups, bid = rows.filter((r) => r.bidReady).map(viewAuto).sort(cmpDist()), watch = rows.filter((r) => !r.bidReady && r.signal === 'Watch').map(viewAuto).sort(cmpDist());
   const reg = S.meta.regime ? [['SOL', S.meta.regime.sol], ['ETH', S.meta.regime.eth]].filter((x) => x[1]) : [], off = reg.some((x) => x[1].level === 'Risk-off');
-  const closed = S.signals.filter((s) => s.resultR != null && s.status !== 'expired (no fill)'), avg = closed.length ? closed.reduce((a, s) => a + Number(s.resultR), 0) / closed.length : null;
+  const closed = logRows().filter((s) => s.resultR != null && s.status !== 'expired (no fill)'), avg = closed.length ? closed.reduce((a, s) => a + Number(s.resultR), 0) / closed.length : null;
   sec.className = 'card verdict ' + (bid.length ? 'go' : 'wait');
   const top = bid[0] || null;
   h.append(el('div', 'vh', bid.length ? `${bid.length} BID-READY` : 'WAIT: nothing is bid-ready'));
@@ -517,7 +521,7 @@ const cmpDist = () => (a, b) => distZone(a) - distZone(b) || byOpp(a, b);
 // running total of R across closed signals
 function rChart() {
   const host = $('rChart'); if (!host) return; host.replaceChildren();
-  const c = S.signals.filter((s) => s.resultR != null && s.status !== 'expired (no fill)').sort((a, b) => String(a.closedAt || a.signalAt).localeCompare(String(b.closedAt || b.signalAt)));
+  const c = logRows().filter((s) => s.resultR != null && s.status !== 'expired (no fill)').sort((a, b) => String(a.closedAt || a.signalAt).localeCompare(String(b.closedAt || b.signalAt)));
   if (c.length < 2) { host.append(el('p', 'meta', 'The running-R chart appears once two signals have closed.')); return; }
   let t = 0; const pts = [0, ...c.map((s) => (t += Number(s.resultR)))], W = 640, H = 130, P = 26, lo = Math.min(...pts, 0), hi = Math.max(...pts, 0), x = (i) => P + (W - P - 6) * i / (pts.length - 1), y = (v) => 8 + (H - 24) * (1 - (v - lo) / (hi - lo || 1));
   const svg = sv('svg', { viewBox: `0 0 ${W} ${H}`, class: 'ch', role: 'img', 'aria-label': 'Running total of R across closed signals' });
