@@ -1,6 +1,3 @@
-Full scan 02:11 Brisbane: 70 scanned, 51 scored, 7 above 65. On-chain volume Normal (1.05x 7-day avg).
-NEW watch: STONK (Solana) Falling wedge, opp 74, checks 5/6, stop 24.1% away, upside 72.4%; more sellers than buyers in the last hour.
-NEW watch: BONER (Robinhood) Bottom reversal, opp 73, checks 5/6, stop 32.1% away, upside 199.2%; volume fading.
-NEW watch: CARDS (Solana) Bottom reversal, opp 71, checks 6/6, stop 18.9% away, upside 56.7%.
+Hourly refresh 03:10 Brisbane: 7 tracked coins refreshed, 7 scored, 6 above 65. On-chain volume Normal (1.05x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
