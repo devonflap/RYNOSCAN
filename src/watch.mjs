@@ -4,6 +4,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { pulseScan, updatePulse, flowScan } from './pulse.mjs';
+import { loadPositions, positionScan } from './positions.mjs';
 
 const OUT = process.env.OUT_DIR || 'docs/data';
 const readJson = (f, d) => { try { const j = JSON.parse(fs.readFileSync(f, 'utf8')); return Array.isArray(d) ? (Array.isArray(j) ? j : d) : (j && typeof j === 'object' && !Array.isArray(j) ? j : d); } catch { return d; } };
@@ -86,6 +88,20 @@ async function main() {
     }[state];
     alerts.push({ key, ...msg });
   }
+  // early-move checker on the free DexScreener feed (every watcher run, ~15 minutes)
+  let pulse = prev.pulse && typeof prev.pulse === 'object' ? prev.pulse : { recent: [] };
+  try { const uni = readJson(path.join(OUT, 'universe.json'), []); if (uni.length) { const hits = await pulseScan(uni, getJson); pulse = updatePulse(prev.pulse, hits, now); const st = readJson('config/settings.json', {});
+      if (st.pulseAlert !== false) for (const h of pulse.fresh.slice(0, 2)) alerts.push({ key: 'P|' + h.pool, t: `Early move: ${h.coin} (${h.chain})`, p: 'default', b: `${h.why.join('. ')}. Price ${h.price}, liquidity $${h.liq.toLocaleString('en')}.${h.url ? ' ' + h.url : ''}\n\nEarly pulse book (paper-tested only): not a bid-ready call.` });
+      console.log(`pulse: ${uni.length} coins checked, ${hits.length} moving now, ${pulse.fresh.length} new`); } } catch (e) { console.log('pulse skipped: ' + (e.message || e)); }
+  // your positions (config/positions/*.json) and bid-ready setups: volume dying, sellers taking over, stop and TP1. "volumeAlert": false turns it off.
+  let posRows = [];
+  try { const st = readJson('config/settings.json', {}), pos = loadPositions(), bids = items.filter((it) => it.kind === 'bid');
+    if (st.volumeAlert !== false && (pos.length || bids.length)) { const r = await positionScan(pos, bids, getJson, now, sent); alerts.push(...r.alerts); posRows = r.rows; console.log(`positions: ${pos.length} held, ${bids.length} bid-ready checked, ${r.alerts.length} alert(s)`); } } catch (e) { console.log('position checks skipped: ' + (e.message || e)); }
+  // cut-on-sellers check for the "Degen · cut on sellers" paper book (paper only, no alert)
+  let flow = prev.flow && Array.isArray(prev.flow.events) ? prev.flow : { events: [] };
+  try { const open = readJson(path.join(OUT, 'lab.json'), []).filter((x) => x && x.book === 'degenFlow' && x.status === 'open' && !x.cut && +x.entryPx > 0);
+    const done = new Set(flow.events.map((e) => e.lid)), ev = open.length ? (await flowScan(open.filter((x) => !done.has(x.lid)), getJson, nowIso)) : [];
+    flow = { at: nowIso, events: [...flow.events.filter((e) => now - Date.parse(e.t) < 72 * 3600e3), ...ev].slice(-200) }; if (open.length) console.log(`cut-on-sellers: ${open.length} open positions checked, ${ev.length} would cut now`); } catch (e) { console.log('cut-on-sellers check skipped: ' + (e.message || e)); }
   const topic = (process.env.NTFY_TOPIC || '').trim();
   for (const a of alerts) {
     if (!topic) break;
@@ -96,7 +112,7 @@ async function main() {
     } catch (e) { console.log('alert failed', e.message); }
   }
   for (const k of Object.keys(sent)) if (now - Date.parse(sent[k]) > 3 * 86400e3) delete sent[k];
-  fs.writeFileSync(wpath, JSON.stringify({ at: nowIso, scanAt: meta.scannedAt, items: live, sent }));
+  const { fresh: _f, ...pulseOut } = pulse; fs.writeFileSync(wpath, JSON.stringify({ at: nowIso, scanAt: meta.scannedAt, items: live, sent, pulse: pulseOut, flow, positions: posRows }));
   console.log(`watched ${items.length} setups, ${live.filter(x => x.price).length} priced, ${alerts.length} alerts`);
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main();

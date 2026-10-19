@@ -15,6 +15,7 @@ const FE = [
   ['Holder growth', (f) => (f.holdG == null ? 'unknown' : f.holdG > 5 ? 'growing over 5%' : f.holdG > 0 ? 'growing slightly' : 'flat or falling')], ['Top 10 wallets hold', (f) => (f.top10 == null ? null : b3(f.top10, 40, 65, 'under 40%', '40% to 65%', 'over 65%'))],
   ['Wallets', (f) => (f.wB == null ? 'unchecked' : f.wB >= f.wS * 1.2 ? 'leaning in' : f.wS >= f.wB * 1.2 ? 'leaning out' : 'mixed')], ['Top 3 wallets share of volume', (f) => (f.top3 == null ? null : b3(f.top3, 0.4, 0.6, 'under 40%', '40% to 60%', 'over 60%'))],
   ['Wallet trend', (f) => (f.wTrend == null ? null : f.wTrend > 0.3 ? 'buying picking up' : f.wTrend < -0.3 ? 'selling picking up' : 'steady')], ['Lifecycle phase', (f) => f.phase || null], ['Found on the 1h/6h trending list', (f) => (f.fresh == null ? null : f.fresh ? 'yes' : 'no')], ['Proven wallets buying', (f) => (f.proven == null ? null : f.proven >= 2 ? '2 or more' : f.proven === 1 ? 'one' : 'none')], ['Smart wallets in', (f) => (f.smart == null ? null : f.smart > 0 ? 'yes' : 'no')], ['Social links', (f) => (f.soc == null ? null : f.soc > 0 ? 'has links' : 'none')], ['Market regime', (f) => f.regime || null],
+  ['New-wallet spike (last hour)', (f) => (f.bspk == null ? null : f.bspk >= 4 ? 'spiking (4x+)' : f.bspk >= 2 ? 'rising (2-4x)' : 'normal or below')],
   ['Hour of day (UTC)', (f) => (f.hour == null ? null : f.hour < 6 ? '00-06' : f.hour < 12 ? '06-12' : f.hour < 18 ? '12-18' : '18-24')],
 ];
 export function runnerReport(trades, now = new Date(), opts = {}) {

@@ -16,7 +16,8 @@ fs.mkdirSync(tmp + '/config'); fs.writeFileSync(tmp + '/config/mycoins.json', JS
 fs.writeFileSync(tmp + '/boot.mjs', `import {installMock} from '${process.cwd()}/test/mock.mjs'; installMock(globalThis);`);
 execFileSync('node', ['--import', tmp + '/boot.mjs', process.cwd() + '/src/scan.mjs'], { cwd: tmp, env: { ...process.env, PACE_MS: '1', OUT_DIR: tmp + '/data' }, stdio: 'pipe' });
 const N = f => JSON.parse(fs.readFileSync(tmp + '/data/' + f, 'utf8'));
-const strip = o => JSON.parse(JSON.stringify(o, (k, v) => (['scannedAt', 'signalAt', 'checkedAt', 'ageDays', 'closedAt', 'token'].includes(k) ? undefined : v)));
+// dsx, pulse, pulseH, acc1, br1: new record-only DexScreener readings (added fields; every original field must still match)
+const strip = o => JSON.parse(JSON.stringify(o, (k, v) => (['scannedAt', 'signalAt', 'checkedAt', 'ageDays', 'closedAt', 'token', 'dsx', 'pulse', 'pulseH', 'acc1', 'br1', 'top10', 'bspk', 'opp2'].includes(k) ? undefined : v)));
 let bad = 0; const eq = (name, a, b) => { const x = JSON.stringify(strip(a)), y = JSON.stringify(strip(b)); if (x === y) console.log('PASS', name, '(' + (Array.isArray(a) ? a.length : 1) + ' items)'); else { bad++; console.log('FAIL', name); const A = strip(a), B = strip(b); for (let i = 0; i < Math.max(A.length, B.length); i++) if (JSON.stringify(A[i]) !== JSON.stringify(B[i])) { console.log(' first diff at', i, JSON.stringify(A[i])?.slice(0, 300), '\n   vs', JSON.stringify(B[i])?.slice(0, 300)); break; } } };
 eq('coins (setups)', E.rows, N('setups.json')); eq('charts', E.charts, N('charts.json')); eq('volume gauge', E.market, N('chainvol.json')); eq('signal log', E.log, N('signals.json'));
 console.log('kept', E.rows.length, 'scanned', E.scannedN, 'scored', E.scoredN, '| signals:', E.rows.filter(r => r.signal !== 'No trade').map(r => r.id + ':' + r.signal + ':' + r.opp).join(', '));
