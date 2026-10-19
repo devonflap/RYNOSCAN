@@ -1,4 +1,4 @@
-Hourly refresh 10:10 Brisbane: 8 tracked coins refreshed, 8 scored, 4 above 65. On-chain volume Normal (0.93x 7-day avg).
-NEW watch: TRUMP (Solana) Liquidity sweep reclaim, opp 78, checks 6/6, stop 5% away, upside 13.7%.
+Hourly refresh 11:10 Brisbane: 4 tracked coins refreshed, 4 scored, 4 above 65. On-chain volume Normal (0.93x 7-day avg).
+NEW watch: PUMP (Solana) Bottom reversal, opp 69, checks 5/6, stop 9.3% away, upside 46.6%; more sellers than buyers in the last hour.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
