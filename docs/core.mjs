@@ -41,13 +41,13 @@ export function analyse(bars,L){if(bars.length<22)return null;const c=bars.map(b
 export function plan(h4){const n=h4.length-1;if(n<30)return null;const c=h4.map(b=>b[4]),h=h4.map(b=>b[2]),lo=h4.map(b=>b[3]);const A=atr(h4)[n];if(!A)return null;
  const price=c[n];let li=Math.max(0,n-18);for(let i=li;i<=n;i++)if(lo[i]<lo[li])li=i;const swingLow=lo[li];
  let hi=Math.max(0,li-42);for(let i=hi;i<=li;i++)if(h[i]>h[hi])hi=i;const swingHigh=h[hi];
- const stop=swingLow-0.5*A,entryHigh=price,entryLow=Math.max(price-0.5*A,swingLow+0.15*(price-swingLow)),entryMid=(entryHigh+entryLow)/2,risk=entryMid-stop;
+ const entryHigh=price,entryLow=Math.max(price-0.5*A,swingLow+0.15*(price-swingLow)),entryMid=(entryHigh+entryLow)/2,stopStruct=swingLow-0.5*A,ms=RULES.v2&&RULES.minStopPct>0?RULES.minStopPct/100:0,stop=ms?Math.min(stopStruct,entryMid*(1-ms)):stopStruct,risk=entryMid-stop;
  if(risk<=0||swingHigh<=price)return {valid:false,why:'no room to prior high'};
  const drop=swingHigh-swingLow;let tp1=swingLow+0.382*drop,tp2=swingLow+0.618*drop,tp3=swingHigh;
  if(tp1<entryMid+risk)tp1=entryMid+risk;if(tp2<=tp1)tp2=tp1+risk;if(tp3<=tp2)tp3=tp2+risk;
  const rr=x=>+((x-entryMid)/risk).toFixed(2),riskPct=risk/entryMid*100;
- const p={entryLow,entryHigh,entryMid,stop,tp1,tp2,tp3,rr1:rr(tp1),rr2:rr(tp2),rr3:rr(tp3),riskPct:+riskPct.toFixed(1),atr:A,swingLow,swingHigh};
- p.upside3=+((tp3/entryMid-1)).toFixed(3);p.valid=p.rr2>=2;p.why=p.valid?'':'reward too small vs risk';return p;}
+ const p={entryLow,entryHigh,entryMid,stop,tp1,tp2,tp3,rr1:rr(tp1),rr2:rr(tp2),rr3:rr(tp3),riskPct:+riskPct.toFixed(1),atr:A,swingLow,swingHigh,stopStruct,stopWidened:stop<stopStruct};
+ p.upside3=+((tp3/entryMid-1)).toFixed(3);p.room=+((swingHigh-entryMid)/risk).toFixed(2);p.valid=p.rr2>=2;p.why=p.valid?'':'reward too small vs risk';return p;}
 // ---------- chart-pattern detectors (4h candles) ----------
 export function pvLow(lo,k,from,to){const o=[];for(let i=Math.max(k,from);i<=to-k;i++){let ok=true;for(let j=1;j<=k;j++)if(!(lo[i]<=lo[i-j]&&lo[i]<lo[i+j])){ok=false;break;}if(ok)o.push(i);}return o;}
 export function pvHigh(hi,k,from,to){const o=[];for(let i=Math.max(k,from);i<=to-k;i++){let ok=true;for(let j=1;j<=k;j++)if(!(hi[i]>=hi[i-j]&&hi[i]>hi[i+j])){ok=false;break;}if(ok)o.push(i);}return o;}
@@ -167,21 +167,43 @@ export function detectPatterns(h4){
     const q=cl((lvl-lo[sj])/lvl/0.06)*20+(spike?25:8)+(c[n]>lvl*1.01?20:6)+(r[sj]!=null&&r[sj]<35?15:5)+(r[n]!=null&&r[n]>r[sj]?10:0)+cl(1-(n-sj)/8)*10;
     keep({name:'Liquidity sweep reclaim',status:c[n]>fh*0.999?'breakout':'forming',quality:Math.round(q),trigger:fh,stopBase:lo[sj],H,bk,start:pi,lines:[[pi,lvl,n,lvl,'swept low']],pts:[[sj,lo[sj]]],why:{volc:spike}});break;}}
  }
+ // ----- inverse head and shoulders: three lows, the middle one deepest, shoulders level, neckline above; invalid once the head breaks -----
+ {for(let q=PL.length-1;q>=2&&q>=PL.length-3;q--){const rs=PL[q],hd=PL[q-1],ls=PL[q-2];if(rs-hd<3||hd-ls<3||rs-ls>80)continue;
+   const L=lo[ls],Hd=lo[hd],R=lo[rs];if(!(Hd<L*0.97&&Hd<R*0.97))continue;const sh=Math.abs(L-R)/Math.min(L,R);if(sh>0.10)continue;
+   let n1=ls;for(let i=ls;i<=hd;i++)if(hi[i]>hi[n1])n1=i;let n2=hd;for(let i=hd;i<=rs;i++)if(hi[i]>hi[n2])n2=i;
+   const neck=Math.max(hi[n1],hi[n2]),depth=(neck-Hd)/neck;if(depth<0.10)continue;
+   let broke=false;for(let i=rs+1;i<=n;i++)if(lo[i]<Hd*0.99)broke=true;if(broke)continue;
+   const pre=Math.max(...hi.slice(Math.max(0,ls-40),ls+1));if(pre<neck*1.05)continue;
+   let bk=-1;for(let j=rs+1;j<=n;j++)if(c[j]>neck){bk=j;break;}if(bk>=0&&n-bk>3)continue;if(bk<0&&c[n]<R)continue;
+   const sym=cl(1-sh/0.10)*20,hdD=cl((Math.min(L,R)/Hd-1)/0.15)*20,dep=cl(depth/0.3)*10,div=(r[hd]!=null&&r[rs]!=null&&r[rs]>r[hd]+2)?15:0,volc=avgV(rs-2,rs+2)<avgV(hd-2,hd+2)?10:0,tm=(rs-ls)>=12&&(rs-ls)<=60?10:5,nk=cl(1-Math.abs(hi[n1]-hi[n2])/neck/0.08)*15;
+   keep({name:'Inverse H&S',status:bk>=0?'breakout':'forming',quality:Math.round(sym+hdD+dep+div+volc+tm+nk),trigger:neck,stopBase:Hd,H:neck-Hd,bk,start:ls,
+    lines:[[n1,hi[n1],n2,hi[n2],'neckline']],pts:[[ls,L],[hd,Hd],[rs,R]],why:{div:div>0,volc:!!volc}});break;}}
+ // ----- cup and handle: a rounded base back up to the old high, then a shallow pullback (the handle) that stays in the top half of the cup -----
+ {for(let q=PH.length-1;q>=1&&q>=PH.length-4;q--){const lr=PH[q-1],rr=PH[q];if(rr-lr<10||rr-lr>90||rr>n-2)continue;
+   let bi=lr;for(let i=lr;i<=rr;i++)if(lo[i]<lo[bi])bi=i;const rimL=hi[lr],rimR=hi[rr],rim=Math.max(rimL,rimR),bot=lo[bi],depth=(rim-bot)/rim;
+   if(Math.abs(rimL-rimR)/rim>0.08||depth<0.15||depth>0.65)continue;const mid=(bi-lr)/(rr-lr);if(mid<0.25||mid>0.75)continue;
+   let lowBars=0;for(let i=lr;i<=rr;i++)if(lo[i]<=bot+0.33*(rim-bot))lowBars++;const round=lowBars/(rr-lr+1);if(round<0.2)continue;
+   let bk=-1;for(let j=rr+2;j<=n;j++)if(c[j]>rim){bk=j;break;}if(bk>=0&&n-bk>3)continue;
+   const hEnd=bk>=0?bk-1:n,hlen=hEnd-rr;if(hlen<2||hlen>20)continue;let hLow=Infinity;for(let i=rr+1;i<=hEnd;i++)hLow=Math.min(hLow,lo[i]);
+   const hDepth=(rimR-hLow)/(rim-bot);if(!(hDepth>=0.08&&hDepth<=0.5))continue;if(bk<0&&c[n]<hLow)continue;
+   const symq=cl(1-Math.abs(rimL-rimR)/rim/0.08)*20,dq=cl(1-Math.abs(depth-0.35)/0.3)*15,rq=cl(round/0.5)*20,hq=cl(1-Math.abs(hDepth-0.25)/0.25)*15,volc=avgV(rr+1,hEnd)<avgV(lr,rr)?15:5,tm=hlen>=3&&hlen<=12?15:6;
+   keep({name:'Cup & handle',status:bk>=0?'breakout':'forming',quality:Math.round(symq+dq+rq+hq+volc+tm),trigger:rim,stopBase:hLow,H:rim-bot,bk,start:lr,
+    lines:[[lr,rim,n,rim,'rim']],pts:[[bi,bot],[rr,rimR]],why:{volc:volc>5}});break;}}
  // ----- plan, gates -----
  const out=[];const price=c[n];
  for(const k in best){const p=best[k];const trig=p.trigger;
   let eL,eH;if(p.status==='breakout'){eH=price;eL=Math.max(trig-0.2*A,price-0.5*A);if(eL>eH)eL=eH;}else{eL=trig;eH=trig+0.3*A;}
-  const eM=(eL+eH)/2,stop=p.stopBase-0.5*A,risk=eM-stop;if(!(risk>0))continue;
+  const eM=(eL+eH)/2,stopStruct=p.stopBase-0.5*A,ms=RULES.v2&&RULES.minStopPct>0?RULES.minStopPct/100:0,stop=ms?Math.min(stopStruct,eM*(1-ms)):stopStruct,risk=eM-stop;if(!(risk>0))continue;
   let tp1=trig+0.5*p.H,tp2=trig+p.H,tp3=trig+1.5*p.H;if(tp1<eM+risk)tp1=eM+risk;if(tp2<=tp1)tp2=tp1+risk;if(tp3<=tp2)tp3=tp2+risk;
   const rr=x=>+((x-eM)/risk).toFixed(2);
   let vb=null,ud=null;{const bk=p.bk>=0?p.bk:n;let s20=0,k20=0;for(let i=Math.max(0,bk-20);i<bk;i++){s20+=v[i];k20++;}vb=k20&&s20>0?+(v[bk]/(s20/k20)).toFixed(2):null;
    let uv=0,dv=0;for(let i=Math.max(0,n-5);i<=n;i++){if(c[i]>=h4[i][1])uv+=v[i];else dv+=v[i];}ud=dv>0?+(uv/dv).toFixed(2):null;}
-  const plan={entryLow:eL,entryHigh:eH,entryMid:eM,stop,tp1,tp2,tp3,rr1:rr(tp1),rr2:rr(tp2),rr3:rr(tp3),riskPct:+(risk/eM*100).toFixed(1),upside3:+(tp3/eM-1).toFixed(3),valid:rr(tp2)>=2};
+  const plan={entryLow:eL,entryHigh:eH,entryMid:eM,stop,stopStruct,stopWidened:stop<stopStruct,tp1,tp2,tp3,rr1:rr(tp1),rr2:rr(tp2),rr3:rr(tp3),riskPct:+(risk/eM*100).toFixed(1),upside3:+(tp3/eM-1).toFixed(3),room:+((trig+p.H-eM)/risk).toFixed(2),valid:rr(tp2)>=2};
   const g={pattern:p.quality>=60,trigger:p.status==='breakout'&&price<=trig*1.04&&price>=trig*0.985,volume:!!((vb!=null&&vb>=1.3&&p.status==='breakout')||(ud!=null&&ud>=1.3)),reward:plan.rr2>=2};
   out.push({...p,plan,vb,ud,dist:+((trig/price-1)*100).toFixed(1),gates:g,n});}
  return out.sort((a,b)=>b.quality-a.quality);}
 
-export const RULES={v2:!(typeof process!=='undefined'&&process.env&&process.env.RS_RULES==='v1'),off:[],shadow:[],neverOff:true,zoneAsOrder:true,allowShadow:false}; // shadow: new candidate patterns, detected only in the backtest until the data proves them (see src/learn.mjs). // off: pattern names switched off (Trend pullback went 0/7 in the backtest).  // v2 = rules revised after the backtest; set false to reproduce the original v10 behaviour
+export const RULES={v2:!(typeof process!=='undefined'&&process.env&&process.env.RS_RULES==='v1'),off:[],shadow:[],neverOff:true,zoneAsOrder:true,allowShadow:false,minStopPct:5}; // shadow: new candidate patterns, detected only in the backtest until the data proves them (see src/learn.mjs). // off: pattern names switched off (Trend pullback went 0/7 in the backtest).  // v2 = rules revised after the backtest; set false to reproduce the original v10 behaviour
 export function scoreList(list,now){
 list.forEach(p=>{p.ageD=p.created?+((now-Date.parse(p.created))/864e5).toFixed(1):null;const fl=[];
  if(p.liq<100000)fl.push('thin liquidity');if(p.ageD!=null&&p.ageD<7)fl.push('new pool');if(p.fdv&&p.fdv/p.liq>60)fl.push('high FDV/liquidity');
@@ -236,7 +258,7 @@ list.forEach(p=>{p.ageD=p.created?+((now-Date.parse(p.created))/864e5).toFixed(1
  p.noTradeWhy=p.signal!=='No trade'?'':(!pl?'not enough 4h history':!pl.valid?pl.why:ext?'already extended':collapsing?'collapsing':p.liq<100000?'liquidity too thin':!setup?'no RSI turn yet':p.score<30?'score too low':'not enough confirmation');
  p.missing=Object.keys(G).filter(k=>!G[k]);
  {const sp=p.sp&&p.sp.entryMid?p.sp:null;if(sp){const P=p.lead==='pattern'&&pt,volPts=Math.max(0,Math.min(15,Math.log10(Math.max(p.v24,1)/2.5e5)*10)),upPts=Math.max(0,Math.min(20,(sp.upside3||0)*25)),rrPts=Math.max(0,Math.min(10,(sp.rr2-1)*4));
-  const rdy=P?pt.ready:p.ready,extL=P?!pt.pg.room:ext;let o=p.setupScore*0.6+volPts+upPts+rrPts+(rdy?5:0);if(extL)o-=15;if(collapsing)o-=20;if(knife)o-=10;if(RULES.v2){const rk=(sp.entryMid-sp.stop)/sp.entryMid*100;o-=P?(rk>=15?18:rk>=10?10:0):(rk>=5?6:0);p.stopPct=+rk.toFixed(1);}if(p.liq<100000)o-=10;if(!sp.valid)o-=10;p.opp=Math.max(0,Math.min(100,Math.round(o)));}else p.opp=null;}});
+  const rdy=P?pt.ready:p.ready,extL=P?!pt.pg.room:ext;let o=p.setupScore*0.6+volPts+upPts+rrPts+(rdy?5:0);if(extL)o-=15;if(collapsing)o-=20;if(knife)o-=10;if(RULES.v2){const rk=(sp.entryMid-sp.stop)/sp.entryMid*100;if(RULES.minStopPct>0)o-=rk<RULES.minStopPct?12:0;else o-=P?(rk>=15?18:rk>=10?10:0):(rk>=5?6:0);p.stopPct=+rk.toFixed(1);}if(p.liq<100000)o-=10;if(!sp.valid)o-=10;p.opp=Math.max(0,Math.min(100,Math.round(o)));}else p.opp=null;}});
 
 }
 
@@ -306,7 +328,7 @@ export async function crossCheck(rows,{getJson,sleep,log=()=>{}}){
  const IDS={solana:'solana',eth:'ethereum',robinhood:'robinhood'},ds={};
  for(const n of Object.keys(IDS)){const ps=rows.filter(p=>p.net===n&&p.opp!=null);
   for(let i=0;i<ps.length;i+=30){try{const j=await getJson(`https://api.dexscreener.com/latest/dex/pairs/${IDS[n]}/${ps.slice(i,i+30).map(p=>p.pool).join(',')}`);(j.pairs||[]).forEach(q=>ds[n+'|'+q.pairAddress.toLowerCase()]=q);}catch(e){log('x-net');}await sleep(1500);}}
- rows.forEach(p=>{const q=ds[p.net+'|'+p.pool.toLowerCase()];if(!q){p.conf=null;p.caution='';p.mcap=null;p.soc=null;return;}
+ rows.forEach(p=>{const q=ds[p.net+'|'+p.pool.toLowerCase()];if(!q){p.conf=null;p.caution='';p.mcap=null;p.soc=null;p.dsx=null;return;}
   const t1=q.txns?.h1||{},dsv=q.volume?.h24||0,vr=p.v24?dsv/p.v24:0,why=[];let c=0;
   if(vr>=0.8&&vr<=1.25)c++;else why.push('volume figures disagree');
   if(t1.sells?t1.buys/t1.sells>=1:t1.buys>0)c++;else why.push('more sellers than buyers in the last hour');
@@ -315,6 +337,7 @@ export async function crossCheck(rows,{getJson,sleep,log=()=>{}}){
   if((q.priceChange?.h6??0)>-5)c++;else why.push('weak last 6h');
   const soc=(q.info?.socials||[]).length+(q.info?.websites||[]).length;if(soc>0)c++;else why.push('no socials/website listed');
   p.conf=c;p.caution=why.join('; ');p.mcap=Math.round(q.marketCap||0);p.soc=soc;
+  {const h6=q.volume?.h6||0,t5=q.txns?.m5||{};p.dsx={acc1:h6>0?+((q.volume?.h1||0)/(h6/6)).toFixed(2):null,br1:t1.sells?+(t1.buys/t1.sells).toFixed(2):(t1.buys?9:null),ch1:q.priceChange?.h1??null,ch5:q.priceChange?.m5??null,b5:t5.buys??null,s5:t5.sells??null};}
   if(p.opp!=null){p.oppBase=p.opp;p.opp=Math.round(p.opp*0.6+c*6.7);}});
  return rows;}
 
@@ -326,19 +349,20 @@ export function applyLearned(L){if(!L||typeof L!=='object'||!RULES.v2)return;con
 export function evaluate(s,h1,at,opts={}){const k1=opts.tp1Stop??0,ladder=!!opts.ladder; // k1: stop after TP1 sits k1 x risk below entry (0 = breakeven, 1 = keep the original stop); ladder: after TP2 the stop moves up to TP1
 // fillAt: 'mid' (default, optimistic) or 'high' (limit order resting at the top of the zone, which is what actually fills). slipPct: round-trip slippage and fees as % of the fill price, charged in R.
 const E=opts.fillAt==='high'?s.entryHigh:opts.fillAt==='low'?s.entryLow:s.entryMid,slipPct=opts.slipPct??0;
-const t0=Date.parse(s.signalAt)/1000;const bars=h1.filter(b=>b[0]>=t0);let filled=null,stop=s.stop,hit=0,R=0,left=1,status='waiting for entry',closedAt=null,hiMax=-Infinity,loMin=Infinity;
+const t0=Date.parse(s.signalAt)/1000;const bars=h1.filter(b=>b[0]>=t0);let filled=null,stop=s.stop,hit=0,R=0,left=1,status='waiting for entry',closedAt=null,hiMax=-Infinity,loMin=Infinity,exitPx=null;
  const risk=E-s.stop,slipR=risk>0?E*slipPct/100/risk:0;
  if(!(risk>0))return {...s,status:'invalid plan',tpHit:0,resultR:null,openR:null,closedAt:null,checkedAt:at};
  for(const b of bars){if(!filled){if(b[0]>t0+48*3600){status='expired (no fill)';closedAt=b[0];break;}if(b[3]<=s.entryHigh){filled=b[0];status='open';R=-slipR;}else continue;}
-  loMin=Math.min(loMin,b[3]);if(b[3]<=stop){R+=left*((stop-E)/risk);left=0;status=hit?'stopped after TP'+hit:'stopped out';closedAt=b[0];break;}
+  loMin=Math.min(loMin,b[3]);if(b[3]<=stop){R+=left*((stop-E)/risk);exitPx=left>0?stop:null;left=0;status=hit?'stopped after TP'+hit:'stopped out';closedAt=b[0];break;}
   hiMax=Math.max(hiMax,b[2]);const tps=[s.tp1,s.tp2,s.tp3];while(hit<3&&b[2]>=tps[hit]){R+=(1/3)*((tps[hit]-E)/risk);left-=1/3;hit++;if(hit===1)stop=Math.max(stop,E-k1*risk);if(hit===2&&ladder)stop=Math.max(stop,s.tp1);}
   if(hit===3){left=0;status='hit TP3';closedAt=b[0];break;}
-  if(b[0]>filled+7*86400){R+=left*((b[4]-E)/risk);left=0;status='time exit (7 days)';closedAt=b[0];break;}}
+  if(b[0]>filled+7*86400){R+=left*((b[4]-E)/risk);exitPx=b[4];left=0;status='time exit (7 days)';closedAt=b[0];break;}}
  return {...s,status,tpHit:hit,resultR:status==='open'||status==='waiting for entry'||status==='expired (no fill)'?null:+R.toFixed(2),openR:status==='open'?+(R+left*(((bars.length?bars[bars.length-1][4]:E)-E)/risk)).toFixed(2):null,
   mfeR:filled&&isFinite(hiMax)?+Math.max(0,(hiMax-E)/risk).toFixed(2):null,maeR:filled&&isFinite(loMin)?+Math.max(0,(E-loMin)/risk).toFixed(2):null,
+  entryPx:filled?E:null,filledAt:filled?new Date(filled*1000).toISOString().slice(0,16)+'Z':null,stopNow:stop,exitPx,lastPx:bars.length?bars[bars.length-1][4]:null,
   closedAt:closedAt?new Date(closedAt*1000).toISOString().slice(0,16)+'Z':null,checkedAt:at};}
 
 export function newSignal(p,at){const id=CH[p.chain].slice(0,3).toUpperCase()+':'+p.sym,day=at.slice(0,10),pl=p.sp;
  return {signalId:id+'@'+day,setup:p.setupType,id,coin:p.sym,chain:CH[p.chain],pool:p.pool,signalAt:at,score:p.score,confluence:p.confluence,priceAtSignal:sig5(p.lastClose),
   entryLow:sig5(pl.entryLow),entryHigh:sig5(pl.entryHigh),entryMid:sig5(pl.entryMid),stop:sig5(pl.stop),tp1:sig5(pl.tp1),tp2:sig5(pl.tp2),tp3:sig5(pl.tp3),
-  status:'waiting for entry',tpHit:0,resultR:null,openR:null,closedAt:null,checkedAt:at,opp:p.opp==null?null:p.opp,regime:p.regime||null,liq:p.liq!=null?Math.round(p.liq):null,age:p.ageD??null,rvol:p.tf&&p.tf['4h']&&p.tf['4h'].rvol!=null?+(+p.tf['4h'].rvol).toFixed(2):null,bs:p.bs24??null,rr2:pl&&pl.rr2!=null?+(+pl.rr2).toFixed(2):null,pq:p.pat&&p.pat.quality!=null?p.pat.quality:null,zr:p.zoneOrder?'order':'zone',miss:p.lead==='pattern'&&p.pat?p.pat.missing.join(','):p.gates?Object.keys(p.gates).filter(k=>!p.gates[k]).join(','):null,gp:(p.lead==='pattern'&&p.pat?p.pat.passed:p.gates?p.gatesPassed:null)??null,conf:p.signal==='Entry signal'?'confirmed':'early',soc:p.soc?p.soc.level:null,hsD7:p.hs&&p.hs.growPct!=null&&p.hs.growDays>=3?p.hs.growPct:null};}
+  status:'waiting for entry',tpHit:0,resultR:null,openR:null,closedAt:null,checkedAt:at,opp:p.opp==null?null:p.opp,regime:p.regime||null,liq:p.liq!=null?Math.round(p.liq):null,age:p.ageD??null,rvol:p.tf&&p.tf['4h']&&p.tf['4h'].rvol!=null?+(+p.tf['4h'].rvol).toFixed(2):null,bs:p.bs24??null,rr2:pl&&pl.rr2!=null?+(+pl.rr2).toFixed(2):null,room:pl&&pl.room!=null?pl.room:null,pq:p.pat&&p.pat.quality!=null?p.pat.quality:null,zr:p.zoneOrder?'order':'zone',miss:p.lead==='pattern'&&p.pat?p.pat.missing.join(','):p.gates?Object.keys(p.gates).filter(k=>!p.gates[k]).join(','):null,gp:(p.lead==='pattern'&&p.pat?p.pat.passed:p.gates?p.gatesPassed:null)??null,conf:p.signal==='Entry signal'?'confirmed':'early',soc:p.soc?p.soc.level:null,hsD7:p.hs&&p.hs.growPct!=null&&p.hs.growDays>=3?p.hs.growPct:null};}

@@ -31,6 +31,7 @@
   "lightScans": true,
   "scanGapMin": 40,
   "cgMonthlyLimit": 100000,
+  "minStopPct": 5,
   "holders": {
     "maxPerScan": 40,
     "ttlH": 6

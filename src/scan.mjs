@@ -28,6 +28,7 @@ import { fetchWallets, loadSmart } from './wallets.mjs';
 const OUT = process.env.OUT_DIR || 'docs/data';
 const readJson = (f, d) => { try { const j = JSON.parse(fs.readFileSync(f, 'utf8')); return Array.isArray(d) ? (Array.isArray(j) ? j : d) : (j && typeof j === 'object' && !Array.isArray(j) ? j : d); } catch { return d; } }; // wrong-shaped files fall back to the default
 const settings = readJson('config/settings.json', {});
+if (settings.minStopPct != null && isFinite(+settings.minStopPct)) C.RULES.minStopPct = +settings.minStopPct; // stop at least this % under the entry (0 = old rule)
 const mine = readJson('config/mycoins.json', { coins: [] });
 const api = makeApi();
 // what the weekly backtest learned: patterns proven by the data go live, patterns that keep losing are switched off

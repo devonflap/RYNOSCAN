@@ -12,6 +12,7 @@ import { learn } from './learn.mjs';
 const OUT = process.env.OUT_DIR || 'docs/data';
 const readJson = (f, d) => { try { const j = JSON.parse(fs.readFileSync(f, 'utf8')); return Array.isArray(d) ? (Array.isArray(j) ? j : d) : (j && typeof j === 'object' && !Array.isArray(j) ? j : d); } catch { return d; } };
 const settings = readJson(process.env.SETTINGS_FILE || 'config/settings.json', {});
+if (settings.minStopPct != null && isFinite(+settings.minStopPct)) C.RULES.minStopPct = +settings.minStopPct; // stop at least this % under the entry (0 = old rule)
 const api = makeApi();
 const cfg = {
   minVolume: settings.minVolume ?? 100000, minLiquidity: settings.minLiquidity ?? 100000, chains: settings.chains,

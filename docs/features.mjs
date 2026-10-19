@@ -18,6 +18,7 @@ export const FEATS = [
   ['4h volume surge', (s) => (s.rvol == null ? null : bucket(+s.rvol, [1, 1.5, 2.5], ['below normal', '1-1.5x', '1.5-2.5x', '2.5x+']))],
   ['Buyers vs sellers (24h)', (s) => (s.bs == null ? null : bucket(+s.bs, [0.9, 1.1], ['sellers lead', 'balanced', 'buyers lead']))],
   ['Reward to risk (TP2)', (s) => (s.rr2 == null ? null : bucket(+s.rr2, [2, 3], ['under 2R', '2-3R', '3R+']))],
+  ['Room to the real target', (s) => (s.room == null ? null : bucket(+s.room, [1, 2], ['under 1R', '1-2R', '2R+']))], // TP2 above is stretched to at least 2R; this is the honest distance to the prior high or measured move
   ['Pattern quality', (s) => (s.pq == null ? null : bucket(+s.pq, [70, 85], ['under 70', '70-85', '85+']))],
   ['Chain', (s) => s.chain || null],
   ['Panel verdict', (s) => s.verdict || null],
@@ -25,8 +26,28 @@ export const FEATS = [
   ['Social links', (s) => (s.soc == null ? null : ({ none: 'no links on listing', some: 'some links (1-2)', full: 'full links (3+)' })[s.soc] || null)],
   ['Holder growth (3+ days)', (s) => (s.hsD7 == null ? null : bucket(+s.hsD7, [0, 5, 20], ['shrinking', 'flat (0-5%)', 'growing (5-20%)', 'surging (20%+)']))],
   ['Volume day', (s) => s.volDay || null],
+  ['Last-hour volume pace (DexScreener)', (s) => (s.acc1 == null ? null : bucket(+s.acc1, [0.8, 1.5, 3], ['slowing (under 0.8x the 6h pace)', 'normal (0.8-1.5x)', 'picking up (1.5-3x)', 'surging (3x+)']))],
+  ['Buyers vs sellers (last hour)', (s) => (s.br1 == null ? null : bucket(+s.br1, [0.9, 1.3], ['sellers lead', 'balanced', 'buyers lead']))],
+  ['New-wallet spike (last hour)', (s) => (s.bspk == null ? null : bucket(+s.bspk, [1, 2, 4], ['below normal', 'normal (1-2x)', 'rising (2-4x)', 'spiking (4x+)']))],
+  ['Top 10 holders own', (s) => (s.top10 == null ? null : bucket(+s.top10, [25, 40, 60], ['under 25%', '25-40%', '40-60%', '60%+ (exit risk)']))],
+  ['Early pulse before the call', (s) => (s.pulse === true ? 'flagged in the 6 hours before' : s.pulse === false ? 'not flagged' : null)],
   ['Hour of day (UTC)', (s) => (s.at ? bucket(new Date(s.at).getUTCHours(), [6, 12, 18], ['00-06', '06-12', '12-18', '18-24']) : null)],
 ];
+// Shadow score (v2), a hypothesis from the first 116 closed bid-ready-style trades. What ranked the results (rank correlation):
+// upside to TP3 +0.47, pattern quality +0.31, gates passed +0.29, 4h volume surge +0.29; the opportunity score only +0.12 and the
+// reversal setup score -0.20 (backwards). Stops under 5% averaged -1.10R (costs and noise eat them) and patterns under quality 70
+// averaged -1.14R against -0.32R for the rest. v2 never changes anything live: it is recorded on every new signal and judged ONLY on
+// trades from SCORE_V2_FROM on (it was designed on the earlier ones, so judging it there would be cheating).
+export const SCORE_V2_FROM = '2026-10-20T00:00:00Z';
+const stopOf = (s) => (s.riskPct != null ? +s.riskPct : s.entryMid > 0 && s.stop > 0 ? ((+s.entryMid - +s.stop) / +s.entryMid) * 100 : null);
+const upOf = (s) => (s.up3 != null ? +s.up3 : s.entryMid > 0 && s.tp3 > 0 ? +s.tp3 / +s.entryMid - 1 : null);
+export function scoreV2(s) {
+  if (!s) return null; const c01 = (x) => Math.min(1, Math.max(0, x)), up = upOf(s), st = stopOf(s);
+  const parts = [[s.pq != null ? c01(+s.pq / 100) : null, 0.3], [s.gp != null ? c01(+s.gp / 7) : null, 0.3], [s.rvol != null ? c01(+s.rvol / 2.5) : null, 0.2], [up != null ? c01(up) : null, 0.2]].filter(([v]) => v != null && isFinite(v));
+  if (parts.length < 2) return null;
+  const w = parts.reduce((a, [, x]) => a + x, 0), base = parts.reduce((a, [v, x]) => a + v * x, 0) / w;
+  return Math.max(0, Math.round(100 * base - (st != null && st < 5 ? 15 : 0) - (s.pq != null && +s.pq < 70 ? 10 : 0)));
+}
 // dashboard/scan row -> the same shape a logged signal has
 export function rowToSig(r, now = new Date()) {
   if (!r || typeof r !== 'object') return {};
@@ -34,7 +55,7 @@ export function rowToSig(r, now = new Date()) {
   return { riskPct: r.riskPct != null && isFinite(+r.riskPct) ? +r.riskPct : isFinite(mid) && isFinite(st) && mid > 0 && st > 0 ? +(((mid - st) / mid) * 100).toFixed(1) : null, opp: r.opp ?? null, chain: r.chain || null, regime: r.regime || null,
     gp: (r.lead === 'pattern' ? r.patPassed : r.gatesPassed) ?? null, conf: r.signal === 'Entry signal' || r._ready ? 'confirmed' : r.signal ? 'early' : null, setup: r.setupType || r.patName || r.setup || null,
     liq: r.liquidity ?? null, age: r.ageDays ?? null, rvol: r.rvol4h ?? null, bs: r.buySell24h ?? null, rr2: r.rr2 ?? null, pq: r.patQ ?? null,
-    soc: r.soc && r.soc.level ? r.soc.level : null, hsD7: r.hs && r.hs.growPct != null && r.hs.growDays >= 3 ? r.hs.growPct : null, volDay: r.volDay || null, at: now.toISOString() };
+    soc: r.soc && r.soc.level ? r.soc.level : null, hsD7: r.hs && r.hs.growPct != null && r.hs.growDays >= 3 ? r.hs.growPct : null, volDay: r.volDay || null, acc1: r.dsx && r.dsx.acc1 != null ? r.dsx.acc1 : null, br1: r.dsx && r.dsx.br1 != null ? r.dsx.br1 : null, pulse: typeof r.pulse === 'boolean' ? r.pulse : null, top10: r.hs && r.hs.top10Pct != null ? r.hs.top10Pct : null, bspk: r.bspk ?? null, up3: r.upsidePct != null ? +r.upsidePct / 100 : null, at: now.toISOString() };
 }
 // filters: [{ feature, bucket, setup? }] from the learning loop. Returns the ones this coin matches.
 export function matchFilters(r, filters, now) {

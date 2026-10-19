@@ -45,7 +45,11 @@ ok(regimeOf({ sol: 'Risk-off', vol: 'Strong' }) === 'bear' && regimeOf({ sol: 'R
   ok(FEATS.find((x) => x[0] === 'New-wallet spike (last hour)')[1]({ bspk: 5 }) === 'spiking (4x+)', 'learning loop slices signals by new-wallet spike'); }
 
 // shadow score and score calibration
-ok(scoreV2({ pq: 90, gp: 7, rvol: 2.5, rr2: 2 }) === 97 && scoreV2({ pq: 90, gp: 7, rvol: 2.5, rr2: 4 }) === 87 && scoreV2({ pq: 50 }) === null, 'shadow score v2: quality, gates and volume; stretched reward-to-risk costs 10');
+ok(scoreV2({ pq: 90, gp: 7, rvol: 2.5, riskPct: 8, up3: 1 }) === 97 && scoreV2({ pq: 90, gp: 7, rvol: 2.5, riskPct: 3, up3: 1 }) === 82 && scoreV2({ pq: 60, gp: 7, rvol: 2.5, riskPct: 8, up3: 1 }) === 78 && scoreV2({ pq: 50 }) === null, 'shadow score v2: quality, gates, volume and upside; a stop under 5% costs 15, quality under 70 costs 10');
+ok(scoreV2({ gp: 7, rvol: 1.25, entryMid: 1, stop: 0.9, tp3: 1.5 }) === 71, 'v2 works out stop distance and upside from the plan when they are not given');
+{ const C = await import('../docs/core.mjs'), T = 1792000000, bars = []; for (let i = 0; i < 60; i++) { const p = i < 40 ? 2 - i * 0.025 : 1.0 + (i - 40) * 0.002; bars.push([T + i * 14400, p * 1.004, p * 1.006, p * 0.998, p, 100]); }
+  const p5 = C.plan(bars); C.RULES.minStopPct = 0; const p0 = C.plan(bars); C.RULES.minStopPct = 5;
+  ok(p0 && p5 && p0.riskPct < 5 && Math.abs(p5.riskPct - 5) < 0.2 && p5.stopWidened && p5.stopStruct === p0.stop && p5.tp1 >= p5.entryMid * 1.05, 'live fix: a structural stop under 5% is moved to 5% under the entry and the targets are rebuilt from the wider risk (0 keeps the old rule)'); }
 ok(spearman([1, 2, 3, 4, 5], [2, 4, 6, 8, 10]) === 1 && spearman([1, 2, 3, 4, 5], [5, 4, 3, 2, 1]) === -1 && spearman([1, 2], [1, 2]) === null, 'rank correlation');
 { const { learn } = await import('../src/learn.mjs'); const sigs = Array.from({ length: 40 }, (_, i) => ({ setup: 'Bottom reversal', chain: 'Solana', signalAt: '2026-10-21T00:00:00Z', status: i % 2 ? 'all targets hit' : 'stopped out', resultR: (i % 10) / 5 - 0.9, opp: 50 + i, pq: 50 + (i % 10) * 5, gp: 7, rvol: 1.5, opp2: (i % 10) * 10 }));
   const L = learn(sigs); ok(L.calibration.v2New.n === 40 && L.calibration.v2New.rho === 1 && /Score check/.test(L.insights[0]), 'learning loop checks whether the score ranks results, and judges v2 only on new trades'); }
