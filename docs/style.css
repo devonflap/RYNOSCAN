@@ -204,20 +204,3 @@ nav{gap:6px}nav a{font-size:.8rem;padding:5px 11px}
 .rn-chart{margin:4px 0 8px}.rn-svg{width:100%;height:auto;display:block;background:rgba(255,255,255,.03);border-radius:8px}
 
 .dk-in{background:#2a2a2a;color:#eee;border:1px solid #555;border-radius:8px;padding:6px 8px;font-size:13px}.dk-grp td{background:rgba(255,255,255,.05);font-weight:600;font-size:13px}
-
-.dk-hero2{margin-top:10px}.dk-hero2 .dk-v{font-size:1.35rem}
-.dk-tabs{flex-wrap:wrap}.dk-sub{margin-top:-2px}.dk-sub .dk-tab{padding:6px 12px;font-size:.8rem}
-.dk-g>div>.dk-meta{font-size:.72rem;margin-top:2px}
-.dk-cmp td:first-child{min-width:13rem}.dk-cmp .dk-row{cursor:pointer}.dk-cmp .dk-row:hover td{background:rgba(255,255,255,.04)}.dk-cmp .dk-row.on td{background:rgba(214,66,39,.14)}
-@media(max-width:700px){.dk-hero2{grid-template-columns:1fr 1fr}.dk-hero2 .dk-v{font-size:1.1rem}}
-
-/* 19 Oct clean-up: Today strip, capped lists, runner cards */
-.tiles{grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr))}a.tile{color:inherit;text-decoration:none;display:block;transition:border-color .15s}a.tile:hover{border-color:var(--brand)}
-.tile .big{font-size:1.6rem}.tile .nt{font-size:.74rem}
-.more-btn{grid-column:1/-1;justify-self:center;margin-top:4px}
-.rn-more{margin-top:4px}.rn-more>summary{font-size:.78rem;color:var(--mut);cursor:pointer}
-.dk-chip.no{color:var(--bad);border-color:#f8717155}
-.card>h2{margin-bottom:6px}
-@media(max-width:700px){.tiles{grid-template-columns:repeat(2,1fr)}}
-#runList.plans{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}.rn-svg{max-height:150px}
-.tile .big.txt{font-size:1.15rem;line-height:1.25;margin:6px 0 2px}
