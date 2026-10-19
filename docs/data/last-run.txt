@@ -1,5 +1,6 @@
-Hourly refresh 01:10 Brisbane: 9 tracked coins refreshed, 9 scored, 8 above 65. On-chain volume Normal (1.02x 7-day avg).
-NEW watch: BATON (Solana) Bottom reversal, opp 71, checks 5/6, stop 35.3% away, upside 164.6%; volume fading.
-NEW watch: ZEREBRO (Solana) Bottom reversal, opp 68, checks 4/6, stop 24.4% away, upside 140.8%; volume fading; weak last 6h.
+Full scan 02:11 Brisbane: 70 scanned, 51 scored, 7 above 65. On-chain volume Normal (1.05x 7-day avg).
+NEW watch: STONK (Solana) Falling wedge, opp 74, checks 5/6, stop 24.1% away, upside 72.4%; more sellers than buyers in the last hour.
+NEW watch: BONER (Robinhood) Bottom reversal, opp 73, checks 5/6, stop 32.1% away, upside 199.2%; volume fading.
+NEW watch: CARDS (Solana) Bottom reversal, opp 71, checks 6/6, stop 18.9% away, upside 56.7%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
