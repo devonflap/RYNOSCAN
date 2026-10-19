@@ -18,6 +18,9 @@ import { due as digestDue, compose as digestCompose } from './digest.mjs';
 import { simulate } from '../docs/paper.mjs';
 import { pickCandidates, trim as trimFwd, MAX_EVAL } from './forward.mjs';
 import * as D from '../docs/degen.mjs';
+import * as L from '../docs/strategies.mjs';
+import * as SCO from './scorecard.mjs';
+import { runExit, PROFILES } from '../docs/exits.mjs';
 import { fetchWallets, loadSmart } from './wallets.mjs';
 
 const OUT = process.env.OUT_DIR || 'docs/data';
@@ -34,6 +37,7 @@ const cfg = {
   minVolume: settings.minVolume ?? 250000, minLiquidity: settings.minLiquidity ?? 100000, minOpp: settings.minOpp ?? 65,
   maxPools: api.keyed ? (settings.maxPools ?? 120) : (settings.freeMaxPools ?? 60),
   cap: api.keyed ? (settings.cap ?? { solana: 70, robinhood: 50, eth: 20 }) : (settings.freeCap ?? { solana: 40, robinhood: 40, eth: 12 }),
+  freshTrending: settings.freshTrending !== false, freshExtra: settings.freshExtra ?? 12,
 };
 const CHID = p => C.CH[p.chain].slice(0, 3).toUpperCase() + ':' + p.sym;
 const t0 = Date.now();
@@ -69,14 +73,18 @@ if (mode === 'full') {
 }
 
 // 2. candles + indicators + patterns
-const barsMap = new Map();
+const barsMap = new Map(), H1 = new Map(), M5 = new Map(); // H1/M5: candles fetched this run, shared by every step below so one pool is fetched once
 let done = 0;
 for (const p of list) {
   const j = await api.get(`/networks/${p.net}/pools/${p.pool}/ohlcv/hour?aggregate=1&limit=1000&currency=usd&token=base`);
   const raw = j?.data?.attributes?.ohlcv_list;
-  if (!raw) api.log.push('nofetch ' + p.sym); else { C.techFromRaw(p, raw); try { barsMap.set(p.pool, raw.slice().sort((x, y) => x[0] - y[0]).slice(-72).map(q => q.slice(0, 5).map(Number))); } catch { /* chart is optional */ } }
+  if (!raw) api.log.push('nofetch ' + p.sym); else { try { H1.set(String(p.pool).toLowerCase(), raw.slice().sort((x, y) => x[0] - y[0]).map(q => q.map(Number))); } catch { /* optional */ } C.techFromRaw(p, raw); try { barsMap.set(p.pool, raw.slice().sort((x, y) => x[0] - y[0]).slice(-72).map(q => q.slice(0, 5).map(Number))); } catch { /* chart is optional */ } }
   if (++done % 20 === 0) say(`${done}/${list.length} pools`);
 }
+
+async function hourBars(net, pool) { const k = String(pool).toLowerCase(); if (H1.has(k)) return H1.get(k); const j = await api.get(`/networks/${net}/pools/${pool}/ohlcv/hour?aggregate=1&limit=1000&currency=usd&token=base`); const raw = j?.data?.attributes?.ohlcv_list; const b = Array.isArray(raw) && raw.length ? raw.slice().sort((x, y) => x[0] - y[0]).map(q => q.map(Number)) : null; if (b) H1.set(k, b); return b; }
+async function m5Bars(net, pool) { const k = String(pool).toLowerCase(); if (M5.has(k)) return M5.get(k); const j = await api.get(`/networks/${net}/pools/${pool}/ohlcv/minute?aggregate=5&limit=300&currency=usd&token=base`); const raw = j?.data?.attributes?.ohlcv_list; const b = Array.isArray(raw) && raw.length ? raw.slice().sort((x, y) => x[0] - y[0]).map(q => q.map(Number)) : null; M5.set(k, b); return b; }
+const netOf = (s) => s.net || C.NETOF[String(s.chain).toLowerCase()] || String(s.chain).toLowerCase();
 
 // 3. score, dedupe, second-opinion check
 const now = Date.now();
@@ -141,14 +149,14 @@ const market = mode === 'full' ? C.marketRows(allRows) : readJson(path.join(OUT,
 const panelCtx = { learned, volRatio: all0 ? all0.ratio : null, btAvg: readJson(path.join(OUT, 'backtest.json'), {}).overall?.avgR ?? null, slipPct: settings.slipPct ?? 1.5 };
 const opinion = (p) => { try { const row = C.toRow(p, at); row.rug = p.rug; row.rugFlags = p.rugFlags; row.regime = p.regime; return debate(planView(row), panelCtx); } catch { return null; } };
 const volDay = all0 && all0.ratio != null ? (all0.ratio >= 1.15 ? 'Strong' : all0.ratio >= 0.85 ? 'Normal' : 'Weak') : null;
+const mktTag = { sol: regime && regime.sol ? regime.sol.level : null, vol: volDay ?? null }; // market at entry, stored on every paper trade so results can be split by market
 const evalOpts = { tp1Stop: settings.exitTp1Stop ?? 0, ladder: !!settings.exitLadder, fillAt: settings.fillAt ?? 'mid', slipPct: settings.slipPct ?? 0 };
-const evalOne = async (s) => { const j = await api.get(`/networks/${C.NETOF[String(s.chain).toLowerCase()] || String(s.chain).toLowerCase()}/pools/${s.pool}/ohlcv/hour?aggregate=1&limit=1000&currency=usd&token=base`); const raw = j?.data?.attributes?.ohlcv_list; return raw ? C.evaluate(s, raw.slice().sort((a, b) => a[0] - b[0]).map(b => b.map(Number)), at, evalOpts) : { ...s, checkedAt: at }; };
+const evalOne = async (s) => { const b = await hourBars(netOf(s), s.pool); return b ? C.evaluate(s, b, at, evalOpts) : { ...s, checkedAt: at }; };
 const log = [];
 for (const s of prevSignals) {
   if (s.status === 'open' || s.status === 'waiting for entry') {
-    const j = await api.get(`/networks/${C.NETOF[String(s.chain).toLowerCase()] || String(s.chain).toLowerCase()}/pools/${s.pool}/ohlcv/hour?aggregate=1&limit=1000&currency=usd&token=base`);
-    const raw = j?.data?.attributes?.ohlcv_list;
-    log.push(raw ? C.evaluate(s, raw.slice().sort((a, b) => a[0] - b[0]).map(b => b.map(Number)), at, { tp1Stop: settings.exitTp1Stop ?? 0, ladder: !!settings.exitLadder, fillAt: settings.fillAt ?? 'mid', slipPct: settings.slipPct ?? 0 }) : { ...s, checkedAt: at });
+    const b = await hourBars(netOf(s), s.pool);
+    log.push(b ? C.evaluate(s, b, at, evalOpts) : { ...s, checkedAt: at });
   } else log.push(s);
 }
 for (const p of kept.filter(p => p.signal === 'Entry signal')) {
@@ -178,12 +186,16 @@ if (mode === 'full') { try {
 // Tracks its own list in degen.json. Paper only: it never changes a score, a gate or the conservative desk.
 let degenNew = [];
 try {
-  const dpath = path.join(OUT, 'degen.json'), smart = loadSmart(readJson), nowIso = at;
+  const dpath = path.join(OUT, 'degen.json'), smartCfg = loadSmart(readJson), nowIso = at;
+  // wallet scorecard: wallets that keep buying coins before they run become "proven" and count as smart wallets everywhere below
+  const wsPath = path.join(OUT, 'wallets.json'); let wEps = SCO.trim(readJson(wsPath, []).filter(x => x && typeof x === 'object' && x.id)), sc = SCO.score(wEps), earlyItems = [], wsDirty = false;
+  const smart = [...smartCfg, ...sc.proven.map(r => ({ address: r.w, label: `proven ${r.wins}/${r.n}` }))];
+  const noteEp = (p, w) => { if (w && w.netBuyers) { SCO.record(wEps, { pool: p.pool, net: p.net, coin: p.sym || p.coin, chain: p.chain, px: p.price, t: nowIso, buyers: w.netBuyers, sellers: w.netSellers }); wsDirty = true; } };
   let dl = readJson(dpath, []).filter(x => x && typeof x === 'object'), usedD = 0, usedW = 0; const dout = [];
   for (const s of dl) {
     if ((s.status === 'open' || s.status === 'waiting for entry') && usedD < 12) {
       usedD++; let r = s;
-      try { const j = await api.get(`/networks/${s.net || C.NETOF[String(s.chain).toLowerCase()] || String(s.chain).toLowerCase()}/pools/${s.pool}/ohlcv/hour?aggregate=1&limit=1000&currency=usd&token=base`); const raw = j?.data?.attributes?.ohlcv_list; if (raw) r = D.evaluateDegen(s, raw.slice().sort((a, b) => a[0] - b[0]).map(b => b.map(Number)), nowIso); } catch { /* keep the old row */ }
+      try { const b = await hourBars(netOf(s), s.pool); if (b) r = D.evaluateDegen(s, b, nowIso); } catch { /* keep the old row */ }
       if (mode === 'full' && r.status === 'open' && usedW < 8) { usedW++; const w = await fetchWallets(api.get, s.net || C.NETOF[String(s.chain).toLowerCase()], s.pool, smart); if (w) { r = { ...r, wallet: w, walletVerdict: D.walletVerdict(w), walletHist: [...(r.walletHist || []), { t: nowIso, b: w.buyers, s: w.sellers, n: w.netUsd }].slice(-24) }; } }
       dout.push(r);
     } else dout.push(s);
@@ -191,23 +203,78 @@ try {
   // runner log: every coin the runners list showed or dropped, tracked as a paper trade so the learning step can find which numbers matter
   const rlPath = path.join(OUT, 'runnerlog.json'); let rl = readJson(rlPath, []).filter(x => x && typeof x === 'object'), runnerItems = null, controlItems = [];
   try {
-    const openIdx = rl.map((x, i) => [x, i]).filter(([x]) => x.status === 'open' || x.status === 'waiting for entry').sort((a, b) => String(a[0].checkedAt).localeCompare(String(b[0].checkedAt))).slice(0, 30);
-    for (const [x, i] of openIdx) { try { const j = await api.get(`/networks/${x.net}/pools/${x.pool}/ohlcv/hour?aggregate=1&limit=1000&currency=usd&token=base`); const raw = j?.data?.attributes?.ohlcv_list; if (!raw) continue; const bars = raw.slice().sort((a, b) => a[0] - b[0]).map(b => b.map(Number)); let r = D.evaluateDegen(x, bars, nowIso); if (r.status !== 'open' && r.status !== 'waiting for entry') r = { ...r, variants: D.exitVariants(x, bars, nowIso) }; rl[i] = r; } catch { /* keep */ } }
+    const vDue = (x) => Date.parse(x.signalAt) + (L.EXIT_SET_HOURS + 2) * 3600e3 <= Date.now(), rlOpen = (x) => x.status === 'open' || x.status === 'waiting for entry'; // exit comparison waits until the longest rule (7 days) has played out, so no rule is judged early
+    const openIdx = rl.map((x, i) => [x, i]).filter(([x]) => rlOpen(x) || (!x.variants && x.retPct != null && vDue(x))).sort((a, b) => String(a[0].checkedAt).localeCompare(String(b[0].checkedAt))).slice(0, 30);
+    for (const [x, i] of openIdx) { try { const bars = await hourBars(netOf(x), x.pool); if (!bars) continue; let r = rlOpen(x) ? D.evaluateDegen(x, bars, nowIso) : x; if (!rlOpen(r) && !r.variants && vDue(r)) r = { ...r, variants: D.exitVariants(x, bars, nowIso) }; rl[i] = r; } catch { /* keep */ } }
   } catch (e) { say('runner log evaluation skipped: ' + (e.message || e)); }
   if (mode === 'full' && settings.degen !== false) {
     const cands = D.candidates(allRows).slice(0, 8), rc = D.runnerCandidates(allRows, 20), wallets = new Map(); let wn = 0; const want = [];
     for (const c of [...cands.slice(0, 4), ...rc, ...cands.slice(4)]) if (!want.some(x => x.p.pool === c.p.pool)) want.push(c);
     const whPath = path.join(OUT, 'wallethist.json'), wh = readJson(whPath, {}), trends = new Map();
-    for (const c of want) { if (wn >= 14) break; wn++; const w = await fetchWallets(api.get, c.p.net, c.p.pool, smart); if (w) { wallets.set(c.p.pool, w); const tr = D.walletTrend(wh[c.p.pool], w, nowIso); if (tr) trends.set(c.p.pool, tr); wh[c.p.pool] = [...(wh[c.p.pool] || []), { t: nowIso, b: w.buyers, s: w.sellers, n: w.netUsd }].slice(-24); } }
+    for (const c of want) { if (wn >= 14) break; wn++; const w = await fetchWallets(api.get, c.p.net, c.p.pool, smart); if (w) { wallets.set(c.p.pool, w); noteEp(c.p, w); const tr = D.walletTrend(wh[c.p.pool], w, nowIso); if (tr) trends.set(c.p.pool, tr); wh[c.p.pool] = [...(wh[c.p.pool] || []), { t: nowIso, b: w.buyers, s: w.sellers, n: w.netUsd }].slice(-24); } }
     try { const keep = Object.entries(wh).filter(([, a]) => a.length && Date.now() - Date.parse(a[a.length - 1].t) < 48 * 3600e3).slice(-200); fs.writeFileSync(whPath, JSON.stringify(Object.fromEntries(keep))); } catch { /* optional */ }
-    try { const paperIds = new Set(dout.filter(x => x.status === 'open' || x.status === 'waiting for entry').map(x => x.id)); const items = D.buildRunners(rc, wallets, paperIds, trends); runnerItems = items; for (const it of items) it.bars = barsMap.get(it.pool) || null; try { const skip = new Set(D.runnerCandidates(allRows, 100000).map(x => x.p.pool)); controlItems = D.buildRunners(D.controlSample(allRows, skip, 6, Date.parse(nowIso) / 36e5 | 0)); } catch { controlItems = []; } fs.writeFileSync(path.join(OUT, 'runners.json'), JSON.stringify({ at: nowIso, items })); say(`runners: ${items.length} high-risk high-reward coins listed${items[0] ? ' (top: ' + items[0].coin + ' ' + items[0].score + ')' : ''}`); } catch (e) { say('runners skipped: ' + (e.message || e)); }
-    degenNew = D.pickNew(cands, dout, nowIso, wallets); dout.push(...degenNew);
+    // early movers: coins trending in the last 1h/6h that the runner rules have not picked up; read their buyers too (feeds the scorecard and the early list)
+    try { if (usage.calls <= 0.85 * (settings.cgMonthlyLimit ?? 100000)) { const ex = allRows.filter(p => p.fresh && !wallets.has(p.pool) && (p.liq || 0) >= 50000 && (p.v24 || 0) >= 150000 && p.rug !== 'danger' && p.price > 0).sort((a, b) => (b.vacc || 0) - (a.vacc || 0)).slice(0, 8);
+      for (const p of ex) { const w = await fetchWallets(api.get, p.net, p.pool, smart); if (!w) continue; wallets.set(p.pool, w); noteEp(p, w); const pi = SCO.provenIn(w, sc);
+        earlyItems.push({ id: String(p.chain).slice(0, 3).toUpperCase() + ':' + p.sym, coin: p.sym, chain: C.CH[p.chain] || p.chain, pool: p.pool, net: p.net, price: p.price, liq: Math.round(p.liq || 0), v24: Math.round(p.v24 || 0), ch24: p.ch24, vacc: p.vacc, ageD: p.ageD, phase: L.lifecycle(p), provenIn: pi.in, provenOut: pi.out, buyers: w.buyers, sellers: w.sellers, veto: D.runnerVeto(p, w) }); }
+      earlyItems.sort((a, b) => b.provenIn - a.provenIn || (b.vacc || 0) - (a.vacc || 0)); } } catch (e) { say('early movers skipped: ' + (e.message || e)); }
+    try { const paperIds = new Set(dout.filter(x => x.status === 'open' || x.status === 'waiting for entry').map(x => x.id)); const items = D.buildRunners(rc, wallets, paperIds, trends); runnerItems = items; const rowOf = new Map(allRows.map(p => [p.pool, p])); for (const it of items) { it.bars = barsMap.get(it.pool) || null; const p = rowOf.get(it.pool); it.phase = p ? L.lifecycle(p) : null; it.fresh = !!(p && p.fresh); it.proven = SCO.provenIn(wallets.get(it.pool), sc); } try { const skip = new Set(D.runnerCandidates(allRows, 100000).map(x => x.p.pool)); controlItems = D.buildRunners(D.controlSample(allRows, skip, 6, Date.parse(nowIso) / 36e5 | 0)); } catch { controlItems = []; } fs.writeFileSync(path.join(OUT, 'runners.json'), JSON.stringify({ at: nowIso, items, early: earlyItems })); say(`runners: ${items.length} high-risk high-reward coins listed${items[0] ? ' (top: ' + items[0].coin + ' ' + items[0].score + ')' : ''}`); } catch (e) { say('runners skipped: ' + (e.message || e)); }
+    degenNew = D.pickNew(cands, dout, nowIso, wallets); degenNew.forEach(x => { x.mkt = mktTag; }); dout.push(...degenNew);
     say(`degen desk: ${cands.length} runners met the volume and price rules, ${degenNew.length} new paper trades${degenNew.length ? ' (' + degenNew.map(x => x.coin).join(', ') + ')' : ''}`);
   }
   try {
     if (runnerItems) { const have = new Set(rl.map(x => x.signalId)); let nn = 0; for (const it of runnerItems) { const sg = D.runnerSignal(it, nowIso); if (have.has(sg.signalId) || nn >= 20) continue; rl.push(sg); have.add(sg.signalId); nn++; } let nc = 0; for (const it of controlItems) { const sg = D.runnerSignal(it, nowIso, undefined, { control: true }); if (have.has(sg.signalId)) continue; rl.push(sg); have.add(sg.signalId); nc++; } if (nc) say(`runner log: ${nc} random control coins added for comparison`); if (nn) say(`runner log: ${nn} runners added (${runnerItems.filter(x => x.vetoed.length).length} dropped by the risk rules, still tracked)`); }
     const isOpen = x => x.status === 'open' || x.status === 'waiting for entry'; fs.writeFileSync(rlPath, JSON.stringify([...rl.filter(x => !isOpen(x)).slice(-1500), ...rl.filter(isOpen)]));
   } catch (e) { say('runner log skipped: ' + (e.message || e)); }
+  // 4d. Strategy lab: more paper books. The degen desk's own coins replayed with other exits, careful rules on risky coins, and two scalpers.
+  try {
+    const labPath = path.join(OUT, 'lab.json'), since = readJson(path.resolve('docs/paper-config.json'), {}).since || null, sinceT = since ? Date.parse(since) : 0, isOpenL = (x) => x.status === 'open' || x.status === 'waiting for entry';
+    let lab = readJson(labPath, []).filter(x => x && typeof x === 'object' && x.lid && L.BOOKS[x.book]); const have = new Set(lab.map(x => x.lid)), nAdd = { copies: 0, risky: 0, scalp: 0 };
+    const add = (row) => { if (have.has(row.lid)) return false; if (!row.mkt && Date.now() - Date.parse(row.signalAt) < 3 * 3600e3) row.mkt = mktTag; lab.push(row); have.add(row.lid); return true; };
+    for (const s of dout) { if (!(Date.parse(s.signalAt) >= sinceT)) continue; for (const b of L.DEGEN_COPIES) if (add(L.labRow(b, s, s.signalAt, { why: s.why, liq: s.liq, mkt: s.mkt || null }))) nAdd.copies++; }
+    for (const r of rl) { if (r.control || !r.listed || (r.passed ?? 0) < 3 || !(Date.parse(r.signalAt) >= sinceT)) continue; if (add(L.labRow('risky', r, r.signalAt, { liq: r.liq ?? (r.f && r.f.liq), passed: r.passed }))) nAdd.risky++; }
+    const limit = settings.cgMonthlyLimit ?? 100000, rowByPool = new Map(allRows.map(p => [p.pool, p])), chainName = (c) => C.CH[c] || c, nowS = Date.now() / 1000;
+    const openOf = (bk) => lab.filter(x => x.book === bk && isOpenL(x)), recentCoin = (bk, pool, h) => lab.some(x => x.book === bk && x.pool === pool && (isOpenL(x) || Date.now() - Date.parse(x.signalAt) < h * 3600e3));
+    const srcOf = (p) => ({ id: String(p.chain).slice(0, 3).toUpperCase() + ':' + p.sym, coin: p.sym, chain: chainName(p.chain), pool: p.pool, net: p.net, price: p.price, liq: p.liq });
+    // playbook: first Fib pullback after a run to a new high (hourly candles already fetched this run)
+    { const dAt = new Date().toISOString().slice(0, 19) + 'Z'; let k = 0;
+      for (const p of allRows) { if (k >= L.BOOKS.fibPull.maxNew || openOf('fibPull').length >= L.BOOKS.fibPull.slots) break; if (!(p.price > 0) || p.rug === 'danger' || (p.liq || 0) < 50000 || (p.v24 || 0) < 250000 || D.runnerVeto(p, null).length) continue;
+        const f = L.fibSetup(H1.get(String(p.pool).toLowerCase()), nowS); if (!f || recentCoin('fibPull', p.pool, 24)) continue;
+        const r = L.labRow('fibPull', { ...srcOf(p), signalId: p.pool + '@' + f.hiAt }, dAt, { why: f.why, plan: { limit: f.limit, stop: f.stop, targets: f.targets, expireH: f.expireH, cancelAbove: f.cancelAbove, cancelWhy: f.cancelWhy }, phase: L.lifecycle(p), fresh: !!p.fresh });
+        if (add(r)) { nAdd.fib = (nAdd.fib || 0) + 1; k++; } } }
+    // playbook: buy inside forming patterns (4h), not the breakout
+    { const dAt = new Date().toISOString().slice(0, 19) + 'Z'; let k = 0;
+      for (const p of allRows) { if (k >= L.BOOKS.patInside.maxNew || openOf('patInside').length >= L.BOOKS.patInside.slots) break; if (!(p.price > 0) || p.rug === 'danger' || (p.liq || 0) < 50000 || D.runnerVeto(p, null).length || recentCoin('patInside', p.pool, 48)) continue;
+        const s0 = L.insideSetup(p)[0]; if (!s0) continue;
+        if (add(L.labRow('patInside', { ...srcOf(p), signalId: p.pool + '|' + s0.name + '@' + dAt.slice(0, 13) }, dAt, { why: s0.why, plan: s0.plan, pattern: s0.name, phase: L.lifecycle(p), fresh: !!p.fresh }))) { nAdd.inside = (nAdd.inside || 0) + 1; k++; } } }
+    // follow proven wallets: 2+ proven wallets net buying and no risk rule
+    if (mode === 'full') { const dAt = new Date().toISOString().slice(0, 19) + 'Z'; let k = 0;
+      const pool2 = [...(runnerItems || []).filter(it => !it.vetoed.length && it.proven && it.proven.in >= 2).map(it => ({ p: rowByPool.get(it.pool), pi: it.proven })), ...earlyItems.filter(e => e.provenIn >= 2 && !e.veto.length).map(e => ({ p: rowByPool.get(e.pool), pi: { in: e.provenIn } }))];
+      for (const { p, pi } of pool2) { if (!p || k >= L.BOOKS.proven.maxNew || openOf('proven').length >= L.BOOKS.proven.slots || recentCoin('proven', p.pool, 24)) continue;
+        if (add(L.labRow('proven', { ...srcOf(p), signalId: p.pool + '@' + dAt.slice(0, 13) }, dAt, { why: [`${pi.in} proven wallets net buying`], phase: L.lifecycle(p), fresh: !!p.fresh }))) { nAdd.proven = (nAdd.proven || 0) + 1; k++; } } }
+    if (settings.scalper !== false && usage.calls <= 0.85 * limit) {
+      const openPools = new Set(lab.filter(x => isOpenL(x) && L.BOOKS[x.book].group === 'scalp').map(x => x.pool)), cands = L.scalpCandidates(allRows, 6, openPools);
+      for (const p of cands) { let bars = null; try { bars = await m5Bars(p.net, p.pool); } catch { /* skip */ } if (!bars) continue; const dAt = new Date().toISOString().slice(0, 19) + 'Z';
+        for (const sg of L.scalpSignals(bars, Date.now() / 1000, p)) { if (lab.filter(x => x.book === sg.book && isOpenL(x)).length >= L.BOOKS[sg.book].slots) continue;
+          const chain = { solana: 'Solana', eth: 'Ethereum', robinhood: 'Robinhood' }[p.chain] || p.chain; if (add(L.labRow(sg.book, { id: String(p.chain).slice(0, 3).toUpperCase() + ':' + p.sym, coin: p.sym, chain, pool: p.pool, net: p.net, price: p.price, liq: p.liq }, dAt, { why: sg.why }))) nAdd.scalp++; } }
+    } else if (settings.scalper !== false) say('scalper paused: monthly data allowance is over 85% used');
+    const byPool = new Map(); for (const x of lab.filter(isOpenL).sort((a, b) => String(a.checkedAt).localeCompare(String(b.checkedAt)))) { const k = (L.BOOKS[x.book].group === 'scalp' ? 'm5|' : 'h1|') + String(x.pool).toLowerCase(); if (!byPool.has(k)) byPool.set(k, []); byPool.get(k).push(x); }
+    let fetched = 0, evald = 0; const idx = new Map(lab.map((x, i) => [x.lid, i]));
+    for (const [k, rows] of byPool) { const m5 = k.startsWith('m5|'), key = k.slice(3), cached = m5 ? M5.has(key) : H1.has(key); if (!cached) { if (fetched >= 20) continue; fetched++; }
+      let bars = null; try { bars = m5 ? await m5Bars(netOf(rows[0]), rows[0].pool) : await hourBars(netOf(rows[0]), rows[0].pool); } catch { /* next scan */ }
+      const nowI = new Date().toISOString().slice(0, 19) + 'Z';
+      for (const x of rows) { const i = idx.get(x.lid); if (!bars) { lab[i] = { ...x, checkedAt: nowI, ...(Date.now() - Date.parse(x.signalAt) > 48 * 3600e3 ? { status: 'no data' } : {}) }; continue; }
+        const r = runExit(x, bars, nowI, PROFILES[x.profile]); evald++; lab[i] = r.status === 'waiting for entry' ? { ...x, checkedAt: nowI, ...(Date.now() - Date.parse(x.signalAt) > 48 * 3600e3 ? { status: 'no data' } : {}) } : { ...x, ...r }; } }
+    fs.writeFileSync(labPath, JSON.stringify([...lab.filter(x => !isOpenL(x)).slice(-3000), ...lab.filter(isOpenL)]));
+    say(`strategy lab: ${lab.filter(isOpenL).length} open or waiting, ${evald} re-checked, new: ${nAdd.copies} degen exit copies, ${nAdd.risky} risky-coin trades, ${nAdd.scalp} scalps, ${nAdd.fib || 0} Fib pullbacks, ${nAdd.inside || 0} inside-pattern, ${nAdd.proven || 0} proven-wallet`);
+  } catch (e) { say('strategy lab skipped: ' + (e.message || e)); }
+  // wallet scorecard: resolve episodes that are 72+ hours old (what the coin did next), then save
+  try { let rs = 0, fetchedS = 0; for (const ep of wEps) { if (ep.out || Date.now() - Date.parse(ep.t) < (SCO.SC.horizonH + 1) * 3600e3) continue; if (rs >= 25) break; const cached = H1.has(String(ep.pool).toLowerCase()); if (!cached) { if (fetchedS >= 15) continue; fetchedS++; }
+      let bars = null; try { bars = await hourBars(ep.net, ep.pool); } catch { /* next scan */ } const o = bars ? SCO.resolve(ep, bars) : null; if (o) { ep.out = o; rs++; wsDirty = true; } else if (Date.now() - Date.parse(ep.t) > 10 * 864e5) { ep.out = { na: true }; wsDirty = true; } }
+    if (wsDirty) { wEps = SCO.trim(wEps); fs.writeFileSync(wsPath, JSON.stringify(wEps)); }
+    const sc2 = SCO.score(wEps); fs.writeFileSync(path.join(OUT, 'walletscore.json'), JSON.stringify(SCO.summary(sc2, earlyItems.slice(0, 12), nowIso)));
+    say(`wallet scorecard: ${sc2.episodes} coin-days logged, ${sc2.resolved} with an outcome, ${sc2.wallets} wallets scored, ${sc2.proven.length} proven${sc2.base != null ? `, base run rate ${Math.round(sc2.base * 100)}%` : ''}${rs ? `, ${rs} outcomes added` : ''}`);
+  } catch (e) { say('wallet scorecard skipped: ' + (e.message || e)); }
   const closedKeep = dout.filter(x => !(x.status === 'open' || x.status === 'waiting for entry')).slice(-300), openKeep = dout.filter(x => x.status === 'open' || x.status === 'waiting for entry');
   fs.writeFileSync(dpath, JSON.stringify([...closedKeep, ...openKeep]));
 } catch (e) { say('degen desk skipped: ' + (e.message || e)); }

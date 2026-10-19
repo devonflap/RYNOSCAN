@@ -34,5 +34,7 @@
   "holders": {
     "maxPerScan": 40,
     "ttlH": 6
-  }
+  },
+  "freshTrending": true,
+  "freshExtra": 12
 }

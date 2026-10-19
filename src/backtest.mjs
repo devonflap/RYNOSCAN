@@ -38,22 +38,22 @@ for (const p0 of list) {
     const upV = a => a.reduce((s, b) => s + (b[4] >= b[1] ? b[5] : 0), 0), dnV = a => a.reduce((s, b) => s + (b[4] < b[1] ? b[5] : 0), 0);
     const p = { ...p0, price: hist[k][4], v24: l24.reduce((s, b) => s + b[5], 0), v1: hist[k][5], ch24: (hist[k][4] / l24[0][1] - 1) * 100, fdv: null,
       created: new Date((t - 30 * 86400) * 1000).toISOString(), b1: upV(l4), s1: dnV(l4) || 1e-9, b24: upV(l24), s24: dnV(l24) || 1e-9, buyers24: upV(l24), sellers24: dnV(l24), flags: [] };
-    if (!C.techFromRaw(p, hist)) continue;
+    if (!C.techFromRaw(p, hist, (t + 3600) * 1000)) continue; // as seen right after the 4h close (signal and fills start from the next candle)
     C.scoreList([p], t * 1000);
-    const at = new Date(t * 1000).toISOString().slice(0, 19) + 'Z', endAt = new Date(h1[h1.length - 1][0] * 1000).toISOString();
+    const at = new Date((t + 3600) * 1000).toISOString().slice(0, 19) + 'Z', endAt = new Date(h1[h1.length - 1][0] * 1000).toISOString();
     if (p.signal !== 'Entry signal' || !p.sp || !p.sp.entryMid) {
       // near-misses: coins the filter rejected (opp 50+, valid plan), replayed with the same fill and exit rules, one per coin per 24h.
       // This gives the gate study and the filter audit accepted-versus-rejected trades from the same method in one run instead of weeks of waiting.
       if (p.sp && p.sp.entryMid && p.opp != null && p.opp >= 50 && t >= nmBusy) { try {
         const g = C.newSignal(p, at); if (g.miss) { const r = C.evaluate(g, h1, endAt, { tp1Stop: settings.exitTp1Stop ?? 0, ladder: !!settings.exitLadder, fillAt: settings.fillAt ?? 'mid', slipPct: settings.slipPct ?? 0 });
-          nmRows.push({ source: 'backtest-nm', setup: 'Near-miss: ' + g.setup, setupBase: g.setup, chain: C.CH[p0.chain], at, coin: p0.sym, resultR: r.resultR, status: r.status, riskPct: p.sp.riskPct, opp: g.opp, miss: g.miss, gp: g.gp, conf: g.conf, zr: g.zr, rr2: g.rr2, pq: g.pq, rvol: g.rvol, mfeR: r.mfeR, maeR: r.maeR }); nmBusy = t + 24 * 3600; } } catch { /* skip */ } }
+          nmRows.push({ source: 'backtest-nm', setup: 'Near-miss: ' + g.setup, setupBase: g.setup, chain: C.CH[p0.chain], at, coin: p0.sym, resultR: r.resultR, status: r.status, riskPct: p.sp.riskPct, opp: g.opp, miss: g.miss, gp: g.gp, conf: g.conf, zr: g.zr, rr2: g.rr2, room: g.room, pq: g.pq, rvol: g.rvol, mfeR: r.mfeR, maeR: r.maeR }); nmBusy = t + 24 * 3600; } } catch { /* skip */ } }
       continue;
     }
     const sg = C.newSignal(p, at);
     const exitOpts = { tp1Stop: settings.exitTp1Stop ?? 0, ladder: !!settings.exitLadder, fillAt: settings.fillAt ?? 'mid', slipPct: settings.slipPct ?? 0 };
     const res = C.evaluate(sg, h1, endAt, exitOpts), opt = C.evaluate(sg, h1, endAt, { ...exitOpts, fillAt: 'mid', slipPct: 0 });
     const variants = {}; for (const [name, o] of Object.entries(VARIANTS)) variants[name] = C.evaluate(sg, h1, endAt, { ...exitOpts, ...o }).resultR;
-    signals.push({ variants, optR: opt.resultR, miss: sg.miss, gp: sg.gp, conf: sg.conf, zr: sg.zr, rr2: sg.rr2, pq: sg.pq, rvol: sg.rvol, mfeR: res.mfeR, maeR: res.maeR, coin: p0.sym, chain: C.CH[p0.chain], setup: p.setupType, at, status: res.status, tpHit: res.tpHit, resultR: res.resultR, baseOpp: p.opp, riskPct: p.sp.riskPct });
+    signals.push({ variants, optR: opt.resultR, miss: sg.miss, gp: sg.gp, conf: sg.conf, zr: sg.zr, rr2: sg.rr2, room: sg.room, pq: sg.pq, rvol: sg.rvol, mfeR: res.mfeR, maeR: res.maeR, coin: p0.sym, chain: C.CH[p0.chain], setup: p.setupType, at, status: res.status, tpHit: res.tpHit, resultR: res.resultR, baseOpp: p.opp, riskPct: p.sp.riskPct });
     busyUntil = res.closedAt ? Date.parse(res.closedAt) / 1000 : h1[h1.length - 1][0] + 1;
     if (res.status === 'stopped out') busyUntil += (settings.cooldownHours ?? 48) * 3600; // cooldown after a stop-out
   }
