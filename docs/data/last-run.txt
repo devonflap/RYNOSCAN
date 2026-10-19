@@ -1,3 +1,5 @@
-Hourly refresh 15:10 Brisbane: 6 tracked coins refreshed, 6 scored, 2 above 65. On-chain volume Normal (0.93x 7-day avg).
+Full scan 16:11 Brisbane: 73 scanned, 52 scored, 4 above 65. On-chain volume Normal (0.94x 7-day avg).
+NEW watch: ZEREBRO (Solana) Bottom reversal, opp 85, checks 6/6, stop 25.4% away, upside 138.9%.
+NEW watch: CATE (Solana) Breakout retest, opp 76, checks 6/6, stop null% away, upside null%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
