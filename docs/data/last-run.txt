@@ -1,6 +1,3 @@
-Full scan 23:11 Brisbane: 72 scanned, 53 scored, 9 above 65. On-chain volume Normal (1.02x 7-day avg).
-NEW watch: CATE (Solana) Breakout retest, opp 77, checks 5/6, stop null% away, upside null%; weak last 6h.
-NEW watch: AGENC (Solana) Breakout retest, opp 73, checks 5/6, stop null% away, upside null%; weak last 6h.
-NEW watch: NEET (Solana) Inverse H&S, opp 67, checks 5/6, stop null% away, upside null%; volume fading.
+Hourly refresh 00:10 Brisbane: 9 tracked coins refreshed, 9 scored, 9 above 65. On-chain volume Normal (1.02x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
