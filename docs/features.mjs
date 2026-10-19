@@ -18,6 +18,7 @@ export const FEATS = [
   ['4h volume surge', (s) => (s.rvol == null ? null : bucket(+s.rvol, [1, 1.5, 2.5], ['below normal', '1-1.5x', '1.5-2.5x', '2.5x+']))],
   ['Buyers vs sellers (24h)', (s) => (s.bs == null ? null : bucket(+s.bs, [0.9, 1.1], ['sellers lead', 'balanced', 'buyers lead']))],
   ['Reward to risk (TP2)', (s) => (s.rr2 == null ? null : bucket(+s.rr2, [2, 3], ['under 2R', '2-3R', '3R+']))],
+  ['Room to the real target', (s) => (s.room == null ? null : bucket(+s.room, [1, 2], ['under 1R', '1-2R', '2R+']))], // TP2 above is stretched to at least 2R; this is the honest distance to the prior high or measured move
   ['Pattern quality', (s) => (s.pq == null ? null : bucket(+s.pq, [70, 85], ['under 70', '70-85', '85+']))],
   ['Chain', (s) => s.chain || null],
   ['Panel verdict', (s) => s.verdict || null],

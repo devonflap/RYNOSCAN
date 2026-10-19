@@ -2,6 +2,8 @@
 // (wallet distribution, how many wallets are buying versus selling, optional watch-list of known good wallets). Paper money only.
 // Shared by the scanner (Node) and the dashboard (browser). Nothing here touches the main scanner rules, scores or alerts.
 export const DEGEN = { start: 10000, pct: 10, slots: 8, stopPct: 0.20, tpMult: 2, trailPct: 0.30, slipPct: 3, maxHours: 72, maxNew: 3, minLiq: 50000, minV24: 250000, minVacc: 2.5, minBs1: 1.15, minCh24: 10, maxCh24: 400, sizeUsd: 1000 };
+import { runExit, PROFILES } from './exits.mjs';
+import { EXIT_SET } from './strategies.mjs';
 const num = (v) => (v == null || v === '' || !isFinite(+v) ? null : +v);
 const r4 = (x) => (x == null || !isFinite(x) ? null : +(+x).toPrecision(5));
 const sameAddr = (a, b) => !!a && !!b && (a === b || String(a).toLowerCase() === String(b).toLowerCase());
@@ -59,23 +61,15 @@ export function pickNew(cands, existing, at, wallets = new Map(), cfg = DEGEN) {
 }
 // bars: hourly [t,o,h,l,c,v] ascending (seconds). Entry: the open of the first hour after the signal plus slippage. Stop 20% below entry, half sold at 2x, the rest trails 30% below its high
 // (never below break-even), everything sold after 72 hours. If one hour touches both the stop and the target, the stop is assumed to come first.
-export function evaluateDegen(s, bars, at, cfg = DEGEN) {
-  const t0 = Date.parse(s.signalAt) / 1000, B = (Array.isArray(bars) ? bars : []).filter((b) => b && b[0] >= t0 && [b[1], b[2], b[3], b[4]].every((v) => isFinite(+v) && +v > 0));
-  if (!B.length) return { ...s, checkedAt: at };
+export function evaluateDegen(s, bars, at, cfg = DEGEN, prof = null) {
   // Realistic cost: besides the flat slippage, buying and selling a $1,000 position moves the price by about size / liquidity each way (thin coins cost more).
-  const liq = num(s.liq), imp = liq && liq > 0 ? Math.min(0.5, (cfg.sizeUsd || 0) / liq) : 0, eff = (x) => x * (1 - imp);
-  const F = +B[0][1] * (1 + cfg.slipPct / 100 + imp), stop = F * (1 - cfg.stopPct), T = F * cfg.tpMult, risk = cfg.stopPct; let hit = 0, hi = F, status = 'open', exit = null, closedAt = null, last = F;
-  const ret = (ex) => (hit ? 0.5 * (eff(T) / F - 1) + 0.5 * (eff(ex) / F - 1) : eff(ex) / F - 1);
-  for (const b of B) {
-    const [t, o, h, l, c] = b.map(Number); last = c;
-    if (t > B[0][0] + cfg.maxHours * 3600) { exit = c; status = 'time exit (72 hours)'; closedAt = t; break; }
-    if (!hit) { if (l <= stop) { exit = Math.min(stop, o); status = 'stopped out'; closedAt = t; break; } if (h >= T) { hit = 1; hi = Math.max(F, h); } }
-    else { hi = Math.max(hi, h); const trail = Math.max(F, hi * (1 - cfg.trailPct)); if (l <= trail) { exit = Math.min(trail, o); status = 'trailed out after 2x'; closedAt = t; break; } }
-    hi = Math.max(hi, h);
-  }
-  const base = { ...s, slipUsed: +(cfg.slipPct + imp * 100).toFixed(1), entryLow: r4(F), entryHigh: r4(F), entryMid: r4(F), stop: r4(stop), tp1: r4(T), tpHit: hit, checkedAt: at, peakMult: r4(hi / F) };
-  if (exit != null) return { ...base, status, resultR: +(ret(exit) / risk).toFixed(2), retPct: +(ret(exit) * 100).toFixed(1), peakPct: +((hi / F - 1) * 100).toFixed(0), openR: null, closedAt: new Date(closedAt * 1000).toISOString().slice(0, 16) + 'Z' };
-  return { ...base, status: 'open', resultR: null, openR: +(ret(last) / risk).toFixed(2), openRet: +(ret(last) * 100).toFixed(1), peakPct: +((hi / F - 1) * 100).toFixed(0), closedAt: null };
+  const P = prof || { stopPct: cfg.stopPct, ladder: [[cfg.tpMult, 0.5]], trailPct: cfg.trailPct, trailFrom: 'first', beAfterFirst: true, maxHours: cfg.maxHours, slipPct: cfg.slipPct, exitSlipPct: 0, sizeUsd: cfg.sizeUsd || 0 };
+  const r = runExit(s, bars, at, P);
+  if (r.status === 'waiting for entry') return { ...s, checkedAt: at };
+  const F = r.entryPx, first = P.ladder && P.ladder[0] ? P.ladder[0][0] : cfg.tpMult;
+  const base = { ...s, ...r, entryLow: r4(F), entryHigh: r4(F), entryMid: r4(F), stop: r4(F * (1 - P.stopPct)), tp1: r4(F * first), peakMult: r4(r.hiPx / F) };
+  if (r.status !== 'open') return { ...base, resultR: +(r.retX / P.stopPct).toFixed(2), openR: null };
+  return { ...base, resultR: null, openR: +(r.retX / P.stopPct).toFixed(2), closedAt: null };
 }
 
 // ---- High risk, high reward runners: a ranked list shown next to the bid-ready charts. Looser than the degen paper desk (risks are shown, not rejected). ----
@@ -157,8 +151,8 @@ export function runnerSignal(r, at, cfg = DEGEN, opts = {}) {
   const F = +r.price * (1 + cfg.slipPct / 100), w = r.wallet, m = r.m || {}, hs = r.hs || {};
   return { signalId: r.id + '@' + at.slice(0, 10) + (opts.control ? '|c' : ''), control: !!opts.control, liq: m.liq ?? null, id: r.id, coin: r.coin, chain: r.chain, pool: r.pool, net: r.net, setup: 'Runner', desk: 'runnerlog', signalAt: at, entryLow: r4(F), entryHigh: r4(F), entryMid: r4(F), stop: r4(F * (1 - cfg.stopPct)), tp1: r4(F * cfg.tpMult), status: 'waiting for entry', tpHit: 0, resultR: null, openR: null, closedAt: null, checkedAt: at,
     listed: !opts.control && !r.vetoed.length, vetoed: opts.control ? [] : r.vetoed, passed: r.passed,
-    f: { surge: m.surge ?? null, ch24: m.ch24 ?? null, bs1: m.bs1 ?? null, liq: m.liq ?? null, ageD: m.ageD ?? null, fdvLiq: m.fdv && m.liq ? +(m.fdv / m.liq).toFixed(1) : null, soc: m.soc ?? null, holdG: hs.growPct ?? null, top10: hs.top10 ?? null, wB: w ? w.buyers : null, wS: w ? w.sellers : null, wNet: w ? w.netUsd : null, top3: w ? w.top3Share : null, smart: w ? (w.smartIn || []).length : null, wTrend: r.trend ? r.trend.delta : null, regime: r.regime, hour: +at.slice(11, 13), score: r.score } };
+    f: { surge: m.surge ?? null, ch24: m.ch24 ?? null, bs1: m.bs1 ?? null, liq: m.liq ?? null, ageD: m.ageD ?? null, fdvLiq: m.fdv && m.liq ? +(m.fdv / m.liq).toFixed(1) : null, soc: m.soc ?? null, holdG: hs.growPct ?? null, top10: hs.top10 ?? null, wB: w ? w.buyers : null, wS: w ? w.sellers : null, wNet: w ? w.netUsd : null, top3: w ? w.top3Share : null, smart: w ? (w.smartIn || []).length : null, wTrend: r.trend ? r.trend.delta : null, phase: r.phase ?? null, fresh: r.fresh ? 1 : 0, proven: r.proven ? r.proven.in : null, provenOut: r.proven ? r.proven.out : null, regime: r.regime, hour: +at.slice(11, 13), score: r.score } };
 }
 // Same trade replayed under other exit rules, so the report can say which exit works best on these coins. Returns { name: returnPct }.
-export const EXIT_VARIANTS = { 'stop 15%': { stopPct: 0.15 }, 'stop 25%': { stopPct: 0.25 }, 'trail 20%': { trailPct: 0.2 }, 'trail 40%': { trailPct: 0.4 }, 'sell half at 3x': { tpMult: 3 }, 'sell half at 1.5x': { tpMult: 1.5 } };
-export function exitVariants(s, bars, at) { const out = {}; for (const [k, o] of Object.entries(EXIT_VARIANTS)) { const r = evaluateDegen({ ...s, status: 'waiting for entry' }, bars, at, { ...DEGEN, ...o }); if (r.retPct != null) out[k] = r.retPct; } return out; }
+export const EXIT_VARIANTS = EXIT_SET;
+export function exitVariants(s, bars, at) { const out = {}; for (const [k, P] of Object.entries(EXIT_SET)) { const r = runExit(s, bars, at, P); if (r.retPct != null) out[k] = r.retPct; } return out; }
