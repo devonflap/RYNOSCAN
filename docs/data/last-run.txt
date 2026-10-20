@@ -1,4 +1,8 @@
-Hourly refresh 17:10 Brisbane: 5 tracked coins refreshed, 5 scored, 5 above 65. On-chain volume Normal (1.08x 7-day avg).
-NEW watch: HOOKR (Robinhood) Breakout retest, opp 82, checks 5/6, stop 11.9% away, upside 92.9%; more sellers than buyers in the last hour.
+Full scan 18:11 Brisbane: 69 scanned, 56 scored, 10 above 65. On-chain volume Normal (1.04x 7-day avg).
+NEW watch: NET (Robinhood) Falling wedge, opp 79, checks 5/6, stop 5.5% away, upside 38.2%; volume fading.
+NEW watch: UP (Robinhood) Trend pullback, opp 77, checks 5/6, stop 22.2% away, upside 66.5%; volume fading.
+NEW watch: STONKBROKER (Robinhood) Volume breakout, opp 73, checks 6/6, stop null% away, upside null%.
+NEW watch: USELESS (Solana) Falling wedge, opp 71, checks 4/6, stop 8.5% away, upside 48.1%; more sellers than buyers in the last hour; volume fading.
+NEW watch: DOPE (Solana) Bottom reversal, opp 69, checks 5/6, stop 26.3% away, upside 207.4%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
