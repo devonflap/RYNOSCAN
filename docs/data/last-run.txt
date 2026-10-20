@@ -1,5 +1,4 @@
-Full scan 15:11 Brisbane: 69 scanned, 53 scored, 6 above 65. On-chain volume Normal (1.08x 7-day avg).
-NEW watch: HOTBOT (Solana) Falling wedge, opp 75, checks 4/6, stop 34.8% away, upside 104.4%; more sellers than buyers in the last hour; volume fading.
-NEW watch: CASHCAT (Robinhood) Falling wedge, opp 73, checks 4/6, stop 11.9% away, upside 35.7%; more sellers than buyers in the last hour; volume fading.
+Hourly refresh 16:10 Brisbane: 6 tracked coins refreshed, 6 scored, 5 above 65. On-chain volume Normal (1.08x 7-day avg).
+NEW watch: SCHIFFY (Robinhood) Trend pullback, opp 68, checks 5/6, stop 44.3% away, upside 132.8%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
