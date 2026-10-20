@@ -1,1 +1,1 @@
-[]
+[{"id":"ROB:DARK","coin":"DARK","chain":"Robinhood","pool":"0x99c8f9fb1f73ccd0977fd39ff3508c387223b3be27aa984c09dd06c2f4674e4e","signal":"No trade","liquidity":138141,"rug":"unchecked","at":"2026-10-20T20:11:00Z","zoneLow":0.00251068,"zoneHigh":0.0027378,"stop":0.00225175,"tp1":0.00346084,"tp2":0.00436613,"tp3":0.00527142,"rr2":4.68,"riskPct":14.2,"volDay":"Normal","opp":61,"expireH":48}]
