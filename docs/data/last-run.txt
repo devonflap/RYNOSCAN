@@ -1,4 +1,3 @@
-Hourly refresh 19:10 Brisbane: 10 tracked coins refreshed, 10 scored, 10 above 65. On-chain volume Normal (1.04x 7-day avg).
-NEW watch: HOTBOT (Solana) Falling wedge, opp 68, checks 4/6, stop 30.5% away, upside 75.8%; more sellers than buyers in the last hour; weak last 6h.
+Hourly refresh 20:10 Brisbane: 10 tracked coins refreshed, 10 scored, 8 above 65. On-chain volume Normal (1.04x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
