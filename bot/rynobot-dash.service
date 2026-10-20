@@ -1,0 +1,16 @@
+[Unit]
+Description=RynoBot desk (read-only dashboard for the dry-run bots)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__USER__
+WorkingDirectory=__DIR__
+EnvironmentFile=/etc/rynobot.env
+ExecStart=/usr/bin/env node bot/dash.mjs
+Restart=always
+RestartSec=15
+
+[Install]
+WantedBy=multi-user.target

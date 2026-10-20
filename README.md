@@ -251,3 +251,19 @@ RynoBot does the trading now, so the phone no longer gets trade alerts to act on
 - **Breakout bot (`rynobot@breakout`):** see `bot/README.md`. Starts with one filter (reward to risk to TP2 of 3R or more) and allows stops up to 35%.
 - **Not switched on, and why:** "Robinhood only" (10 trades, and mostly a few big backtest runners), "stops over 20% only" (15 trades; 10-20% did worse than both narrower and wider stops, a sign of noise), "skip 10-20% stops" (6 trades), "skip strong volume days" (measured hindsight, see above). All are being tested on new trades by the tuner and switch on by themselves if they hold.
 
+## Bot desk and $10,000 accounts (20 Oct)
+- **Bot desk** (`bot/dash.mjs` + `bot/dash.html`, service `rynobot-dash`, port 8080, password set at install): both bots on one page with account curves, daily results, watch lists, live positions, closed trades, activity, and a 5-minute chart of any trade with its entry, stop, targets and fills beside the rules it was taken under. Read only; the server fetches charts from GeckoTerminal (cached, at most 12 a minute).
+- Paper accounts start at **$10,000** (`accountUsd`). The bots keep live prices on positions and setups, an equity point every 5 minutes, and R on closed trades for the desk. `node bot/run.mjs --bot <name> --reset` starts an account again (old files kept).
+
+## Execution audit (20 Oct, evening)
+Reviewed every path that decides money. The chart rules were sound (closed candles only, no hindsight). Four fixes in how the bots fill and size, which is where memecoin accounts actually leak:
+- **Price impact is now in the costs and the sizing.** Costs = 1% slippage + about 2 x (order / pool liquidity) each way. Sizes are capped at 1.5% impact and 1% of the pool. Before, a $2,500 order in a $100k pool was priced as a 1% cost; it is nearer 5% each way.
+- **Liquidity is re-checked at buy time:** under $100k, or down 40% since the setup was found, and the buy is dropped (a pool being pulled).
+- **The daily loss limit counts open positions**, not just sold trades, so four positions bleeding at once stop new buys.
+- **The Breakout bot's limit fills at the limit price.** If the bot first sees the price already below the zone, the resting order would have filled at the top of the zone on the first touch; filling at the lower price flattered the bot.
+Not changed, on purpose: the trigger thresholds, targets, ride-free level and holding times. They are the thing the 2-week test measures; tuning them now would fit them to noise.
+
+## Test accuracy (20 Oct, late)
+- **Passed-on tracking:** every setup a bot drops (no chasing, too late, thin or pulled liquidity, size too small, expired) is followed for 24 hours with its price, best price and whether its stop would have hit. The desk shows how often saying no was right. This is the missing half of the 2-week test: a bot can look fine on the trades it took and still be leaving the best ones on the table.
+- **Trigger-to-fill latency:** each fill records the trigger price (the next 5-minute open), the price actually paid and the impact for the pool, so the reality check can split the paper gap into "late fills" and "wick targets".
+

@@ -64,7 +64,7 @@ const T0 = Date.parse('2026-10-22T00:00:00Z'), H = 3600e3, iso = (ms) => new Dat
   let p2 = openLadder(s, { price: 1.04, stop: 0.8 }, 104, iso(T0), C); const r2 = manageLadder(p2, q(1.1), T0 / 1000 + 169 * 3600, C); ok(/time limit \(7 days\)/.test(r2.actions[0].why), '7 days: out'); }
 
 // the Breakout bot end to end: breakouts.json, the tuner's filters from council.json, a would-be buy, and a filter change note
-{ const cfg = { ...loadConfig('breakout'), setupsEveryMin: 0, slipPct: 0 }, st = newState(cfg), msgs = [], logs = [], jr = [];
+{ const cfg = { ...loadConfig('breakout'), accountUsd: 1000, setupsEveryMin: 0, slipPct: 0 }, st = newState(cfg), msgs = [], logs = [], jr = [];
   const row = (coin, o) => ({ coin, chain: 'Robinhood', pool: coin.toLowerCase(), opp: 60, liquidity: 400000, rug: 'ok', zoneLow: 1.0, zoneHigh: 1.05, stop: 0.8, tp1: 1.3, tp2: 1.7, tp3: 2.2, rr2: 3.4, riskPct: 22, volDay: 'Normal', expireH: 48, at: iso(T0), ...o });
   let council = { botTuning: { breakout: { active: ['Reward to risk (TP2)|3R+|only'] } } }; const rows = [row('GOOD'), row('LOWRR', { rr2: 2.4 }), row('WIDE', { riskPct: 40 }), row('THIN', { liquidity: 50000 })];
   const deps = (ms, px) => ({ now: ms, getJson: async (u) => (u.endsWith('breakouts.json') ? rows : u.endsWith('council.json') ? council : []), quotes: async () => ({ good: { priceUsd: String(px), liquidity: { usd: 400000 }, url: 'u' } }), candles5: async () => { throw new Error('the breakout bot never needs candles'); }, notify: async (t, b) => msgs.push(t + ' | ' + b), journal: (o) => jr.push(o), heartbeat: async () => {} });

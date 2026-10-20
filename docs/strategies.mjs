@@ -101,7 +101,7 @@ export function execTrigger(setup, bars, nowSec, from, cfg = TRIG) {
     if (flushLow < zl && c > zl && green && upperOk && noChase && avgV > 0 && v >= cfg.volFlush * avgV) kind = 'flush and reclaim';
     else if (Math.min(...all.slice(Math.max(start, k - 2), k + 1).map((b) => b[3])) <= zh && c >= zl && green && rng > 0 && (c - l) / rng >= 0.6 && noChase && avgV > 0 && v >= cfg.volBounce * avgV) kind = 'bounce in the zone';
     if (!kind) continue;
-    if (k + 1 >= all.length) return { pending: true, kind, flushLow: r6(flushLow), at: new Date((t + 300) * 1000).toISOString().slice(0, 19) + 'Z', vol: +(v / avgV).toFixed(1) };
+    if (k + 1 >= all.length) return { pending: true, kind, px: r6(c), flushLow: r6(flushLow), at: new Date((t + 300) * 1000).toISOString().slice(0, 19) + 'Z', vol: +(v / avgV).toFixed(1) };
     const px = all[k + 1][1], stop = Math.min(flushLow * 0.99, px * (1 - cfg.minStopPct / 100)), stopPct = (1 - stop / px) * 100;
     if (stopPct > cfg.maxStopPct) continue; // the flush was too deep to risk from here
     return { at: new Date((t + 300) * 1000).toISOString().slice(0, 19) + 'Z', px: r6(px), stop: r6(stop), kind, stopPct: +stopPct.toFixed(1),

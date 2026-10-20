@@ -7,7 +7,7 @@
 //   4 no follow-through (6 hours, never reached +1R, under the entry)     8 time limit (72 hours)
 // Dry run only: these functions return what WOULD be done; nothing here can place an order.
 import { execTrigger } from '../docs/strategies.mjs';
-export const BOT = { riskPct: 1, maxPosPct: 25, maxLiqPct: 2, maxOpen: 4, maxOpenRiskPct: 4, dailyLossPct: 3, slipPct: 1, minStopPct: 5, maxStopPct: 20, chasePct: 3,
+export const BOT = { riskPct: 1, maxPosPct: 25, maxLiqPct: 1, maxImpactPct: 1.5, liqDropPct: 40, maxOpen: 4, maxOpenRiskPct: 4, dailyLossPct: 3, slipPct: 1, minStopPct: 5, maxStopPct: 20, chasePct: 3,
   tp1R: 1, tp1Share: 1 / 3, rideFreeAt: 2, trailPct: 0.25, giveback: 0.5, noFollowH: 6, maxHoldH: 72, volDied: 0.2, sellersLoss: 0.08, sellersX: 1.2, triggerFreshMin: 10 };
 const n = (v) => (v == null || v === '' || !isFinite(+v) ? null : +v);
 
@@ -20,21 +20,25 @@ export function decideEntry(setup, bars5, price, nowSec, cfg = BOT) {
   if (price > n(setup.zoneHigh) * (1 + cfg.chasePct / 100)) return { act: 'drop', why: 'price already ran past the zone: no chasing' };
   const flushLow = tr.pending ? n(tr.flushLow) : n(tr.stop) / 0.99, stop = Math.min(flushLow * 0.99, price * (1 - cfg.minStopPct / 100)), stopPct = (1 - stop / price) * 100;
   if (!(stop > 0) || stopPct > cfg.maxStopPct) return { act: 'drop', why: `stop would be ${stopPct.toFixed(0)}% away: too wide` };
-  return { act: 'buy', price, stop: +stop.toPrecision(6), stopPct: +stopPct.toFixed(1), kind: tr.kind, why: [`${tr.kind} on the 5-minute chart`, tr.vol ? `volume ${tr.vol}x normal` : null].filter(Boolean) };
+  return { act: 'buy', price, stop: +stop.toPrecision(6), stopPct: +stopPct.toFixed(1), kind: tr.kind, trigPx: tr.px ?? null, trigAt: tr.at || null, why: [`${tr.kind} on the 5-minute chart`, tr.vol ? `volume ${tr.vol}x normal` : null].filter(Boolean) };
 }
 
-// position size: risk a fixed share of the account at the stop, capped by account share, pool liquidity and open risk
+// what a trade of `usd` costs to get in and out of a pool with `liq` of liquidity: the fixed slippage plus price impact. On a constant-
+// product pool a buy moves the price by about twice its share of the pool, and the sell moves it back the same way, so the round trip
+// costs roughly 4x (size / liquidity). This is why a $2,000 buy in a $100k pool is a losing trade before it starts.
+export function costPct(usd, liq, cfg = BOT) { const imp = liq > 0 ? (usd / liq) * 100 * 2 : 0; return { inPct: cfg.slipPct + imp, outPct: cfg.slipPct + imp, impactPct: +imp.toFixed(2) }; }
+// position size: risk a fixed share of the account at the stop, capped by account share, price impact, pool liquidity and open risk
 export function sizeFor(acct, buy, liq, openRiskUsd, cfg = BOT) {
   const riskUsd = acct.equity * cfg.riskPct / 100, want = riskUsd / (buy.stopPct / 100);
-  const caps = [[acct.equity * cfg.maxPosPct / 100, 'account share cap'], [liq > 0 ? liq * cfg.maxLiqPct / 100 : Infinity, 'liquidity cap'], [(acct.equity * cfg.maxOpenRiskPct / 100 - openRiskUsd) / (buy.stopPct / 100), 'total risk cap'], [acct.cash, 'cash']];
+  const caps = [[acct.equity * cfg.maxPosPct / 100, 'account share cap'], [liq > 0 ? liq * cfg.maxLiqPct / 100 : Infinity, 'liquidity cap'], [liq > 0 && cfg.maxImpactPct ? (liq * cfg.maxImpactPct / 100) / 2 : Infinity, 'price impact cap'], [(acct.equity * cfg.maxOpenRiskPct / 100 - openRiskUsd) / (buy.stopPct / 100), 'total risk cap'], [acct.cash, 'cash']];
   let usd = want, cut = null; for (const [lim, why] of caps) if (usd > lim) { usd = Math.max(0, lim); cut = why; }
   return { usd: +usd.toFixed(2), riskUsd: +(usd * buy.stopPct / 100).toFixed(2), cut };
 }
 
-export function openPosition(setup, buy, usd, nowIso, cfg = BOT) {
-  const fill = buy.price * (1 + cfg.slipPct / 100), R = fill - buy.stop;
+export function openPosition(setup, buy, usd, nowIso, cfg = BOT, liq = 0) {
+  const inPct = costPct(usd, liq, cfg).inPct, fill = buy.price * (1 + inPct / 100), R = fill - buy.stop;
   return { id: setup.pool + '@' + nowIso, coin: setup.coin, chain: setup.chain, pool: setup.pool, url: setup.url || null, openedAt: nowIso, entry: +fill.toPrecision(6), stop0: buy.stop, stop: buy.stop, R: +R.toPrecision(6),
-    tp1: +(fill + cfg.tp1R * R).toPrecision(6), freeAt: +(fill * cfg.rideFreeAt).toPrecision(6), costUsd: usd, units: usd / fill, remUnits: usd / fill, bankedUsd: 0, tp1Done: false, free: false, peak: fill, peakClose: fill, sells: [] };
+    tp1: +(fill + cfg.tp1R * R).toPrecision(6), freeAt: +(fill * cfg.rideFreeAt).toPrecision(6), costUsd: usd, units: usd / fill, remUnits: usd / fill, bankedUsd: 0, tp1Done: false, free: false, peak: fill, peakClose: fill, sells: [], liq: liq || null, slipOut: +(costPct(usd, liq, cfg).outPct).toFixed(3) };
 }
 
 // one poll for one open position. q: DexScreener pair (priceUsd, txns, volume, pairCreatedAt). closes5: [[t, close], ...] recent 5-minute closes.
@@ -42,7 +46,7 @@ export function openPosition(setup, buy, usd, nowIso, cfg = BOT) {
 export function managePosition(pos0, q, closes5, nowSec, cfg = BOT) {
   const pos = { ...pos0, sells: [...(pos0.sells || [])] }, price = n(q && q.priceUsd), actions = [];
   if (!(price > 0) || !(pos.remUnits > 0)) return { pos, actions };
-  const sell = (units, why, all = false) => { const u = Math.min(units, pos.remUnits); if (!(u > 0)) return; const px = price * (1 - cfg.slipPct / 100), usd = u * px; pos.remUnits -= u; pos.bankedUsd += usd; const a = { why, units: u, usd: +usd.toFixed(2), px: +px.toPrecision(6), all: all || pos.remUnits <= 1e-12, at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z' }; pos.sells.push(a); actions.push(a); };
+  const sell = (units, why, all = false) => { const u = Math.min(units, pos.remUnits); if (!(u > 0)) return; const px = price * (1 - (pos.slipOut ?? cfg.slipPct) / 100), usd = u * px; pos.remUnits -= u; pos.bankedUsd += usd; const a = { why, units: u, usd: +usd.toFixed(2), px: +px.toPrecision(6), all: all || pos.remUnits <= 1e-12, at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z' }; pos.sells.push(a); actions.push(a); };
   const sellAll = (why) => sell(pos.remUnits, why, true);
   pos.peak = Math.max(pos.peak, price);
   const opened = Date.parse(pos.openedAt) / 1000, heldH = (nowSec - opened) / 3600;
@@ -61,7 +65,7 @@ export function managePosition(pos0, q, closes5, nowSec, cfg = BOT) {
   // 5 TP1
   if (!pos.tp1Done && price >= pos.tp1) { sell(pos.units * cfg.tp1Share, 'TP1: a third at +1R'); pos.tp1Done = true; pos.stop = Math.max(pos.stop, pos.entry); }
   // 6 ride free
-  if (!pos.free && price >= pos.freeAt && pos.remUnits > 0) { const need = Math.max(0, pos.costUsd - pos.bankedUsd), px = price * (1 - cfg.slipPct / 100); sell(need / px, 'ride free: stake back at 2x'); pos.free = true; pos.stop = 0; }
+  if (!pos.free && price >= pos.freeAt && pos.remUnits > 0) { const need = Math.max(0, pos.costUsd - pos.bankedUsd), px = price * (1 - (pos.slipOut ?? cfg.slipPct) / 100); sell(need / px, 'ride free: stake back at 2x'); pos.free = true; pos.stop = 0; }
   // 7 trail before free / giveback after free
   if (pos.tp1Done && !pos.free) pos.stop = Math.max(pos.stop, pos.peak * (1 - cfg.trailPct));
   if (pos.free && lastClose != null && lastClose <= pos.peakClose * (1 - cfg.giveback)) { sellAll(`giveback: 5-minute close ${Math.round(cfg.giveback * 100)}% under the best close`); return { pos, actions }; }
@@ -79,18 +83,19 @@ export function decideLimit(setup, price, nowSec, cfg = BOT) {
   if (age > eh * 3600) return { act: 'drop', why: `expired (no fill in ${eh} hours)` };
   if (price <= setup.stop) return { act: 'drop', why: 'cancelled (price fell through the stop before the limit filled)' };
   if (price > setup.zoneHigh) return null; // the limit is still resting
-  const stopPct = (1 - setup.stop / price) * 100; if (stopPct > (cfg.maxStopPct || 35)) return { act: 'drop', why: `stop would be ${stopPct.toFixed(0)}% away: too wide` };
-  return { act: 'buy', price, stop: setup.stop, stopPct: +stopPct.toFixed(1), kind: 'limit at the top of the retest zone', why: ['price came back into the retest zone'] };
+  // a resting limit fills at the limit price on the first touch; if the bot only sees the price once it is lower, the fill was still the limit (anything else flatters the bot)
+  const fillPx = price >= setup.zoneLow ? price : setup.zoneHigh, stopPct = (1 - setup.stop / fillPx) * 100; if (stopPct > (cfg.maxStopPct || 35)) return { act: 'drop', why: `stop would be ${stopPct.toFixed(0)}% away: too wide` };
+  return { act: 'buy', price: fillPx, stop: setup.stop, stopPct: +stopPct.toFixed(1), kind: 'limit at the top of the retest zone', why: [price < setup.zoneLow ? 'price fell through the zone: the limit filled at the top of it' : 'price came back into the retest zone'] };
 }
-export function openLadder(setup, buy, usd, nowIso, cfg = BOT) {
-  const fill = buy.price * (1 + cfg.slipPct / 100), tg = [setup.tp1, setup.tp2, setup.tp3].map(Number).filter((x) => x > fill);
+export function openLadder(setup, buy, usd, nowIso, cfg = BOT, liq = 0) {
+  const c = costPct(usd, liq, cfg), fill = buy.price * (1 + c.inPct / 100), tg = [setup.tp1, setup.tp2, setup.tp3].map(Number).filter((x) => x > fill);
   return { id: setup.pool + '@' + nowIso, mode: 'ladder', coin: setup.coin, chain: setup.chain, pool: setup.pool, url: setup.url || null, openedAt: nowIso, entry: +fill.toPrecision(6), stop0: buy.stop, stop: buy.stop, R: +(fill - buy.stop).toPrecision(6),
-    targets: tg.map((x) => +x.toPrecision(6)), hits: 0, tp1: tg[0] || null, costUsd: usd, units: usd / fill, remUnits: usd / fill, bankedUsd: 0, tp1Done: false, free: false, peak: fill, peakClose: fill, sells: [] };
+    targets: tg.map((x) => +x.toPrecision(6)), hits: 0, tp1: tg[0] || null, costUsd: usd, units: usd / fill, remUnits: usd / fill, bankedUsd: 0, tp1Done: false, free: false, peak: fill, peakClose: fill, sells: [], liq: liq || null, slipOut: +c.outPct.toFixed(3) };
 }
 export function manageLadder(pos0, q, nowSec, cfg = BOT) {
   const pos = { ...pos0, sells: [...(pos0.sells || [])] }, price = n(q && q.priceUsd), actions = [];
   if (!(price > 0) || !(pos.remUnits > 0)) return { pos, actions };
-  const sell = (units, why, all = false) => { const u = Math.min(units, pos.remUnits); if (!(u > 0)) return; const px = price * (1 - cfg.slipPct / 100), usd = u * px; pos.remUnits -= u; pos.bankedUsd += usd; const a = { why, units: u, usd: +usd.toFixed(2), px: +px.toPrecision(6), all: all || pos.remUnits <= 1e-12, at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z' }; pos.sells.push(a); actions.push(a); };
+  const sell = (units, why, all = false) => { const u = Math.min(units, pos.remUnits); if (!(u > 0)) return; const px = price * (1 - (pos.slipOut ?? cfg.slipPct) / 100), usd = u * px; pos.remUnits -= u; pos.bankedUsd += usd; const a = { why, units: u, usd: +usd.toFixed(2), px: +px.toPrecision(6), all: all || pos.remUnits <= 1e-12, at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z' }; pos.sells.push(a); actions.push(a); };
   pos.peak = Math.max(pos.peak, price);
   if (price <= pos.stop) { sell(pos.remUnits, pos.hits ? 'break-even stop' : 'stop', true); return { pos, actions }; }
   while (pos.hits < pos.targets.length && price >= pos.targets[pos.hits] && pos.remUnits > 0) {

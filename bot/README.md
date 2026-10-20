@@ -1,6 +1,6 @@
 # RynoBot (dry run)
 
-Two always-on bots that do what a trading bot would do, except place orders. Each runs as its own service with its own $1,000 paper account:
+Two always-on bots that do what a trading bot would do, except place orders. Each runs as its own service with its own $10,000 paper account, and the **bot desk** (below) shows both on one page:
 
 - **rules** (`rynobot@rules`): the scanner's bid-ready and worth-watching setups, bought on the 5-minute trigger (below).
 - **breakout** (`rynobot@breakout`): Breakout retest, see **The Breakout bot** further down.
@@ -17,7 +17,7 @@ Every minute the rules bot:
    - **ride free at 2x**: sells just enough to get the whole stake back, so the rest cannot lose money
    - the rest rides until a 5-minute candle closes 50% under its best close, or 72 hours
 
-Sizing: 1% of the paper account at risk per trade, at most 25% of the account in one coin, 2% of the pool's liquidity, 4% total open risk, 4 positions at once, and no new entries after a 3% losing day.
+Sizing: 1% of the paper account lost if the stop is hit, **after costs**. Costs are 1% slippage plus price impact for this pool (a buy moves a pool's price by about twice its share of the pool, and the sell moves it back, so a $2,000 order in a $100k pool costs about 5% each way). The size is also capped at 25% of the account, 1% of the pool's liquidity, 1.5% price impact, 4% total open risk and 4 positions at once, and there are no new entries once the account is down 3% on the day, open positions included. At buy time the pool must still hold $100k+ and not have lost 40% of its liquidity since the setup was found (a pool being pulled).
 
 **Nothing is ever bought or sold.** There is no wallet, no private key and no trading code here. `"mode"` must be `"dry"`; anything else makes the bot refuse to start. Live trading gets built only after 2 to 4 weeks of dry-run results that are worth trusting, with its own wallet and keys kept only on the server.
 
@@ -33,6 +33,14 @@ Breakout retest exactly as the backtest traded it, because that is what the +0.9
 - **Exits:** the pattern plan's stop; a third at TP1 and the stop to break-even; a third at TP2; the rest at TP3; out after 7 days.
 - **Sizing:** the same as the rules bot: 1% of its paper account lost at the stop (slippage included), 4 positions, 4% total risk, no new buys after a 3% losing day.
 - **Its paper twin** is the dashboard's **Breakout → Bot filters** book, and its reality check compares against that.
+
+## The bot desk (a web page on the server)
+
+Open `http://<server address>:8080` on your computer or phone (any user name, plus the desk password you chose at install). It shows both bots side by side: paper account and its curve with each day's result, what each bot is watching and how far the nearest setup is from its zone, risk in use, today's result, the record, open positions with live P&L in dollars and R, the watch list, closed trades, and what the bots did. Click any position, trade or watched setup to see it on a 5-minute chart with the entry, stop, targets and every buy and sell, next to the rules it was taken under. It refreshes itself every 15 seconds.
+
+Also on it: a ticker of everything held and watched, each open position's stop-to-target bar, the win or loss streak with the average win and loss, **Passed on** (every setup the bot said no to, followed for 24 hours: what it did since, its best price, and whether its stop would have hit, so you can see how often saying no was right), and the latest reality check.
+
+It is read only: nothing on the page can change a setting, place an order or stop a bot. It runs as the `rynobot-dash` service and only reads the bots' files; the password is kept in `/etc/rynobot.env`. Change the port with `DASH_PORT=` in that file.
 
 ## What reaches your phone
 
@@ -91,15 +99,17 @@ Add `--bot breakout` to any `node bot/run.mjs` command for the Breakout bot (wit
 | stop new entries, every bot (open positions still managed) | `touch bot/STOP` (delete it to allow them again) |
 | stop new entries, one bot | `touch bot/STOP-breakout` or `touch bot/STOP-rules` |
 | change settings | `nano bot/config.json` then `sudo systemctl restart 'rynobot@*'` |
-| update to the latest RynoScan | `git pull && sudo systemctl restart 'rynobot@*'` |
+| update to the latest RynoScan | `git pull && sudo systemctl restart 'rynobot*'` |
 | check the data feeds | `node bot/run.mjs --check` |
 | see the reality check now | `node bot/run.mjs --bot breakout --reality` |
 | stop one bot completely | `sudo systemctl stop rynobot@breakout` |
+| start a bot's paper account again from $10,000 | `node bot/run.mjs --bot breakout --reset` then `sudo systemctl restart rynobot@breakout` (the old files are kept) |
+| restart the desk | `sudo systemctl restart rynobot-dash` |
 
 Every decision is written to `bot/journal.jsonl` (rules) or `bot/journal-breakout.jsonl`, and the paper accounts live in `bot/state.json` and `bot/state-breakout.json`.
 
 ## Settings (`bot/config.json`)
 
-`accountUsd` paper account size · `riskPct` % of the account risked per trade · `maxOpen` positions at once · `maxOpenRiskPct` total open risk · `dailyLossPct` no new entries after this losing day · `minOpp` lowest scanner score to watch · `signals` `["bid", "watch"]` or just `["bid"]` · `pollSec` seconds between checks · `tradeAlerts` would-be trades to the phone (default false) · `dailySummary` the 8pm summary (default false) · `summaryHourBrisbane` its time · `realityEveryDays` days between reality checks (14).
+`accountUsd` paper account size (10,000; a bot that has not traded yet picks up a change on restart, otherwise use `--reset`) · `riskPct` % of the account risked per trade · `maxOpen` positions at once · `maxOpenRiskPct` total open risk · `dailyLossPct` no new entries after this losing day · `minOpp` lowest scanner score to watch · `signals` `["bid", "watch"]` or just `["bid"]` · `pollSec` seconds between checks · `tradeAlerts` would-be trades to the phone (default false) · `dailySummary` the 8pm summary (default false) · `summaryHourBrisbane` its time · `realityEveryDays` days between reality checks (14).
 
 These apply to both bots. To change one bot only, put it under `"bots"`, for example `"bots": { "breakout": { "autoTune": false } }` keeps the Breakout bot on its starting filter. Breakout-only settings: `autoTune` (let the tuner switch filters, default true) · `maxStopPct` (35) · `minOpp` (50) · `maxHoldH` (168).

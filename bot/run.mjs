@@ -16,18 +16,18 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { candidates } from '../src/watch.mjs';
-import { BOT, decideEntry, sizeFor, openPosition, managePosition, pnlOf, decideLimit, openLadder, manageLadder } from './manage.mjs';
+import { BOT, decideEntry, sizeFor, openPosition, managePosition, pnlOf, decideLimit, openLadder, manageLadder, costPct } from './manage.mjs';
 import { reality, reportText, REALITY } from './reality.mjs';
 import { keepsAll, labelOf, TUNE } from '../docs/tuner.mjs';
 
-const DIR = path.dirname(fileURLToPath(import.meta.url));
+const DIR = process.env.RYNOBOT_DIR || path.dirname(fileURLToPath(import.meta.url)); // RYNOBOT_DIR: tests and the desk dashboard
 // each bot: where its setups come from, how it enters and exits, and which paper book its reality check compares against
 export const BOTS = {
   rules: { name: 'rules', label: 'RynoBot', source: 'setups', entry: 'trigger', exit: 'stack', realityBook: 'exec' },
   breakout: { name: 'breakout', label: 'RynoBot Breakout', source: 'breakouts', entry: 'limit', exit: 'ladder', realityBook: 'brkBot', tuneKey: 'breakout', autoTune: true, minOpp: 50, maxStopPct: 35, maxHoldH: 168 },
 };
 export const filesFor = (name = 'rules') => { const x = name === 'rules' ? '' : '-' + name; return { cfg: path.join(DIR, 'config.json'), state: path.join(DIR, `state${x}.json`), journal: path.join(DIR, `journal${x}.jsonl`), stopAll: path.join(DIR, 'STOP'), stop: path.join(DIR, 'STOP' + x), reality: path.join(DIR, `reality${x}.json`) }; };
-export const DEFAULTS = { site: 'https://devonflap.github.io/RYNOSCAN/data/', mode: 'dry', enabled: true, accountUsd: 1000, pollSec: 60, setupsEveryMin: 10, minOpp: 65, signals: ['bid', 'watch'], nearZonePct: 10, maxGtPerMin: 20, summaryHourBrisbane: 20, realityEveryDays: 14, minLiqUsd: 100000, coolH: 24, tradeAlerts: false, dailySummary: false, heartbeatMin: 30, ...BOT, ...BOTS.rules };
+export const DEFAULTS = { site: 'https://devonflap.github.io/RYNOSCAN/data/', mode: 'dry', enabled: true, accountUsd: 10000, pollSec: 60, setupsEveryMin: 10, minOpp: 65, signals: ['bid', 'watch'], nearZonePct: 10, maxGtPerMin: 20, summaryHourBrisbane: 20, realityEveryDays: 14, minLiqUsd: 100000, coolH: 24, tradeAlerts: false, dailySummary: false, heartbeatMin: 30, ...BOT, ...BOTS.rules };
 const DS = { solana: 'solana', robinhood: 'robinhood', ethereum: 'ethereum', eth: 'ethereum' }, GT = { solana: 'solana', robinhood: 'robinhood', ethereum: 'eth', eth: 'eth' };
 const rd = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
 const wr = (f, o) => { const tmp = f + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(o, null, 1)); fs.renameSync(tmp, f); };
@@ -77,7 +77,7 @@ export async function cycle(st, cfg, deps = {}) {
   if (!st._c5) Object.defineProperty(st, '_c5', { value: new Map(), enumerable: false });
   let c5t = 0, c5g = 0; const slot = Math.floor((nowSec - 45) / 300), C5c = async (c, p) => { const k = String(p).toLowerCase(), hit = st._c5.get(k); if (hit && hit.slot === slot) return hit.bars; c5t++; const b = await C5(c, p); if (b) { c5g++; st._c5.set(k, { slot, bars: b }); } return b; };
   // offline spells (server down, bot restarted) are remembered so the reality check can tell "bot was offline" from a real miss
-  st.startedAt ||= nowIso; st.gaps ||= []; st.blocks ||= [];
+  st.startedAt ||= nowIso; st.gaps ||= []; st.blocks ||= []; const held0 = new Set(st.positions.map((p) => p.pool));
   if (st.lastCycleAt && now - st.lastCycleAt > Math.max(5 * 60e3, cfg.pollSec * 5e3)) { st.gaps.push([new Date(st.lastCycleAt).toISOString().slice(0, 19) + 'Z', nowIso]); st.gaps = st.gaps.slice(-300); }
   // 1. setups from the scanner. rules: bid-ready and worth-watching with a zone and an invalidation (24 hours). breakout: Breakout retests (48 hours)
   if (now - (st.setupsAt || 0) > cfg.setupsEveryMin * 60e3) {
@@ -88,31 +88,37 @@ export async function cycle(st, cfg, deps = {}) {
         if (!cfg.signals.includes(it.kind) || !it.pool || !(it.entryLow > 0) || !(it.stop > 0) || st.setups[it.pool]) continue;
         if (!((it.opp ?? 0) > cfg.minOpp) || (it.liquidity != null && it.liquidity < cfg.minLiqUsd) || it.rug === 'danger') continue;
         if (now - ((st.seen || {})[it.pool] || 0) < cfg.coolH * 3600e3) continue; (st.seen ||= {})[it.pool] = now;
-        st.setups[it.pool] = { pool: it.pool, coin: it.coin, chain: it.chain, kind: it.kind, setup: it.setup, opp: it.opp, zoneLow: +it.entryLow, zoneHigh: +it.entryHigh, stop: +it.stop, at: nowIso }; J({ type: 'setup', coin: it.coin, pool: it.pool, kind: it.kind, zoneLow: +it.entryLow, zoneHigh: +it.entryHigh, stop: +it.stop }); } }
+        st.setups[it.pool] = { pool: it.pool, coin: it.coin, chain: it.chain, kind: it.kind, setup: it.setup, opp: it.opp, zoneLow: +it.entryLow, zoneHigh: +it.entryHigh, stop: +it.stop, at: nowIso, liq0: +it.liquidity || 0 }; J({ type: 'setup', coin: it.coin, pool: it.pool, kind: it.kind, zoneLow: +it.entryLow, zoneHigh: +it.entryHigh, stop: +it.stop }); } }
       st.setupsAt = now; await H('scanner', false, { title: 'scanner data' }); } catch (e) { console.log('setups: ' + e.message); st.setupsAt = now - Math.max(0, cfg.setupsEveryMin - 2) * 60e3;
       await H('scanner', e.message || 'error', { afterMin: 30, title: 'scanner data', text: (m, why) => `Can't read the scanner's setups from the dashboard for ${m} minutes (${why}).\nNo new setups are coming in; open positions are still managed.\nIf the dashboard won't load either, GitHub Pages is down and it comes back by itself.` }); }
   }
-  for (const [k, s] of Object.entries(st.setups)) if (now - Date.parse(s.at) > ((s.expireH || 24) + 1) * 3600e3 || s.dropped) delete st.setups[k];
+  for (const [k, s] of Object.entries(st.setups)) if (now - Date.parse(s.at) > ((s.expireH || 24) + 1) * 3600e3 || s.dropped) { if (s.lastPx > 0 && !held0.has(s.pool)) (st.passed ||= []).push({ coin: s.coin, chain: s.chain, pool: s.pool, at: nowIso, px0: s.lastPx, zoneHigh: s.zoneHigh, stop: s.stop, why: s.dropWhy || (s.dropped ? 'dropped' : 'no trigger before it expired'), hi: s.lastPx, last: s.lastPx }); delete st.setups[k]; }
+  st.passed = (st.passed || []).filter((x) => now - Date.parse(x.at) < 3 * 86400e3).slice(-80);
   for (const [k, t] of Object.entries(st.seen || {})) if (now - t > 2 * cfg.coolH * 3600e3) delete st.seen[k];
   // 2. prices for everything we watch or hold
   const held = new Set(st.positions.map((p) => p.pool)), watchList = Object.values(st.setups).filter((s) => !held.has(s.pool));
-  const items = [...watchList, ...st.positions], q = await Q(items);
+  for (const x of st.passed || []) if (!x.done && now - Date.parse(x.at) >= 24 * 3600e3) x.done = true;
+  const following = (st.passed || []).filter((x) => !x.done), items = [...watchList, ...st.positions, ...following], q = await Q(items);
+  for (const x of following) { const y = q[String(x.pool).toLowerCase()]; if (y && +y.priceUsd > 0) { x.last = +y.priceUsd; x.hi = Math.max(x.hi || 0, x.last); x.lo = Math.min(x.lo ?? x.last, x.last); } }
   await H('prices', items.length && !Object.keys(q || {}).length ? 'no prices returned' : false, { afterMin: st.positions.length ? 15 : 30, title: 'prices', text: (m) => `Can't get prices from DexScreener for ${m} minutes${st.positions.length ? `, so the ${st.positions.length} open position${st.positions.length === 1 ? ' is' : 's are'} not being checked` : ''}.\nUsually a DexScreener outage that clears by itself. If it lasts hours, run on the server: node bot/run.mjs --check` });
+  for (const s of watchList) { const x = q[String(s.pool).toLowerCase()]; if (x && +x.priceUsd > 0) { s.lastPx = +x.priceUsd; s.lastAt = nowIso; } }
   // 3. manage open positions first (exits never wait behind entries)
   for (let i = 0; i < st.positions.length; i++) {
     let pos = st.positions[i]; const qq = q[String(pos.pool).toLowerCase()]; if (!qq) continue;
     let r; if (pos.mode === 'ladder') r = manageLadder(pos, qq, nowSec, cfg);
     else { let closes = null; if (!st.gtAt[pos.id] || now - st.gtAt[pos.id] > 5 * 60e3) { const b = await C5c(pos.chain, pos.pool); if (b) { closes = b.filter((x) => x[0] + 300 <= nowSec).map((x) => [x[0], x[4]]); st.gtAt[pos.id] = now; } } r = managePosition(pos, qq, closes, nowSec, cfg); }
-    pos = st.positions[i] = r.pos;
+    pos = st.positions[i] = r.pos; if (+qq.priceUsd > 0) { pos.lastPx = +qq.priceUsd; pos.lastAt = nowIso; }
     for (const a of r.actions) { st.cash += a.usd; const pnl = a.all ? pnlOf(pos, 0) : null;
       if (a.all) { st.days[dayKey(now)] = (st.days[dayKey(now)] || 0) + pnl; }
       J({ type: 'sell', coin: pos.coin, pool: pos.pool, ...a, pnl });
       await TN(`${NM} (dry run): SELL ${a.all ? 'ALL ' : ''}${pos.coin}`, `Would sell ${usd(a.usd)} of ${pos.coin} at ~${fmt(a.px)}: ${a.why}.${a.all ? `\nTrade result: ${pnl >= 0 ? '+' : ''}${usd(pnl)} (${((pnl / pos.costUsd) * 100).toFixed(1)}%).` : pos.free ? '\nNow riding free: the stake is back, the rest cannot lose money.' : pos.tp1Done ? `\nStop now at ${fmt(pos.stop)}.` : ''}${pos.url ? '\n' + pos.url : ''}\nDRY RUN: no order was placed.`, a.all && pnl < 0 ? 'high' : 'default'); }
-    if (pos.remUnits <= 1e-12) { st.closed.push({ ...pos, closedAt: nowIso, pnl: pnlOf(pos, 0) }); st.positions.splice(i, 1); i--; }
+    if (pos.remUnits <= 1e-12) { const pnl = pnlOf(pos, 0); st.closed.push({ ...pos, closedAt: nowIso, pnl, R: pos.riskUsd > 0 ? +(pnl / pos.riskUsd).toFixed(2) : null, exitAvg: pos.units > 0 ? +(pos.bankedUsd / pos.units).toPrecision(6) : null }); st.positions.splice(i, 1); i--; }
   }
   st.closed = st.closed.slice(-500);
   // 4. entries: only setups near their zone get 5-minute candles; the trigger decides
-  const stopFile = fs.existsSync(F.stop) || fs.existsSync(F.stopAll), dayLoss = st.days[dayKey(now)] || 0, eq = equity(st, q);
+  const stopFile = fs.existsSync(F.stop) || fs.existsSync(F.stopAll), eq = equity(st, q);
+  if (st.dayKey !== dayKey(now)) { st.dayKey = dayKey(now); st.dayStartEq = eq; } // the day's loss counts open positions too, not only what has been sold
+  const dayLoss = Math.min(st.days[dayKey(now)] || 0, eq - (st.dayStartEq ?? eq));
   const blockWhy = cfg.enabled === false ? 'new buys were switched off' : stopFile ? 'new buys were switched off (STOP file)' : dayLoss <= -(cfg.dailyLossPct / 100) * st.start ? 'the daily loss limit was hit' : st.positions.length >= cfg.maxOpen ? `all ${cfg.maxOpen} position slots were full` : null, canBuy = !blockWhy;
   { const last = st.blocks[st.blocks.length - 1], openSpan = last && last[1] == null; if (openSpan && last[2] !== blockWhy) last[1] = nowIso; if (blockWhy && !(openSpan && last[2] === blockWhy)) st.blocks.push([nowIso, null, blockWhy]); st.blocks = st.blocks.slice(-300); }
   if (canBuy) for (const s of watchList) {
@@ -120,16 +126,21 @@ export async function cycle(st, cfg, deps = {}) {
     let d; if (cfg.entry === 'limit') d = decideLimit(s, price, nowSec, cfg);
     else { if (price > s.zoneHigh * (1 + cfg.nearZonePct / 100) || price < s.stop) continue; const b = await C5c(s.chain, s.pool); if (!b) continue; d = decideEntry(s, b, price, nowSec, cfg); }
     if (!d) continue;
-    if (d.act === 'drop') { s.dropped = true; J({ type: 'drop', coin: s.coin, pool: s.pool, why: d.why }); continue; }
-    // size on the real loss at the stop: from the fill (price plus entry slippage) down to the stop less exit slippage, so a stop costs 1% of the account, not 1.3%+
-    const sl = cfg.slipPct / 100, riskPct = +((1 - (d.stop * (1 - sl)) / (price * (1 + sl))) * 100).toFixed(2);
-    const openRisk = st.positions.reduce((a, p) => a + (p.free ? 0 : Math.max(0, p.remUnits * (p.entry - p.stop * (1 - sl)))), 0), sz = sizeFor({ equity: eq, cash: st.cash }, { stopPct: riskPct }, +(qq.liquidity && qq.liquidity.usd) || 0, openRisk, cfg);
-    if (sz.usd < 10) { J({ type: 'skip', coin: s.coin, why: 'size too small (' + (sz.cut || 'limits') + ')' }); s.dropped = true; continue; }
-    const ladder = cfg.exit === 'ladder', pos = { ...(ladder ? openLadder({ ...s, url: qq.url }, d, sz.usd, nowIso, cfg) : openPosition({ ...s, url: qq.url }, d, sz.usd, nowIso, cfg)), setup: s.setup, kind: d.kind, book: cfg.realityBook }; st.positions.push(pos); st.cash -= sz.usd; s.dropped = true;
+    if (d.act === 'drop') { s.dropped = true; s.dropWhy = d.why; J({ type: 'drop', coin: s.coin, pool: s.pool, why: d.why }); continue; }
+    // the pool must still be there: liquidity can be pulled between the scan and the fill
+    const liq = +(qq.liquidity && qq.liquidity.usd) || 0; if (liq < cfg.minLiqUsd) { s.dropped = true; s.dropWhy = 'liquidity too thin at buy time'; J({ type: 'drop', coin: s.coin, pool: s.pool, why: `liquidity is now $${Math.round(liq / 1000)}k (under $${Math.round(cfg.minLiqUsd / 1000)}k)` }); continue; }
+    if (s.liq0 > 0 && liq < s.liq0 * (1 - cfg.liqDropPct / 100)) { s.dropped = true; s.dropWhy = 'liquidity being pulled'; J({ type: 'drop', coin: s.coin, pool: s.pool, why: `liquidity fell ${Math.round((1 - liq / s.liq0) * 100)}% since the setup: likely being pulled` }); continue; }
+    // size on the real loss at the stop, with price impact for this pool's size: from the fill (price plus costs) to the stop less costs. Two passes, because the cost depends on the size.
+    const openRisk = st.positions.reduce((a, p) => a + (p.free ? 0 : Math.max(0, p.remUnits * (p.entry - p.stop * (1 - (p.slipOut ?? cfg.slipPct) / 100)))), 0);
+    let riskPct = +((1 - (d.stop * (1 - cfg.slipPct / 100)) / (d.price * (1 + cfg.slipPct / 100))) * 100).toFixed(2), sz = sizeFor({ equity: eq, cash: st.cash }, { stopPct: riskPct }, liq, openRisk, cfg);
+    { const c = costPct(sz.usd, liq, cfg); riskPct = +((1 - (d.stop * (1 - c.outPct / 100)) / (d.price * (1 + c.inPct / 100))) * 100).toFixed(2); sz = sizeFor({ equity: eq, cash: st.cash }, { stopPct: riskPct }, liq, openRisk, cfg); }
+    if (sz.usd < 10) { J({ type: 'skip', coin: s.coin, why: 'size too small (' + (sz.cut || 'limits') + ')' }); s.dropped = true; s.dropWhy = 'size too small (' + (sz.cut || 'limits') + ')'; continue; }
+    const ladder = cfg.exit === 'ladder', pos = { ...(ladder ? openLadder({ ...s, url: qq.url }, d, sz.usd, nowIso, cfg, liq) : openPosition({ ...s, url: qq.url }, d, sz.usd, nowIso, cfg, liq)), setup: s.setup, kind: d.kind, book: cfg.realityBook, riskUsd: sz.riskUsd, lastPx: price, lastAt: nowIso,
+      meta: { opp: s.opp ?? null, signal: s.kind, zoneLow: s.zoneLow, zoneHigh: s.zoneHigh, rr2: s.rr2 ?? null, riskPct: s.riskPct ?? null, volDay: s.volDay ?? null, stopPct: d.stopPct, why: d.why, setupAt: s.at, trigPx: d.trigPx ?? null, trigAt: d.trigAt ?? null, quotePx: price, liq, impactPct: costPct(sz.usd, liq, cfg).impactPct } }; st.positions.push(pos); st.cash -= sz.usd; s.dropped = true;
     J({ type: 'buy', coin: s.coin, pool: s.pool, usd: sz.usd, entry: pos.entry, stop: pos.stop, why: d.why });
     const plan = ladder ? `Targets: a third at ${fmt(pos.targets[0])} (stop to break-even), a third at ${fmt(pos.targets[1])}, the rest at ${fmt(pos.targets[2])}; out after ${Math.round(cfg.maxHoldH / 24)} days.`
       : `TP1 ${fmt(pos.tp1)} (+1R): sell a third, stop to break-even.\nRide free at ${fmt(pos.freeAt)} (2x): sell enough to get the stake back.\nThen out on a 5-minute close 50% under the best close, or after 72 hours.`;
-    await TN(`${NM} (dry run): BUY ${s.coin}`, `Would buy ${usd(sz.usd)} of ${s.coin} (${s.chain}) at ~${fmt(price)} (limit ${fmt(price * 1.01)}).\nStop ${fmt(pos.stop)} (${d.stopPct}% under the price; ${riskPct}% loss at the stop after slippage, risk ${usd(sz.riskUsd)}).\n${plan}\nWhy: ${s.setup || 'setup'} (${s.kind === 'bid' ? 'bid-ready' : s.kind === 'brk' ? `reward to risk ${s.rr2 ?? '?'}R to TP2` : 'worth watching'}), ${d.why.join(', ')}${sz.cut ? ` · size cut by the ${sz.cut}` : ''}.${qq.url ? '\n' + qq.url : ''}\nDRY RUN: no order was placed.`, 'high');
+    await TN(`${NM} (dry run): BUY ${s.coin}`, `Would buy ${usd(sz.usd)} of ${s.coin} (${s.chain}) at ~${fmt(d.price)} (limit ${fmt(d.price * 1.01)}; pool $${Math.round(liq / 1000)}k, costs about ${costPct(sz.usd, liq, cfg).inPct.toFixed(1)}% each way).\nStop ${fmt(pos.stop)} (${d.stopPct}% under the price; ${riskPct}% loss at the stop after costs, risk ${usd(sz.riskUsd)}).\n${plan}\nWhy: ${s.setup || 'setup'} (${s.kind === 'bid' ? 'bid-ready' : s.kind === 'brk' ? `reward to risk ${s.rr2 ?? '?'}R to TP2` : 'worth watching'}), ${d.why.join(', ')}${sz.cut ? ` · size cut by the ${sz.cut}` : ''}.${qq.url ? '\n' + qq.url : ''}\nDRY RUN: no order was placed.`, 'high');
     if (st.positions.length >= cfg.maxOpen) break;
   }
   if (c5t) await H('candles', c5g ? false : 'no candles returned', { afterMin: 30, title: '5-minute candles', text: (m) => `Can't get 5-minute candles from GeckoTerminal for ${m} minutes.\nNo new entries can trigger, and the after-2x giveback exit is paused (stops and targets still work on the live price).\nUsually a GeckoTerminal outage or rate limit that clears by itself.` });
@@ -142,6 +153,8 @@ export async function cycle(st, cfg, deps = {}) {
     try { const rows = await G(cfg.site + 'lab.json', 60000), r = reality(st, (deps.readJournal || (() => readJournal(F)))(), Array.isArray(rows) ? rows : [], { now, cfg: { ...REALITY, book: cfg.realityBook || 'exec' } }); st.realityAt = now;
       (deps.saveReality || ((x) => saveReality(F, x)))(r); J({ type: 'reality', n: r.n, gapPct: r.gapPct, gapR: r.gapR, call: r.call });
       await N(`${NM} (dry run): reality check`, reportText(r, now + every)); } catch (e) { console.log('reality check: ' + e.message); } }
+  // equity curve every 5 minutes (the desk dashboard draws it)
+  if (now - (st.eqAt || 0) >= 5 * 60e3) { st.eq = [...(st.eq || []), [now, +equity(st, q).toFixed(2)]].slice(-5000); st.eqAt = now; }
   // 7. heartbeat to the silent <topic>-hb topic; the GitHub watchdog alerts the phone if these stop
   if (cfg.heartbeatMin > 0 && now - (st.hbAt || 0) >= cfg.heartbeatMin * 60e3) { st.hbAt = now; await (deps.heartbeat || heartbeat)(`hb:${cfg.name || 'rules'} ${nowIso} open=${st.positions.length} watching=${Object.keys(st.setups).length}`); }
   st.lastCycleAt = now;
@@ -160,7 +173,7 @@ async function breakoutSetups(st, cfg, { G, J, N, now, nowIso }) {
     if (!((r.opp ?? 0) >= cfg.minOpp) || (r.liquidity ?? 0) < cfg.minLiqUsd || r.rug === 'danger' || !(r.riskPct <= cfg.maxStopPct) || !keepsAll(active, r)) continue;
     if (now - Date.parse(r.at || nowIso) > (r.expireH || 48) * 3600e3) continue;
     if (now - ((st.seen || {})[r.pool] || 0) < cfg.coolH * 3600e3) continue; (st.seen ||= {})[r.pool] = now;
-    st.setups[r.pool] = { pool: r.pool, coin: r.coin, chain: r.chain, kind: 'brk', setup: 'Breakout retest', opp: r.opp, zoneLow: +r.zoneLow, zoneHigh: +r.zoneHigh, stop: +r.stop, tp1: +r.tp1, tp2: +r.tp2 || null, tp3: +r.tp3 || null, rr2: r.rr2, riskPct: r.riskPct, volDay: r.volDay, expireH: r.expireH || 48, at: r.at || nowIso };
+    st.setups[r.pool] = { pool: r.pool, coin: r.coin, chain: r.chain, kind: 'brk', setup: 'Breakout retest', opp: r.opp, zoneLow: +r.zoneLow, zoneHigh: +r.zoneHigh, stop: +r.stop, tp1: +r.tp1, tp2: +r.tp2 || null, tp3: +r.tp3 || null, rr2: r.rr2, riskPct: r.riskPct, volDay: r.volDay, expireH: r.expireH || 48, at: r.at || nowIso, liq0: +r.liquidity || 0 };
     J({ type: 'setup', coin: r.coin, pool: r.pool, kind: 'brk', zoneLow: +r.zoneLow, zoneHigh: +r.zoneHigh, stop: +r.stop, filters: active });
   }
 }
@@ -173,7 +186,10 @@ async function main() {
     try { const q = await getJson('https://api.dexscreener.com/latest/dex/search?q=SOL'); console.log('DexScreener: ok (' + ((q.pairs || []).length) + ' pairs)'); } catch (e) { ok = false; console.log('DexScreener FAILED: ' + e.message); }
     try { const g = await getJson('https://api.geckoterminal.com/api/v2/networks'); console.log('GeckoTerminal: ok (' + ((g.data || []).length) + ' networks)'); } catch (e) { ok = false; console.log('GeckoTerminal FAILED: ' + e.message); }
     console.log(process.env.NTFY_TOPIC ? 'ntfy topic: set' : 'ntfy topic: NOT set (alerts only go to the log)'); process.exit(ok ? 0 : 1); }
+  if (args.includes('--reset')) { const tag = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-'); for (const f of [F.state, F.journal, F.reality]) if (fs.existsSync(f)) fs.renameSync(f, f + '.old-' + tag); console.log(`${NM}: paper account reset. The old files were kept with .old-${tag} on the end. It starts again with $${cfg.accountUsd.toLocaleString('en')} when the service restarts: systemctl restart rynobot@${name}`); process.exit(0); }
   let st = rd(F.state, null) || newState(cfg);
+  // a bot that has not traded yet takes the configured account size (so changing accountUsd needs no reset)
+  if (st.start !== cfg.accountUsd && !st.positions.length && !st.closed.length) { st.cash = st.start = cfg.accountUsd; st.eq = []; st.eqAt = 0; }
   if (args.includes('--status')) { const q = await quotes(st.positions).catch(() => ({})), e = equity(st, q), wins = st.closed.filter((p) => p.pnl > 0).length;
     console.log(`${NM}: paper account ${usd(e)} (started ${usd(st.start)}, ${((e / st.start - 1) * 100).toFixed(1)}%) since ${st.startedAt || 'not started'}.\nClosed ${st.closed.length} (${wins} won), total ${usd(st.closed.reduce((a, p) => a + p.pnl, 0))}. Watching ${Object.keys(st.setups).length} setups.`);
     if (st.filters) console.log(`  filters: ${st.filters.length ? st.filters.map(labelOf).join('; ') : 'none'}`);
