@@ -1,7 +1,4 @@
-Full scan 06:11 Brisbane: 72 scanned, 61 scored, 14 above 65. On-chain volume Normal (1.06x 7-day avg).
-NEW watch: PUMP (Solana) Bottom reversal, opp 88, checks 6/6, stop 19.5% away, upside 58.4%.
-NEW watch: CASHCAT (Robinhood) Base breakout, opp 82, checks 6/6, stop 17% away, upside 50.9%.
-NEW watch: TROLL (Solana) Base breakout, opp 71, checks 5/6, stop 15.9% away, upside 47.7%; volume fading.
+Hourly refresh 07:10 Brisbane: 14 tracked coins refreshed, 14 scored, 13 above 65. On-chain volume Normal (1.06x 7-day avg).
+NEW watch: DELTA (Robinhood) Trend pullback, opp 94, checks 6/6, stop 15% away, upside 45.3%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: TTWO (Mint Authority still enabled), SPCX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
