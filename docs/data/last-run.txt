@@ -1,5 +1,3 @@
-Full scan 13:11 Brisbane: 68 scanned, 50 scored, 5 above 65. On-chain volume Normal (1x 7-day avg).
-NEW watch: DACITY (Solana) Bull flag, opp 83, checks 6/6, stop null% away, upside null%.
+Hourly refresh 14:10 Brisbane: 5 tracked coins refreshed, 5 scored, 0 above 65. On-chain volume Normal (1x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: SPCX (Mint Authority still enabled), TTWO (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
