@@ -1,3 +1,4 @@
-Hourly refresh 08:10 Brisbane: 13 tracked coins refreshed, 13 scored, 12 above 65. On-chain volume Normal (1.06x 7-day avg).
+Hourly refresh 09:10 Brisbane: 12 tracked coins refreshed, 12 scored, 10 above 65. On-chain volume Normal (1.06x 7-day avg).
+NEW watch: PUMP (Solana) Bottom reversal, opp 74, checks 4/6, stop 19.5% away, upside 58.4%; more sellers than buyers in the last hour; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
