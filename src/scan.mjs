@@ -19,6 +19,7 @@ import { simulate } from '../docs/paper.mjs';
 import { pickCandidates, trim as trimFwd, MAX_EVAL } from './forward.mjs';
 import * as D from '../docs/degen.mjs';
 import * as L from '../docs/strategies.mjs';
+import { keepsAll, TUNE } from '../docs/tuner.mjs';
 import { scoreV2, rowToSig } from '../docs/features.mjs';
 import * as SCO from './scorecard.mjs';
 import { runExit, PROFILES, statsBook, fromRun, flowCutEvent, missStep } from '../docs/exits.mjs';
@@ -28,6 +29,9 @@ import { fetchWallets, loadSmart } from './wallets.mjs';
 const OUT = process.env.OUT_DIR || 'docs/data';
 const readJson = (f, d) => { try { const j = JSON.parse(fs.readFileSync(f, 'utf8')); return Array.isArray(d) ? (Array.isArray(j) ? j : d) : (j && typeof j === 'object' && !Array.isArray(j) ? j : d); } catch { return d; } }; // wrong-shaped files fall back to the default
 const settings = readJson('config/settings.json', {});
+// phone: "health" (default) = only when something is broken (failed runs, overdue scans, data limits) plus the weekly report and bot news;
+// "all" = the trade alerts too (bid-ready, watch, one gate away, early, degen, edge books, digests). The bot trades; the phone does not.
+const tradeAlerts = settings.phoneAlerts === 'all';
 if (settings.minStopPct != null && isFinite(+settings.minStopPct)) C.RULES.minStopPct = +settings.minStopPct; // stop at least this % under the entry (0 = old rule)
 const mine = readJson('config/mycoins.json', { coins: [] });
 const api = makeApi();
@@ -76,7 +80,7 @@ if (mode === 'full') {
 }
 
 // 2. candles + indicators + patterns
-const barsMap = new Map(), H1 = new Map(), M5 = new Map(); // H1/M5: candles fetched this run, shared by every step below so one pool is fetched once
+const barsMap = new Map(), H1 = new Map(), M5 = new Map(), M15 = new Map(); // H1/M5: candles fetched this run, shared by every step below so one pool is fetched once
 let done = 0;
 for (const p of list) {
   const j = await api.get(`/networks/${p.net}/pools/${p.pool}/ohlcv/hour?aggregate=1&limit=1000&currency=usd&token=base`);
@@ -87,6 +91,8 @@ for (const p of list) {
 
 async function hourBars(net, pool) { const k = String(pool).toLowerCase(); if (H1.has(k)) return H1.get(k); const j = await api.get(`/networks/${net}/pools/${pool}/ohlcv/hour?aggregate=1&limit=1000&currency=usd&token=base`); const raw = j?.data?.attributes?.ohlcv_list; const b = Array.isArray(raw) && raw.length ? raw.slice().sort((x, y) => x[0] - y[0]).map(q => q.map(Number)) : null; if (b) H1.set(k, b); return b; }
 async function m5Bars(net, pool) { const k = String(pool).toLowerCase(); if (M5.has(k)) return M5.get(k); const j = await api.get(`/networks/${net}/pools/${pool}/ohlcv/minute?aggregate=5&limit=300&currency=usd&token=base`); const raw = j?.data?.attributes?.ohlcv_list; const b = Array.isArray(raw) && raw.length ? raw.slice().sort((x, y) => x[0] - y[0]).map(q => q.map(Number)) : null; M5.set(k, b); return b; }
+// 15-minute candles (up to ~10 days): the execution and study books replay their exits on these
+async function m15Bars(net, pool) { const k = String(pool).toLowerCase(); if (M15.has(k)) return M15.get(k); const j = await api.get(`/networks/${net}/pools/${pool}/ohlcv/minute?aggregate=15&limit=1000&currency=usd&token=base`); const raw = j?.data?.attributes?.ohlcv_list; const b = Array.isArray(raw) && raw.length ? raw.slice().sort((x, y) => x[0] - y[0]).map(q => q.map(Number)) : null; M15.set(k, b); return b; }
 const netOf = (s) => s.net || C.NETOF[String(s.chain).toLowerCase()] || String(s.chain).toLowerCase();
 
 // 3. score, dedupe, second-opinion check
@@ -272,6 +278,25 @@ try {
         const hs = { id: h.id, coin: h.coin, chain: C.CH[h.chain] || h.chain, pool: h.pool, net: h.net, price: h.price, liq: h.liq, signalId: h.pool + '@' + h.at.slice(0, 16) }, ph = rowByPool.get(h.pool) ? L.lifecycle(rowByPool.get(h.pool)) : null;
         if (add(L.labRow('pulse', hs, h.at, { why: h.why, phase: ph }))) nAdd.pulse = (nAdd.pulse || 0) + 1;
         const fp = L.flushPlan(h.price); if (fp && openOf('pulseFlush').length < L.BOOKS.pulseFlush.slots) add(L.labRow('pulseFlush', hs, h.at, { why: [...(h.why || []).slice(0, 1), `bid ${fp.limit} (6% under the alert price) and wait for a dip`], plan: fp, phase: ph })); } }
+    // execution test: the scanner's setups traded three ways (zone limit, 5-minute trigger, 5-minute trigger with the study exits)
+    { const dAt = new Date().toISOString().slice(0, 19) + 'Z'; let k = 0;
+      for (const p of kept.filter(p => (p.signal === 'Entry signal' || p.signal === 'Watch') && p.sp && p.sp.valid && p.sp.entryLow > 0 && p.sp.stop > 0 && (p.liq || 0) >= 100000 && p.rug !== 'danger').sort((a, b) => (b.opp ?? 0) - (a.opp ?? 0))) {
+        if (k >= L.BOOKS.execZone.maxNew || openOf('exec').length >= (L.BOOKS.exec.maxWatch || L.BOOKS.exec.slots)) break; if (recentCoin('execZone', p.pool, 24)) continue;
+        const sp = p.sp, src = { ...srcOf(p), signalId: p.pool + '|' + (p.setupType || 'setup') + '@' + dAt.slice(0, 13) }, why = [`${p.setupType || 'setup'} (${p.signal === 'Entry signal' ? 'bid-ready' : 'worth watching'}, score ${p.opp ?? '?'})`], setup = { zoneLow: sp.entryLow, zoneHigh: sp.entryHigh, stop: sp.stop, expireH: 24 };
+        const z = add(L.labRow('execZone', src, dAt, { why, setupType: p.setupType, opp: p.opp ?? null, plan: { limit: sp.entryHigh, stop: sp.stop, targets: [], expireH: 24, cancelAbove: sp.tp1 || null, cancelWhy: 'cancelled (ran to TP1 before the entry filled)' } }));
+        add(L.labRow('exec', src, dAt, { why, setup, setupType: p.setupType, opp: p.opp ?? null })); add(L.labRow('execStudy', src, dAt, { why, setup, setupType: p.setupType, opp: p.opp ?? null }));
+        if (z) { nAdd.exec = (nAdd.exec || 0) + 1; k++; } } }
+    // Breakout retest research: the pattern exactly as the backtest traded it, the Breakout bot's filters (its paper twin), and the same setups
+    // with the 5-minute trigger entry (the pattern mostly loses on entries that never work). The bot filters come from the tuner's last run.
+    { const dAt = new Date().toISOString().slice(0, 19) + 'Z', prevC = readJson(path.join(OUT, 'council.json'), {}), bt = prevC.botTuning && prevC.botTuning.breakout, act = bt && Array.isArray(bt.active) ? bt.active : TUNE.breakout.start; let k = 0;
+      for (const [p, b] of allRows.map(p => [p, L.brkSetup(p, volDay)]).filter(([, b]) => b).sort((a, b) => (b[0].opp ?? 0) - (a[0].opp ?? 0))) {
+        if (k >= L.BOOKS.brk.maxNew || openOf('brk').length >= L.BOOKS.brk.slots) break; if (recentCoin('brk', p.pool, 24)) continue;
+        const src = { ...srcOf(p), signalId: p.pool + '|brk@' + dAt.slice(0, 13) }, feat = { rr2: b.rr2, riskPct: b.riskPct, volDay: b.volDay, opp: b.opp, signalKind: p.signal || null }, tg = [[b.tp1, 1 / 3], [b.tp2, 1 / 3], [b.tp3, 1 / 3]].filter(([px]) => px > 0);
+        const why = [`Breakout retest (score ${p.opp ?? '?'}, ${p.signal === 'Entry signal' ? 'bid-ready' : p.signal === 'Watch' ? 'worth watching' : 'not called by the main rules'}), reward to risk ${b.rr2 ?? '?'}R to TP2, stop ${b.riskPct}% away`];
+        const plan = { limit: b.zoneHigh, stop: b.stop, targets: tg, expireH: b.expireH };
+        if (!add(L.labRow('brk', src, dAt, { why, setupType: 'Breakout retest', plan, ...feat }))) continue; k++; nAdd.brk = (nAdd.brk || 0) + 1;
+        if (keepsAll(act, { ...feat, chain: src.chain }) && b.riskPct <= 35) add(L.labRow('brkBot', src, dAt, { why: [...why, 'passes the bot filters'], setupType: 'Breakout retest', plan, ...feat, filters: act }));
+        add(L.labRow('brkTrig', src, dAt, { why, setupType: 'Breakout retest', setup: { zoneLow: b.zoneLow, zoneHigh: b.zoneHigh, stop: b.stop, expireH: b.expireH }, stopPx: b.stop, targets: tg, ...feat })); } }
     // buyer spike: new wallets arriving before the price has run (full scans only: unique buyers come from GeckoTerminal)
     if (mode === 'full') { const dAt = new Date().toISOString().slice(0, 19) + 'Z'; let k = 0;
       for (const p of allRows.filter(p => p.price > 0 && L.buyerSpike(p) != null).sort((a, b) => L.buyerSpike(b) - L.buyerSpike(a))) { if (k >= L.BOOKS.spike.maxNew || openOf('spike').length >= L.BOOKS.spike.slots) break;
@@ -293,29 +318,39 @@ try {
         for (const sg of L.scalpSignals(bars, Date.now() / 1000, p)) { if (!L.BOOKS[sg.book]) continue; if (lab.filter(x => x.book === sg.book && isOpenL(x)).length >= L.BOOKS[sg.book].slots) continue;
           const chain = { solana: 'Solana', eth: 'Ethereum', robinhood: 'Robinhood' }[p.chain] || p.chain; if (add(L.labRow(sg.book, { id: String(p.chain).slice(0, 3).toUpperCase() + ':' + p.sym, coin: p.sym, chain, pool: p.pool, net: p.net, price: p.price, liq: p.liq }, dAt, { why: sg.why }))) nAdd.scalp++; } }
     } else if (settings.scalper !== false) say('scalper paused: monthly data allowance is over 85% used');
-    const byPool = new Map(); for (const x of lab.filter(isOpenL).sort((a, b) => String(a.checkedAt).localeCompare(String(b.checkedAt)))) { const k = (PROFILES[x.profile] && PROFILES[x.profile].barSec === 300 ? 'm5|' : 'h1|') + String(x.pool).toLowerCase(); if (!byPool.has(k)) byPool.set(k, []); byPool.get(k).push(x); }
+    // 5-minute triggers for the execution books: waiting rows look for their trigger; once filled they are replayed on hourly candles
+    { const idx0 = new Map(lab.map((x, i) => [x.lid, i])), nowT = new Date().toISOString().slice(0, 19) + 'Z'; let mf = 0;
+      // least recently checked first, so with up to 20 setups waiting none is starved of its 5-minute check
+      for (const x of lab.filter(x => L.BOOKS[x.book] && L.BOOKS[x.book].trigger && !x.fill && x.status === 'waiting for entry').sort((a, b) => String(a.checkedAt || '').localeCompare(String(b.checkedAt || '')))) { const i = idx0.get(x.lid);
+        const eh = (x.setup && x.setup.expireH) || 24; if (Date.now() - Date.parse(x.signalAt) > (eh + 2) * 3600e3) { lab[i] = { ...x, status: `expired (no trigger in ${eh} hours)`, closedAt: nowT, checkedAt: nowT }; continue; }
+        const key = String(x.pool).toLowerCase(); if (!M5.has(key)) { if (mf >= 16) continue; mf++; }
+        let b = null; try { b = await m5Bars(netOf(x), x.pool); } catch { /* next scan */ } if (!b) continue;
+        const tr = L.execTrigger(x.setup, b, Date.now() / 1000, x.signalAt, { ...L.TRIG, ...(L.BOOKS[x.book].trigCfg || {}) }); if (!tr || tr.pending) { lab[i] = { ...x, checkedAt: nowT }; continue; }
+        if (tr.dead) { lab[i] = { ...x, status: tr.why, closedAt: nowT, checkedAt: nowT }; continue; }
+        lab[i] = { ...x, fill: { px: tr.px, at: tr.at }, ...(x.book === 'exec' ? { stopPx: tr.stop } : {}), why: [...(x.why || []), ...tr.why], trig: tr.kind, checkedAt: nowT }; nAdd.trig = (nAdd.trig || 0) + 1; } }
+    const byPool = new Map(); for (const x of lab.filter(isOpenL).filter(x => !(L.BOOKS[x.book] && L.BOOKS[x.book].trigger && !x.fill)).sort((a, b) => String(a.checkedAt).localeCompare(String(b.checkedAt)))) { const bsx = PROFILES[x.profile] && PROFILES[x.profile].barSec, k = (bsx === 300 ? 'm5|' : bsx === 900 ? 'mf|' : 'h1|') + String(x.pool).toLowerCase(); if (!byPool.has(k)) byPool.set(k, []); byPool.get(k).push(x); }
     let fetched = 0, evald = 0; const idx = new Map(lab.map((x, i) => [x.lid, i]));
     // cut-on-sellers book: wallet reads the degen desk records each full scan, plus the watcher's 15-minute DexScreener checks
     const degBySig = new Map(dout.map(x => [x.signalId, x])), wj0 = readJson(path.join(OUT, 'watch.json'), {}), flowEv = wj0.flow && Array.isArray(wj0.flow.events) ? wj0.flow.events : [];
     const withCut = (x, r, bars, nowI) => { const FP = PROFILES[x.profile]; if (!FP || !FP.flowCut || !(r.entryPx > 0)) return r;
       const cut = x.cut || flowCutEvent([...((degBySig.get(x.from) || {}).walletHist || []), ...flowEv.filter(e => e.lid === x.lid)], bars, r.entryPx, r.entryAt, FP.flowCut, FP.barSec);
       if (!cut) return r; const r2 = runExit({ ...x, cut }, bars, nowI, FP); return r2.status === 'open' || /^cut/.test(r2.status) ? { ...r2, cut } : r2; };
-    for (const [k, rows] of byPool) { const m5 = k.startsWith('m5|'), key = k.slice(3), cached = m5 ? M5.has(key) : H1.has(key); if (!cached) { if (fetched >= 20) continue; fetched++; }
-      let bars = null; try { bars = m5 ? await m5Bars(netOf(rows[0]), rows[0].pool) : await hourBars(netOf(rows[0]), rows[0].pool); } catch { /* next scan */ }
+    for (const [k, rows] of byPool) { const m5 = k.startsWith('m5|'), mf = k.startsWith('mf|'), key = k.slice(3), cached = m5 ? M5.has(key) : mf ? M15.has(key) : H1.has(key); if (!cached) { if (fetched >= 20) continue; fetched++; }
+      let bars = null; try { bars = m5 ? await m5Bars(netOf(rows[0]), rows[0].pool) : mf ? await m15Bars(netOf(rows[0]), rows[0].pool) : await hourBars(netOf(rows[0]), rows[0].pool); } catch { /* next scan */ }
       const nowI = new Date().toISOString().slice(0, 19) + 'Z';
       for (const x of rows) { const i = idx.get(x.lid); if (!bars) { lab[i] = onMiss(x, nowI); if (lab[i].dead) deadN++; continue; }
         const r = withCut(x, runExit(x, bars, nowI, PROFILES[x.profile]), bars, nowI); evald++; let y = r.status === 'waiting for entry' ? { ...x, checkedAt: nowI, ...(Date.now() - Date.parse(x.signalAt) > 48 * 3600e3 ? { status: 'no data' } : {}) } : { ...x, ...r };
-        if (isOpenL(y)) { if (freshBars(bars, m5 ? 300 : 3600)) y.miss = 0; else { y = onMiss(y, nowI); if (y.dead) deadN++; } } lab[i] = y; } }
+        if (isOpenL(y)) { if (freshBars(bars, m5 ? 300 : mf ? 900 : 3600)) y.miss = 0; else { y = onMiss(y, nowI); if (y.dead) deadN++; } } lab[i] = y; } }
     fs.writeFileSync(labPath, JSON.stringify([...lab.filter(x => !isOpenL(x)).slice(-3000), ...lab.filter(isOpenL)]));
     // books that have earned the edge verdict (luck-corrected, consistent, beating the random baseline): every new trade they open goes to the phone
     try { const since = readJson(path.resolve('docs/paper-config.json'), {}).since || null, tests = Object.keys(L.BOOKS).length + 2, evOf = (k) => evidence(statsBook(lab.filter(x => x.book === k).map(x => fromRun(x)).filter(Boolean), { since }), { tests });
       const base = evOf('randomCtl'), edgeBooks = Object.keys(L.BOOKS).filter(k => k !== 'bid' && k !== 'degen' && k !== 'randomCtl').filter(k => { const e = evOf(k); return e.verdict === 'edge' && !(base.n >= 30 && e.avgR <= base.avgR + 0.1); });
       const fresh = newRows.filter(r => edgeBooks.includes(r.book));
-      if (fresh.length) { say(`edge books: ${edgeBooks.join(', ')}; ${fresh.length} new trade(s) sent to the phone`);
-        if (topic0 && settings.edgeAlert !== false) { const body = fresh.slice(0, 5).map(r => `${L.BOOKS[r.book].short}: ${r.coin} (${r.chain})${r.plan ? ` limit ${r.plan.limit}, stop ${r.plan.stop}` : ' at the next hourly open'}${r.why && r.why.length ? ' · ' + r.why[0] : ''}`).join('\n');
+      if (fresh.length) { say(`edge books: ${edgeBooks.join(', ')}; ${fresh.length} new trade(s)${tradeAlerts ? ' sent to the phone' : ' (trade alerts off)'}`);
+        if (topic0 && tradeAlerts && settings.edgeAlert !== false) { const body = fresh.slice(0, 5).map(r => `${L.BOOKS[r.book].short}: ${r.coin} (${r.chain})${r.plan ? ` limit ${r.plan.limit}, stop ${r.plan.stop}` : ' at the next hourly open'}${r.why && r.why.length ? ' · ' + r.why[0] : ''}`).join('\n');
           await fetch('https://ntfy.sh/' + encodeURIComponent(topic0), { method: 'POST', body: body + '\n\nThis book has 30+ paper trades with a luck-corrected edge. Still paper-tested only: size small.', headers: { Title: 'RynoScan edge book signal', Priority: 'high', Tags: 'rhinoceros,dart' } }).catch(() => null); } }
     } catch (e) { say('edge-book alerts skipped: ' + (e.message || e)); }
-    say(`strategy lab: ${lab.filter(isOpenL).length} open or waiting, ${evald} re-checked, new: ${nAdd.copies} degen exit copies, ${nAdd.risky} risky-coin trades, ${nAdd.scalp} scalps, ${nAdd.fib || 0} Fib pullbacks, ${nAdd.inside || 0} inside-pattern, ${nAdd.proven || 0} proven-wallet, ${nAdd.random || 0} random baseline, ${nAdd.pulse || 0} early pulse, ${nAdd.spike || 0} buyer spike${deadN ? `; ${deadN} dead pool${deadN === 1 ? '' : 's'} closed at half the last price` : ''}`);
+    say(`strategy lab: ${lab.filter(isOpenL).length} open or waiting, ${evald} re-checked, new: ${nAdd.copies} degen exit copies, ${nAdd.risky} risky-coin trades, ${nAdd.scalp} scalps, ${nAdd.fib || 0} Fib pullbacks, ${nAdd.inside || 0} inside-pattern, ${nAdd.proven || 0} proven-wallet, ${nAdd.random || 0} random baseline, ${nAdd.pulse || 0} early pulse, ${nAdd.spike || 0} buyer spike, ${nAdd.exec || 0} execution setups, ${nAdd.brk || 0} breakout retests, ${nAdd.trig || 0} triggers${deadN ? `; ${deadN} dead pool${deadN === 1 ? '' : 's'} closed at half the last price` : ''}`);
   } catch (e) { say('strategy lab skipped: ' + (e.message || e)); }
   // wallet scorecard: resolve episodes that are 72+ hours old (what the coin did next), then save
   try { let rs = 0, fetchedS = 0; for (const ep of wEps) { if (ep.out || Date.now() - Date.parse(ep.t) < (SCO.SC.horizonH + 1) * 3600e3) continue; if (rs >= 25) break; const cached = H1.has(String(ep.pool).toLowerCase()); if (!cached) { if (fetchedS >= 15) continue; fetchedS++; }
@@ -337,7 +372,7 @@ try { meta.funnel = funnel(allRows, { minVolume: cfg.minVolume ?? settings.minVo
 const w = (f, d) => fs.writeFileSync(path.join(OUT, f), JSON.stringify(d));
 try { if (meta.funnel) { const fh = path.join(OUT, 'funnel-history.json'); fs.writeFileSync(fh, JSON.stringify(funnelAppend(readJson(fh, []), funnelCompact(meta.funnel, at), Date.now(), 14))); } } catch (e) { say('funnel history skipped: ' + (e.message || e)); }
 if (cfg.safetyChecks) fs.writeFileSync(cachePath, JSON.stringify(cache));
-w('setups.json', out); w('signals.json', log); w('charts.json', charts); if (mode === 'full') w('chainvol.json', market); w('meta.json', meta);
+w('setups.json', out); w('breakouts.json', allRows.map(p => [p, L.brkSetup(p, volDay)]).filter(([, b]) => b).map(([p, b]) => ({ id: C.CH[p.chain].slice(0, 3).toUpperCase() + ':' + p.sym, coin: p.sym, chain: C.CH[p.chain], pool: p.pool, signal: p.signal || 'No trade', liquidity: Math.round(p.liq || 0), rug: p.rug || null, at, ...b }))); w('signals.json', log); w('charts.json', charts); if (mode === 'full') w('chainvol.json', market); w('meta.json', meta);
 say(`wrote ${out.length} coins, ${charts.length} charts, ${log.length} logged signals`);
 
 // 6. what changed since the last scan
@@ -370,7 +405,7 @@ if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_S
 // 7. phone alert (only for things worth a buzz, still actionable, and not repeated within 24h)
 const topic = (process.env.NTFY_TOPIC || '').trim();
 const alertsPath = path.join(OUT, 'alerts.json'), sent = readJson(alertsPath, {});
-for (const k of Object.keys(sent)) if (Date.now() - Date.parse(sent[k]) > 3 * 86400e3) delete sent[k];
+for (const k of Object.keys(sent)) if (k.startsWith('Q|') ? k !== 'Q|' + monthKey : Date.now() - Date.parse(sent[k]) > 3 * 86400e3) delete sent[k];
 const fresh = key => !sent[key] || Date.now() - Date.parse(sent[key]) > 24 * 3600e3;
 // a zone-order call (six quality gates, price above the zone) can be up to 8% above it: you rest a limit order rather than chase
 const stillInZone = r => r.price != null && r.entryHigh != null && r.stop != null && r.price <= r.entryHigh * (r.zoneOrder ? 1.08 : 1.01) && r.price > r.stop;
@@ -385,7 +420,7 @@ const hitEvents = logChanges.filter(s => /TP|stopped|hit/.test(s.status) || (s.t
 const alertEntry = newEntry.filter(r => stillInZone(r) && fresh('E|' + r.id));
 const alertHot = newWatch.filter(r => r.opp >= 75 && stillInZone(r) && fresh('W|' + r.id));
 const alertHits = hitEvents.filter(s => fresh(`H|${s.signalId}|${s.status}|${s.tpHit}`));
-if (topic && (alertEntry.length || alertHot.length || alertHits.length)) {
+if (topic && tradeAlerts && (alertEntry.length || alertHot.length || alertHits.length)) {
   const a = alertEntry[0], h = alertHot[0], pa = a ? opinion(kept.find(p => CHID(p) === a.id)) : h ? opinion(kept.find(p => CHID(p) === h.id)) : null, paTxt = pa ? ` Panel: ${pa.verdict} (bull ${pa.bullScore} vs bear ${pa.bearScore}). ${pa.why}` : '';
   const head = a ? `New bid-ready: ${a.coin} (${a.chain}), opp ${a.opp}. Buy ${a.entryLow}-${a.entryHigh}, stop ${a.stop} (${a.riskPct}% away).${maxPos(a)}${a.zoneOrder && a.price > a.entryHigh ? ` Price is ${((a.price / a.entryHigh - 1) * 100).toFixed(1)}% above the zone: rest a limit order at ${a.entryHigh}, do not chase.` : ''}${regTxt(a)}${paTxt}${winTxt}`
     : alertHits.length ? `Signal update: ${alertHits[0].coin} ${alertHits[0].status}`
@@ -395,10 +430,10 @@ if (topic && (alertEntry.length || alertHot.length || alertHits.length)) {
     say('alert sent: ' + r.status);
     if (r.ok) { const now = new Date().toISOString(); alertEntry.forEach(r => sent['E|' + r.id] = now); alertHot.forEach(r => sent['W|' + r.id] = now); alertHits.forEach(s => sent[`H|${s.signalId}|${s.status}|${s.tpHit}`] = now); }
   } catch (e) { say('alert failed: ' + e.message); }
-} else if (topic) say('no alert: nothing new that is still inside its entry zone');
+} else if (topic) say(tradeAlerts ? 'no alert: nothing new that is still inside its entry zone' : 'trade alerts off: the phone only gets health alerts ("phoneAlerts": "all" in config/settings.json turns them back on)');
 
 // one-gate-away alert: a coin that is exactly one gate from bid-ready, so you can rest a limit order ahead of time (low priority, once a day per coin and gate)
-if (topic && !alertEntry.length && !alertHot.length) { try {
+if (topic && tradeAlerts && !alertEntry.length && !alertHot.length) { try {
   const sg = x => (x == null ? '' : String(Number(Number(x).toPrecision(5))));
   const near = oneAway(allRows, { minOpp: 70, max: 2 }).filter(n => n.p.sp && fresh('N|' + CHID(n.p) + '|' + n.gate));
   if (near.length) {
@@ -409,7 +444,7 @@ if (topic && !alertEntry.length && !alertHot.length) { try {
 } catch (e) { say('one-gate-away alert skipped: ' + (e.message || e)); } }
 
 // early-1h alert: unconfirmed, tracked experiment. Low priority, capped, once per coin per day. Turn off with "earlyAlert": false in config/settings.json.
-if (topic && settings.earlyAlert !== false && earlyNew.length) { try {
+if (topic && tradeAlerts && settings.earlyAlert !== false && earlyNew.length) { try {
   const sg = x => (x == null ? '' : String(Number(Number(x).toPrecision(5))));
   const ne = earlyNew.filter(x => fresh('E|' + x.signalId)).slice(0, 3);
   if (ne.length) {
@@ -420,7 +455,7 @@ if (topic && settings.earlyAlert !== false && earlyNew.length) { try {
 } catch (e) { say('early-1h alert skipped: ' + (e.message || e)); } }
 
 // degen alert: paper trade only. Low priority, once per coin per day, max 2 per scan. Turn off with "degenAlert": false in config/settings.json.
-if (topic && settings.degenAlert !== false && degenNew.length) { try {
+if (topic && tradeAlerts && settings.degenAlert !== false && degenNew.length) { try {
   const sg = x => (x == null ? '' : String(Number(Number(x).toPrecision(5))));
   const nd = degenNew.filter(x => fresh('D|' + x.id)).slice(0, 2);
   if (nd.length) {
@@ -431,7 +466,7 @@ if (topic && settings.degenAlert !== false && degenNew.length) { try {
 } catch (e) { say('degen alert skipped: ' + (e.message || e)); } }
 
 // safeguard 2: daily check-in (proves the scanner is alive) and a bid-ready digest at most every 6 hours, so a missed alert never hides a chart
-if (topic) { try {
+if (topic && tradeAlerts) { try {
   const dd = digestDue({ now: Date.now(), bidCount: out.filter(r => r.signal === 'Entry signal').length, sent });
   const kind = dd.bid && !alertEntry.length ? 'bid' : dd.checkin ? 'checkin' : null, key = kind === 'bid' ? dd.bid : dd.checkin;
   if (kind) {
@@ -441,6 +476,9 @@ if (topic) { try {
     say(`${kind} digest sent: ${r.status}`); if (r.ok) { sent[key] = new Date().toISOString(); if (kind === 'bid' && dd.checkin) sent[dd.checkin] = sent[key]; }
   }
 } catch (e) { say('digest skipped: ' + (e.message || e)); } }
+// health: CoinGecko calls nearing the monthly limit (the scan already trims extras at 85%; at 100% scans start failing). Once a month.
+{ const lim = settings.cgMonthlyLimit ?? 100000, used = usage.calls + api.stats().calls, key = 'Q|' + monthKey;
+  if (topic && used >= 0.9 * lim && !sent[key]) { try { const r = await fetch('https://ntfy.sh/' + encodeURIComponent(topic), { method: 'POST', body: `CoinGecko calls this month: ${used.toLocaleString('en')} of ${lim.toLocaleString('en')} (${Math.round(used / lim * 100)}%).\nThe scan already skips its extras above 85%. If it reaches 100% the scans start failing until the month resets on the 1st.\nFix: raise "cgMonthlyLimit" only if your plan allows more, or set "extraPages": 0 in config/settings.json.`, headers: { Title: 'RynoScan: data limit nearly used', Priority: 'default', Tags: 'warning,rhinoceros', ...(site ? { Click: site } : {}) } }); if (r.ok) sent[key] = new Date().toISOString(); say('data-limit alert sent: ' + r.status); } catch (e) { say('data-limit alert failed: ' + e.message); } } }
 fs.writeFileSync(alertsPath, JSON.stringify(sent));
 const st = api.stats();
 usage.calls += st.calls; usage.runs += 1; usage.last = { at, mode, calls: st.calls }; fs.writeFileSync(path.join(OUT, 'usage.json'), JSON.stringify(usage));

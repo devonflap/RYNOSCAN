@@ -35,7 +35,7 @@ export function candidates(setups, signals, minOpp = 70) {
     const bid = r.signal === 'Entry signal', hot = r.signal === 'Watch' && (r.opp ?? 0) >= minOpp;
     if (!bid && !hot) continue;
     const prev = m.get(r.pool);
-    m.set(r.pool, { id: r.id, coin: r.coin, chain: r.chain, pool: r.pool, token: r.token, setup: r.setupType, opp: r.opp, entryLow: r.entryLow, entryHigh: r.entryHigh, stop: r.stop, tp1: r.tp1, tp2: r.tp2, tp3: r.tp3, signalAt: prev?.signalAt || null, kind: bid ? 'bid' : 'watch', liquidity: r.liquidity ?? null });
+    m.set(r.pool, { id: r.id, coin: r.coin, chain: r.chain, pool: r.pool, token: r.token, setup: r.setupType, opp: r.opp, entryLow: r.entryLow, entryHigh: r.entryHigh, stop: r.stop, tp1: r.tp1, tp2: r.tp2, tp3: r.tp3, signalAt: prev?.signalAt || null, kind: bid ? 'bid' : 'watch', liquidity: r.liquidity ?? null, rug: r.rug ?? null });
   }
   return [...m.values()];
 }
@@ -102,7 +102,9 @@ async function main() {
   try { const open = readJson(path.join(OUT, 'lab.json'), []).filter((x) => x && x.book === 'degenFlow' && x.status === 'open' && !x.cut && +x.entryPx > 0);
     const done = new Set(flow.events.map((e) => e.lid)), ev = open.length ? (await flowScan(open.filter((x) => !done.has(x.lid)), getJson, nowIso)) : [];
     flow = { at: nowIso, events: [...flow.events.filter((e) => now - Date.parse(e.t) < 72 * 3600e3), ...ev].slice(-200) }; if (open.length) console.log(`cut-on-sellers: ${open.length} open positions checked, ${ev.length} would cut now`); } catch (e) { console.log('cut-on-sellers check skipped: ' + (e.message || e)); }
-  const topic = (process.env.NTFY_TOPIC || '').trim();
+  // trade alerts (positions, pulse, bid-ready checks) reach the phone only with "phoneAlerts": "all" in config/settings.json; they still show on the dashboard
+  const topic = readJson('config/settings.json', {}).phoneAlerts === 'all' ? (process.env.NTFY_TOPIC || '').trim() : '';
+  if (alerts.length && !topic) console.log(`${alerts.length} trade alert(s) not sent: the phone gets health alerts only`);
   for (const a of alerts) {
     if (!topic) break;
     try {

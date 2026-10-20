@@ -1,0 +1,8 @@
+node_modules
+.env
+*.log
+bot/config.json
+bot/state.json
+bot/state.json.tmp
+bot/journal.jsonl
+bot/STOP

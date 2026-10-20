@@ -297,7 +297,7 @@ function card(r, cr) {
     cp.onclick = async () => { const ok = await copyText(planText(r)); cp.textContent = ok ? 'Copied ✓' : 'Copy failed'; setTimeout(() => { cp.textContent = 'Copy trade plan'; }, 2000); };
     const en = el('button', 'act' + (POS.get()[r.id] ? ' on' : ''), POS.get()[r.id] ? 'Entered ✓ (tap to undo)' : 'Mark as entered'); en.type = 'button';
     en.onclick = () => { const o = POS.get(); if (o[r.id]) delete o[r.id]; else o[r.id] = { at: new Date().toISOString(), coin: r.coin, chain: r.chain, entryLow: r.entryLow, entryHigh: r.entryHigh, stop: r.stop, tp1: r.tp1, tp2: r.tp2, tp3: r.tp3 }; POS.set(o); en.className = 'act' + (o[r.id] ? ' on' : ''); en.textContent = o[r.id] ? 'Entered ✓ (tap to undo)' : 'Mark as entered'; verdict(); };
-    const al = el('a', 'act', 'Get phone alerts'); al.target = '_blank'; al.rel = 'noopener'; al.title = 'Opens GitHub with a small file for this coin. Commit it and the watcher alerts you when volume dies, sellers take over, or your stop or TP1 is hit. Delete the file to stop.';
+    const al = el('a', 'act', 'Track this coin'); al.target = '_blank'; al.rel = 'noopener'; al.title = 'Opens GitHub with a small file for this coin. Commit it and the 15-minute watcher tracks it on the dashboard: volume dying, sellers taking over, your stop or TP1. Delete the file to stop.';
     const repo = guessRepo(); if (repo) { al.href = posLink(repo, r); bar.append(cp, en, al); } else bar.append(cp, en); c.append(bar);
   }
   else c.append(el('p', 'caut', r.noTradeWhy || r.scanState || 'No valid trade plan on the current 4h chart: no clean stop that pays at least 2R.'));
@@ -367,7 +367,7 @@ function deskView(host, p, o) {
     if (o.extra) o.extra(t, G);
     c.append(L, M, G); host.append(c); });
   if (p.waiting.length) { host.append(el('div', 'dk-h', `WAITING FOR ENTRY  ${p.waiting.length}`)); const u = el('div', 'dk-wait');
-    p.waiting.slice(0, 12).forEach((w) => { const r = el('div', 'dk-wrow'); r.append(el('b', null, w.coin), el('span', 'dk-tag', w.chain), el('span', 'dk-meta', `${w.setup || ''} · ${w.entryLow != null && w.entryHigh != null && w.entryLow !== w.entryHigh ? 'buy ' + fpx(w.entryLow) + ' to ' + fpx(w.entryHigh) + (w.stop ? ' · stop ' + fpx(w.stop) : '') : 'buys at the next candle open'} · called ${whenS(w.at)}`)); u.append(r); }); host.append(u); }
+    p.waiting.slice(0, 12).forEach((w) => { const r = el('div', 'dk-wrow'); r.append(el('b', null, w.coin), el('span', 'dk-tag', w.chain), el('span', 'dk-meta', `${w.setup || ''} · ${w.sig && w.sig.setup && !w.sig.plan ? 'waits for a 5-minute trigger in ' + fpx(w.sig.setup.zoneLow) + ' to ' + fpx(w.sig.setup.zoneHigh) + ' · stop ' + fpx(w.sig.setup.stop) : w.entryLow != null && w.entryHigh != null && w.entryLow !== w.entryHigh ? 'buy ' + fpx(w.entryLow) + ' to ' + fpx(w.entryHigh) + (w.stop ? ' · stop ' + fpx(w.stop) : '') : w.entryHigh > 0 ? 'limit ' + fpx(w.entryHigh) + (w.stop ? ' · stop ' + fpx(w.stop) : '') + (w.expireH ? ' · ' + w.expireH + 'h to fill' : '') : 'buys at the next candle open'} · called ${whenS(w.at)}`)); u.append(r); }); host.append(u); }
   if (p.curve.length >= 2) {
     const W = 640, H = 130, P = 44, pts = p.curve, lo = Math.min(...pts.map((c) => c.eq), p.start), hi = Math.max(...pts.map((c) => c.eq), p.start), sp = hi - lo || 1, x = (i) => P + (W - P - 8) * i / (pts.length - 1), y = (v) => 10 + (H - 24) * (1 - (v - lo) / sp);
     const svg = sv('svg', { viewBox: `0 0 ${W} ${H}`, class: 'ch', role: 'img', 'aria-label': 'Paper account value over time' });
@@ -421,10 +421,10 @@ function startRunnerLive() { if (rliveTimer) return; rliveTimer = setInterval(ru
 const shortW = (w) => String(w).slice(0, 4) + '…' + String(w).slice(-4);
 function drawScorecard() {
   let box = $('wsBox'); if (!box) { const l = $('runList'); if (!l || !l.parentNode) return; box = el('div'); box.id = 'wsBox'; l.parentNode.append(box); } box.replaceChildren(); const W = S.wscore;
-  { const P = S.myPos || [], repo = guessRepo(); box.append(el('div', 'dk-h', 'YOUR POSITIONS  phone alerts: volume dying, sellers taking over, stop, TP1'));
+  { const P = S.myPos || [], repo = guessRepo(); box.append(el('div', 'dk-h', 'YOUR POSITIONS  checked every 15 minutes: volume dying, sellers taking over, stop, TP1 (phone alerts only with "phoneAlerts": "all")'));
     if (P.length) { const u = el('div', 'dk-wait'); P.forEach((p) => { const r_ = el('div', 'dk-wrow'), vr = p.volRatio, vs = vr == null ? 'volume —' : vr < 0.2 ? `volume DIED (${Math.round(vr * 100)}% of pace)` : vr < 0.35 ? `volume fading (${Math.round(vr * 100)}%)` : `volume ok (${Math.round(vr * 100)}% of pace)`;
       r_.append(el('b', null, p.coin), el('span', 'dk-tag', p.chain), el('span', 'dk-meta', `${p.price != null ? fpx(p.price) : 'no price'}${p.entry && p.price ? ' · ' + pct((p.price / p.entry - 1) * 100, 1) + ' from entry' : ''} · ${vs}${p.stop ? ' · stop ' + fpx(p.stop) : ''}`)); u.append(r_); }); box.append(u); }
-    else box.append(el('p', 'empty', 'No positions registered. Tap "Get phone alerts" on a coin card after you buy, or add a coin by hand.'));
+    else box.append(el('p', 'empty', 'No positions registered. Tap "Track this coin" on a coin card after you buy, or add a coin by hand.'));
     if (repo) { const a = el('a', 'dk-tab more-btn', '+ Add a coin you hold'); a.href = posLink(repo, { coin: 'COIN', chain: 'solana', pool: 'paste the pool or pair address', token: '' }); a.target = '_blank'; a.rel = 'noopener'; box.append(a); } }
   { const PU = S.pulse, items = PU ? PU.items : []; box.append(el('div', 'dk-h', `MOVING NOW  checked every ~15 minutes on DexScreener${PU && PU.at ? ' · ' + whenS(PU.at) : ''}`));
     if (!PU) box.append(el('p', 'empty', 'The early-move checker starts after the next full scan writes its coin list.'));
@@ -537,7 +537,7 @@ function drawCompare(box) {
     tr.addEventListener('click', () => { S.labPick = k; drawPaper(); }); tb.append(tr); };
   grp('Same degen coins, different exits'); keys.filter((k) => BOOKS[k].same === 'degen').forEach(row);
   grp('Playbook setups: buy the pullback, not the pump'); ['fibPull', 'patInside', 'proven'].forEach(row);
-  grp('Conservative (the three risky-coin books buy the same coins at the same times)'); ['bid', 'risky', 'riskyRyan', 'riskyPick'].forEach(row); grp('Baseline: random entries, the bar every book must clear'); ['randomCtl'].forEach(row); grp('Fast movers (5-minute candles)'); ['pulse', 'scalpBreak'].forEach(row);
+  grp('Conservative (the three risky-coin books buy the same coins at the same times)'); ['bid', 'risky', 'riskyRyan', 'riskyPick'].forEach(row); grp('Baseline: random entries, the bar every book must clear'); ['randomCtl'].forEach(row); grp('Fast movers (5-minute candles)'); ['pulse', 'scalpBreak'].forEach(row); grp('Bot rules: the same setups three ways'); ['exec', 'execZone', 'execStudy'].forEach(row); grp('Breakout retest research (live paper, no hindsight)'); ['brk', 'brkBot', 'brkTrig'].forEach(row);
   tbl.append(tb); const sc = el('div', 'scroll'); sc.append(tbl); f1.append(sc);
   const dg = keys.filter((k) => BOOKS[k].same === 'degen').map((k) => [k, data.get(k)]).filter(([, p]) => p.closedN >= 30).sort((a, b) => b[1].retPct - a[1].retPct);
   f1.append(el('p', 'meta', dg.length >= 2 ? `Best degen exit so far: ${BOOKS[dg[0][0]].label} at ${pct(dg[0][1].retPct, 1)}, against ${pct(data.get('degen').retPct, 1)} for the current exits. Check it holds on the next 30 trades before switching.` : 'No degen exit has 30 closed trades yet, so no exit can be called better. Keep collecting.'));
@@ -584,15 +584,31 @@ function drawCouncil(box) {
     pr.forEach((p) => u.append(el('li', null, `${bookShort(p.alt)} vs ${bookShort(p.base)}: ${p.n} shared closed trade${p.n === 1 ? '' : 's'}${p.diff != null ? `, ${p.diff >= 0 ? '+' : ''}${p.diff}% a trade` : ''}${p.lo != null ? ` (range ${p.lo}% to ${p.hi}%)` : ''}${p.better != null ? `, better on ${Math.round(p.better * 100)}%` : ''}. ${p.call === 'too few' ? 'Needs 10 to call.' : p.call === 'no clear difference' ? 'No clear difference yet.' : 'Clearly ' + p.call + '.'}`))); f.append(u); }
   box.append(el('p', 'meta', (c.note || '') + ' Claude reads this every Monday morning and sends the final word to your phone.'));
 }
+// the bot tuner: each hint about Breakout retest as a filter, with its backtest record (where it came from) and its record on new trades
+function drawTuner(box) {
+  const t = S.council && S.council.botTuning && S.council.botTuning.breakout; if (!t) { box.append(el('p', 'empty', 'The bot tuner runs with the council at the end of every scan. It has not run yet.')); return; }
+  const f = foldBox(box, 'Bot tuner: which Breakout setups the bot takes', `${t.active.length} filter${t.active.length === 1 ? '' : 's'} on · ${t.forwardN} new trades so far`);
+  f.append(el('p', 'meta', 'Every hint from the pattern analyst becomes a filter here. It switches on in the Breakout bot (and its paper book) only after it holds on trades that came after it was found: at least 10 trades it keeps and 8 it removes, the kept ones at least 0.3R a trade better, and a gap that passes a luck check across every filter being tested at once. A starting filter switches off if new trades go against it. The backtest column is where a hint came from; it never confirms one, because replays carry hindsight and only include coins still active today. Only which setups are taken can change, never sizing, stops or targets.'));
+  const R = (x) => (x == null ? '—' : (x >= 0 ? '+' : '') + x.toFixed(2) + 'R'), side = (o) => (o.kept || o.removed ? `${o.kept} kept ${R(o.keptR)} · ${o.removed} removed ${R(o.removedR)}` : 'no trades yet');
+  const tbl = el('table', 'tbl'), th = el('thead'), hr = el('tr'); ['Filter', 'Status', 'Backtest (where it came from)', 'New trades (the test)', 'In the bot'].forEach((h) => hr.append(el('th', null, h))); th.append(hr); tbl.append(th); const tb = el('tbody');
+  const st = { testing: 'testing', confirmed: 'held on new trades', rejected: 'failed on new trades', unclear: 'no clear difference yet', 'leaning better': 'leaning better (could still be luck)', 'leaning worse': 'leaning worse (could still be luck)' };
+  for (const c of t.candidates) { const tr = el('tr'); tr.append(el('td', null, c.label + (c.origin === 'start' ? ' (starting filter)' : '')), el('td', null, (st[c.status] || c.status) + (c.held ? ' (held back: would leave too few trades)' : '')), el('td', null, side(c.inSample)), el('td', null, side(c.forward) + (c.forward.diff != null ? ` · ${R(c.forward.diff)}` : '')), el('td', null, t.active.includes(c.key) ? 'on' : 'off')); tb.append(tr); }
+  tbl.append(tb); const sc = el('div', 'scroll'); sc.append(tbl); f.append(sc);
+}
 function drawPaper() {
   const host = $('paperOut'); if (!host) return; host.replaceChildren();
-  const since = S.paperCfg && S.paperCfg.since || null, tab = ['council', 'cons', 'degen', 'play', 'scalp', 'bot', 'lab'].includes(S.deskTab) ? S.deskTab : 'council';
-  const bar = el('div', 'dk-tabs'); [['council', 'Council'], ['cons', 'Conservative'], ['degen', 'Degen'], ['play', 'Playbook'], ['scalp', 'Fast movers'], ['bot', 'Bot sim'], ['lab', 'Compare all']].forEach(([k, t]) => { const b = el('button', 'dk-tab' + (tab === k ? ' on' : ''), t); b.type = 'button'; b.addEventListener('click', () => { S.deskTab = k; try { drawPaper(); } catch { /* keep going */ } }); bar.append(b); });
+  const since = S.paperCfg && S.paperCfg.since || null, tab = ['exec', 'brk', 'council', 'cons', 'degen', 'play', 'scalp', 'bot', 'lab'].includes(S.deskTab) ? S.deskTab : 'exec';
+  const bar = el('div', 'dk-tabs'); [['exec', 'Bot rules'], ['brk', 'Breakout'], ['council', 'Council'], ['cons', 'Conservative'], ['degen', 'Degen'], ['play', 'Playbook'], ['scalp', 'Fast movers'], ['bot', 'Bot sim'], ['lab', 'Compare all']].forEach(([k, t]) => { const b = el('button', 'dk-tab' + (tab === k ? ' on' : ''), t); b.type = 'button'; b.addEventListener('click', () => { S.deskTab = k; try { drawPaper(); } catch { /* keep going */ } }); bar.append(b); });
   host.append(bar); if (since) host.append(el('p', 'dk-meta dk-since', 'Every book started fresh on ' + whenS(since) + '. Older paper trades are hidden.'));
   const box = el('div'); host.append(box);
   if (tab === 'council') drawCouncil(box);
+  else if (tab === 'exec') { const sub = ['execZone', 'execStudy'].includes(S.execSub) ? S.execSub : 'exec'; subTabs(box, [['exec', 'Bot rules (5-min entry, 15-min exits)'], ['execZone', 'Zone limit (baseline)'], ['execStudy', 'Trigger + study exits']], sub, (k) => { S.execSub = k; }); showBook(box, sub);
+    box.append(el('p', 'meta', 'The bot\'s exact rules on paper: entries on 5-minute candles, exits replayed on 15-minute candles (the live bot on the server checks every minute). The same scanner setups are also bought with a plain zone limit (same exits) and with the study exits, so you can see what the 5-minute entry adds. A setup that never triggers counts as 0% in the Council\'s paired test.')); }
+  else if (tab === 'brk') { const sub = ['brkBot', 'brkTrig'].includes(S.brkSub) ? S.brkSub : 'brk'; subTabs(box, [['brk', 'As backtested'], ['brkBot', 'Bot filters (the Breakout bot)'], ['brkTrig', '5-minute trigger entry']], sub, (k) => { S.brkSub = k; }); showBook(box, sub);
+    box.append(el('p', 'meta', 'Breakout retest traded exactly as the backtest did (limit at the top of the retest zone, thirds at TP1, TP2 and TP3, break-even after TP1, 7 days), the same setups after the Breakout bot\'s filters, and the same setups bought only on a 5-minute confirmation. These are live paper trades: no hindsight, unlike the backtest.'));
+    drawTuner(box); }
   else if (tab === 'cons') { const sub = ['risky', 'riskyRyan', 'riskyPick'].includes(S.consSub) ? S.consSub : 'bid'; subTabs(box, [['bid', 'Bid-ready setups'], ['risky', 'Risky coins'], ['riskyRyan', "Risky · Ryan's setup"], ['riskyPick', "Risky · Claude's setup"]], sub, (k) => { S.consSub = k; }); showBook(box, sub); }
-  else if (tab === 'degen') { const sub = ['degenFlow', 'degenLadder', 'degenMoon'].includes(S.degenSub) ? S.degenSub : 'degen'; subTabs(box, [['degen', 'Current exits'], ['degenFlow', 'Cut on sellers'], ['degenLadder', 'Ladder'], ['degenMoon', 'Moonbag']], sub, (k) => { S.degenSub = k; }); showBook(box, sub);
+  else if (tab === 'degen') { const sub = ['degenFlow', 'degenLadder', 'degenMoon', 'degenStudy'].includes(S.degenSub) ? S.degenSub : 'degen'; subTabs(box, [['degen', 'Current exits'], ['degenStudy', 'Study exits'], ['degenFlow', 'Cut on sellers'], ['degenLadder', 'Ladder'], ['degenMoon', 'Moonbag']], sub, (k) => { S.degenSub = k; }); showBook(box, sub);
     box.append(el('p', 'meta', sub === 'degenFlow' ? 'Same coins and times as the current exits. The only difference: when a trade is 8% or more under its entry price and sellers take over (hourly wallet read or the 15-minute DexScreener check), it sells everything. Compare it with Current exits after 30 closed trades: it should lose less on the losers without cutting the runners.' : 'The same coins run under four exit plans. Compare them side by side on the Compare all tab, or in the Council\'s paired test (same coins, so the difference is the exits alone).')); }
   else if (tab === 'play') { const sub = ['fibPull', 'patInside', 'proven'].includes(S.playSub) ? S.playSub : 'fibPull'; subTabs(box, [['fibPull', 'Fib pullback'], ['patInside', 'Inside the pattern'], ['proven', 'Proven wallets']], sub, (k) => { S.playSub = k; }); showBook(box, sub); }
   else if (tab === 'bot') { const sub = BOT[S.botSub] ? S.botSub : 'botAll'; subTabs(box, [['botAll', 'Every book'], ['botAdapt', 'Only books that are working'], ['botCouncil', 'Council picks'], ['botRegime', 'Sized by market']], sub, (k) => { S.botSub = k; }); showBot(box, sub); }
@@ -604,7 +620,7 @@ function drawPaper() {
 }
 
 // ---------- main ----------
-const S = { runners: null, degen: [], paperCfg: null, deskTab: 'council', fwd: [], setups: [], signals: [], charts: new Map(), vol: [], meta: null, bt: null, watch: new Map(), watchAt: null, learned: null, usage: null, patFilter: 'All', volChain: 'All', chain: 'All', sort: 'opp' };
+const S = { runners: null, degen: [], paperCfg: null, deskTab: 'exec', fwd: [], setups: [], signals: [], charts: new Map(), vol: [], meta: null, bt: null, watch: new Map(), watchAt: null, learned: null, usage: null, patFilter: 'All', volChain: 'All', chain: 'All', sort: 'opp' };
 // Signal log, tiles and results follow the same fresh start as the paper desks: signals before the reset date are hidden unless the toggle is on.
 const logRows = () => { const since = S.paperCfg && S.paperCfg.since; return S.showOld || !since ? S.signals : S.signals.filter((s) => String(s.signalAt || '') >= since); };
 const openCount = () => logRows().filter((s) => s.status === 'open' || s.status === 'waiting for entry').length;
@@ -921,6 +937,7 @@ function drawAnalysts(L) {
   const li = (u, t) => u.append(el('li', null, t)), cond = (c) => `${c.text} (${c.n} trades, ${rr(c.avgR)} against ${rr(c.restAvgR)} otherwise)${c.reliable ? ' - reliable' : ' - hint'}`;
   A.forEach((d) => { const det = el('details', 'card fold'), sm = el('summary', null, `${d.setup}${d.live ? '' : ' (background tracking)'}: ${d.n} trades, ${d.avgR != null ? rr(d.avgR) : '—'}`); det.append(sm); det.append(el('p', 'tip', d.headline)); const u = el('ul', 'note');
     li(u, 'Recommendation: ' + d.recommendation);
+    if (d.split && d.split.comment) li(u, 'Where the record comes from: ' + d.split.comment);
     if (d.loses) li(u, 'How it loses: ' + d.loses.comment);
     d.conditions.best.forEach((c) => li(u, 'Works best when ' + cond(c))); d.conditions.avoid.forEach((c) => li(u, 'Does worst when ' + cond(c)));
     if (d.quality) li(u, 'Pattern quality: ' + d.quality.comment);

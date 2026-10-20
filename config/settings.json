@@ -1,4 +1,5 @@
 {
+  "phoneAlerts": "health",
   "chains": [
     "solana",
     "robinhood"

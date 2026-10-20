@@ -17,6 +17,10 @@ export function dossier(setup, trades, FEATS, live = true) {
   const T = trades.filter((s) => s.resultR != null && isFinite(+s.resultR) && s.status !== 'expired (no fill)'), n = T.length, R = T.map((s) => +s.resultR), st = stat(R), v = verdict(st);
   const d = { setup, live, n, avgR: st.avgR, winRate: st.winRate, pf: st.pf, lo90: st.lo90, hi90: st.hi90, verdict: v, headline: '', loses: null, conditions: { best: [], avoid: [] }, quality: null, exit: null, recent: null, recommendation: '', sources: {} };
   for (const s of T) { const k = s.source || 'live'; d.sources[k] = (d.sources[k] || 0) + 1; }
+  { const bt = T.filter((s) => String(s.source || '').startsWith('backtest')), tr = T.filter((s) => !String(s.source || '').startsWith('backtest')), a = stat(bt.map((s) => +s.resultR)), b = stat(tr.map((s) => +s.resultR));
+    d.split = { backtest: { n: a.n, avgR: a.avgR }, tracked: { n: b.n, avgR: b.avgR } };
+    d.split.comment = !a.n ? `All ${b.n} trades were tracked as they happened.` : !b.n ? `All ${a.n} trades are backtest replays: hindsight on coins that are still active today, which flatters patterns like breakouts. No live-tracked trades yet.`
+      : `Backtest replays ${sgn(a.avgR)} over ${a.n}; tracked as it happened ${sgn(b.avgR)} over ${b.n}.${b.n >= 5 && a.avgR > 0 && b.avgR < a.avgR - 0.5 ? ' The live record is well below the replays so far: the replays flatter it (hindsight, and only coins still active today).' : ''}`; }
   if (n === 0) { d.headline = 'No closed trades yet.'; d.recommendation = 'Keep collecting. Nothing can be said until trades have finished.'; return d; }
   d.headline = `${n} closed trades, ${sgn(st.avgR)} average, ${Math.round(st.winRate * 100)}% win rate${st.pf != null ? `, profit factor ${st.pf}` : ''}. ${v === 'proven' ? 'Reliably positive.' : v === 'failing' ? 'Reliably negative.' : v === 'unproven' ? 'Too few trades to judge.' : st.avgR > 0 ? 'Positive but not yet reliable.' : 'Leaning negative but not yet reliable.'}`;
 
@@ -30,12 +34,13 @@ export function dossier(setup, trades, FEATS, live = true) {
   const tests = [];
   for (const [label, fn] of FEATS) {
     const keys = [...new Set(T.map(fn).filter((x) => x != null))];
-    for (const k of keys) { const inB = T.filter((s) => fn(s) === k), rest = T.filter((s) => fn(s) !== k); if (inB.length < MIN_SLICE || rest.length < MIN_SLICE) continue;
-      const m = mean(inB.map((s) => +s.resultR)); tests.push({ label, k, n: inB.length, m, rest: mean(rest.map((s) => +s.resultR)), pLow: perm(R, inB.length, m, 'low'), pHigh: perm(R, inB.length, m, 'high') }); }
+    const known = T.filter((s) => fn(s) != null), Rk = known.map((s) => +s.resultR); // compare only with trades where this feature is known
+    for (const k of keys) { const inB = known.filter((s) => fn(s) === k), rest = known.filter((s) => fn(s) !== k); if (inB.length < MIN_SLICE || rest.length < MIN_SLICE) continue;
+      const m = mean(inB.map((s) => +s.resultR)); tests.push({ label, k, n: inB.length, m, rest: mean(rest.map((s) => +s.resultR)), pLow: perm(Rk, inB.length, m, 'low'), pHigh: perm(Rk, inB.length, m, 'high') }); }
   }
   const qLow = bh(tests.map((t) => t.pLow)), qHigh = bh(tests.map((t) => t.pHigh));
   tests.forEach((t, i) => { t.qLow = qLow[i]; t.qHigh = qHigh[i]; });
-  const fmt = (t, good) => ({ text: `${t.label}: ${t.k}`, n: t.n, avgR: r2(t.m), restAvgR: r2(t.rest), reliable: (good ? t.qHigh : t.qLow) <= 0.25 && t.n >= 10 });
+  const fmt = (t, good) => ({ text: `${t.label}: ${t.k}`, feat: t.label, bucket: t.k, side: good ? 'only' : 'skip', n: t.n, avgR: r2(t.m), restAvgR: r2(t.rest), reliable: (good ? t.qHigh : t.qLow) <= 0.25 && t.n >= 10 });
   d.conditions.best = tests.filter((t) => t.m > t.rest + 0.3 && t.m > 0).sort((a, b) => (b.m - b.rest) - (a.m - a.rest)).slice(0, 3).map((t) => fmt(t, true));
   d.conditions.avoid = tests.filter((t) => t.m < t.rest - 0.3 && t.m < 0).sort((a, b) => (a.m - a.rest) - (b.m - b.rest)).slice(0, 3).map((t) => fmt(t, false));
 
@@ -55,7 +60,7 @@ export function dossier(setup, trades, FEATS, live = true) {
   // recommendation
   const relBest = d.conditions.best.filter((c) => c.reliable), relAvoid = d.conditions.avoid.filter((c) => c.reliable);
   if (v === 'failing') d.recommendation = 'Reliably negative so far. It keeps running and alerting as you asked, but treat its calls with extra caution and size down.';
-  else if (v === 'proven') d.recommendation = (live ? 'Keep on.' : 'Eligible to go live.') + (relAvoid.length ? ` Avoid: ${relAvoid.map((c) => c.text.toLowerCase()).join('; ')}.` : '');
+  else if (v === 'proven') d.recommendation = (live ? 'Keep on.' : 'Eligible to go live.') + (relAvoid.length ? ` Avoid: ${relAvoid.map((c) => c.text.toLowerCase()).join('; ')}.` : '') + (d.split.tracked.n >= 5 && d.split.tracked.avgR != null && d.split.tracked.avgR <= 0 ? ` But the ${d.split.tracked.n} trades tracked as they happened average ${sgn(d.split.tracked.avgR)}: the edge is not confirmed live yet, so trade it small or on paper.` : '');
   else if (v === 'unproven') d.recommendation = `Keep collecting: about ${Math.max(0, 12 - n)} more closed trades before a first verdict.`;
   else if (relBest.length && st.avgR <= 0) d.recommendation = `Weak overall, but reliably better when ${relBest.map((c) => c.text.toLowerCase()).join('; ')}. A narrower version of this pattern may be worth testing.`;
   else d.recommendation = st.avgR > 0 ? 'Promising but not proven: keep tracking, no change.' : 'Not working so far. If it stays negative at 12+ trades it is flagged as failing, but it keeps running.';

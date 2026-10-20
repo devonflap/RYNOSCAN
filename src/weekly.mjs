@@ -1,5 +1,6 @@
 // Weekly report to the phone: which gates to keep or relax, which gates bottleneck the search. Never fails the run.
 import fs from 'node:fs';
+import { tuneText } from '../docs/tuner.mjs';
 import path from 'node:path';
 const OUT = process.env.OUT_DIR || 'docs/data';
 export function compose(L) {
@@ -14,6 +15,11 @@ export function compose(L) {
     const ed = L.books.filter((b) => b.verdict === 'edge'), pr = L.books.filter((b) => b.verdict === 'promising');
     if (ed.length) lines.unshift('EDGE CANDIDATE: ' + ed.map((b) => `${b.short} averages ${b.avgR >= 0 ? '+' : ''}${b.avgR}R a trade over ${b.closed} trades (90% range ${b.lo} to ${b.hi}R)`).join('; ') + '. Confirm it on the next 30 trades before risking real money.');
     else if (pr.length) lines.push('Promising but not proven: ' + pr.map((b) => `${b.short} (${b.closed} trades)`).join(', ') + '.'); }
+  { const b = (L.books || []).find((x) => x.key === 'exec'), z = (L.books || []).find((x) => x.key === 'execZone'), sg = (x) => (x >= 0 ? '+' : '') + x;
+    if (b) lines.unshift(`Bot rules (5-minute entry, 15-minute exits): ${b.closed} closed, ${sg(b.retPct.toFixed(1))}%${b.avgR != null ? `, ${sg(b.avgR)}R a trade` : ''}${z ? `; plain zone limit on the same setups ${sg(z.retPct.toFixed(1))}% (${z.closed} closed)` : ''}.`); }
+  { const bk = (k) => (L.books || []).find((x) => x.key === k), a = bk('brk'), f = bk('brkBot'), t = bk('brkTrig'), sg = (x) => (x >= 0 ? '+' : '') + x, one = (x, name) => (x ? `${name} ${x.closed} closed${x.avgR != null ? ` ${sg(x.avgR)}R a trade` : ''}` : null);
+    if (a || f || t) lines.unshift('Breakout retest, live paper: ' + [one(a, 'as backtested'), one(f, 'bot filters'), one(t, '5-minute trigger')].filter(Boolean).join('; ') + '.');
+    const tu = L.council && L.council.botTuning && L.council.botTuning.breakout; if (tu) { try { lines.push(tuneText(tu)); } catch { /* optional */ } } }
   if (L.council && L.council.final) { lines.unshift('Council: ' + L.council.final.headline + '. ' + L.council.final.answer); const ask = (L.council.final.actions || []).filter((a) => a.kind === 'ask'); if (ask.length) lines.push('Needs your OK: ' + ask.map((a) => a.text).join(' ')); }
   lines.push('Report only: nothing was switched off or changed.');
   return { title: 'RynoScan weekly gate report', body: lines.join('\n') };

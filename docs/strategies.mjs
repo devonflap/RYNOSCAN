@@ -15,6 +15,7 @@ export const BOOKS = {
   degen: { group: 'degen', same: 'degen', label: 'Degen desk (current exits)', short: 'Degen current', profile: 'degen', entry: 'Volume surge of 2.5x or more, up 10% to 400% in 24 hours, buyers leading, $50k+ liquidity, wallets not leaning out.', pct: 10, slots: 8 },
   degenLadder: { group: 'degen', same: 'degen', label: 'Degen · ladder (bank on the way up)', short: 'Degen ladder', profile: 'ladder', entry: 'Same coins and times as the degen desk.', pct: 10, slots: 8 },
   degenMoon: { group: 'degen', same: 'degen', label: 'Degen · moonbag', short: 'Degen moonbag', profile: 'moon', entry: 'Same coins and times as the degen desk.', pct: 10, slots: 8 },
+  degenStudy: { group: 'degen', same: 'degen', label: 'Degen · study exits', short: 'Degen study', profile: 'study', entry: 'Same coins and times as the degen desk, run with the study exits (40% floor, ride free at 2x, 50% giveback on 15-minute closes). Started 20 Oct.', pct: 10, slots: 8 },
   degenFlow: { group: 'degen', same: 'degen', label: 'Degen · cut on sellers', short: 'Degen cut-on-sellers', profile: 'degenFlow', entry: 'Same coins and times as the degen desk. Started 19 Oct: tests whether getting out early when sellers take over cuts losses without cutting the runners.', pct: 10, slots: 8 },
   fibPull: { group: 'play', label: 'First Fib pullback (playbook)', short: 'Fib pullback', profile: 'fibPull', entry: 'A coin that ran 50% or more to a new high in the last 2 days (1-hour candles, wick to wick). Limit buy at the 0.5 retracement of that run, or 0.618 if price is already below 0.5; cancelled if it makes a new high first or after 48 hours.', pct: 6, slots: 6, maxNew: 3 },
   patInside: { group: 'play', label: 'Inside the pattern (playbook)', short: 'Inside pattern', profile: 'patInside', entry: 'A forming falling wedge, bull flag, double bottom, inverse H&S or cup & handle on the 4h chart. Limit buy in the lower third of the pattern (third touch, right shoulder, handle, second bottom); cancelled if it breaks out first or after 72 hours.', pct: 5, slots: 6, maxNew: 3 },
@@ -22,10 +23,17 @@ export const BOOKS = {
   pulse: { group: 'scalp', label: 'Early pulse (15-minute checker)', short: 'Early pulse', profile: 'pulse', entry: 'Checked every ~15 minutes on DexScreener: 5-minute volume at least 2.5x the last hour pace, the last hour 1.5x the 6-hour pace, price up 1.5%+ in 5 minutes and 3% to 60% in the hour (not vertical), buyers at least 1.3x sellers, no paid boost, $50k+ liquidity. Buys the next 5-minute open after the check.', pct: 5, slots: 6 },
   pulseFlush: { group: 'scalp', same: 'pulse', entryVariant: true, label: 'Early pulse · buy the flush', short: 'Pulse flush', profile: 'pulseFlush', entry: 'Same early-move alerts as Early pulse, but instead of buying straight away it bids 6% lower and waits up to 3 hours for a dip ("buy the flush, not the candle"). Cancelled if price runs 25% without dipping. Compared signal by signal with Early pulse, counting a missed fill as 0%.', pct: 5, slots: 6 },
   spike: { group: 'scalp', label: 'Buyer spike (early, hourly)', short: 'Buyer spike', profile: 'spike', entry: 'New wallets arriving before the price has run: unique buyers in the last hour at least 3x the 24-hour hourly average (GeckoTerminal), at least 25 of them and 1.3x more buyers than sellers, last-hour volume 2x its pace, price up 0% to 30% in the hour and under 150% in 24 hours (not already priced), $50k+ liquidity, no risk rule. Checked on full scans; buys the next hourly open.', pct: 5, slots: 6, maxNew: 3 },
+  // execution test (20 Oct): the scanner's setups (bid-ready and worth-watching, with a zone and an invalidation) traded three ways
+  execZone: { group: 'exec', label: 'Zone limit (baseline for the bot rules)', short: 'Zone limit', profile: 'exec', entry: 'Every bid-ready or worth-watching setup: a limit order at the top of the entry zone as soon as it is called (how the bid-ready list works today), 24 hours to fill. Same exit stack as the trigger book, so the two compare entries only.', pct: 5, slots: 10, maxNew: 6 },
+  exec: { group: 'exec', same: 'execZone', entryVariant: true, trigger: true, maxWatch: 20, label: 'Bot rules · 5-minute trigger', short: 'Bot rules', profile: 'exec', entry: 'Same setups, but no buy until a 5-minute candle confirms inside the zone: a flush below the zone that closes back above it, or a bounce in the zone, on at least 1.5x (flush) or 2x (bounce) normal volume, closing in the upper half of its range and no more than 3% above the zone (no chasing). Buys the next 5-minute open. Stop under the flush low, at least 5% and at most 20% away. Setup dropped if a candle closes under its invalidation or after 24 hours without a trigger.', pct: 5, slots: 10 },
+  execStudy: { group: 'exec', same: 'exec', trigger: true, label: 'Bot rules · 5-minute trigger, study exits', short: 'Trigger + study exits', profile: 'study', entry: 'Same trigger entries as the bot rules book, run with the study exits (40% floor, ride free at 2x, 50% giveback on 15-minute closes).', pct: 5, slots: 10 },
+  brk: { group: 'brk', label: 'Breakout retest · as backtested', short: 'Breakout as backtested', profile: 'brk', entry: 'Every Breakout retest the scanner sees with a valid plan (score 50+, $100k+ liquidity, no rug danger), bid-ready or not, exactly as the backtest traded it: a limit order at the top of the retest zone, 48 hours to fill. One per coin per 24 hours.', pct: 5, slots: 20, maxNew: 6 },
+  brkBot: { group: 'brk', label: 'Breakout retest · bot filters', short: 'Breakout bot filters', profile: 'brk', entry: 'The same setups after the Breakout bot filters (the tuner\'s active list, starting with reward to risk to TP2 of 3R or more) and stops up to 35%. This is the paper twin of the Breakout bot.', pct: 5, slots: 20 },
+  brkTrig: { group: 'brk', same: 'brk', entryVariant: true, trigger: true, trigCfg: { maxStopPct: 40, expireH: 48 }, label: 'Breakout retest · 5-minute trigger', short: 'Breakout + trigger', profile: 'brk', entry: 'The same setups, but no buy until a 5-minute candle confirms the retest (a flush that closes back above the zone, or a bounce on 2x volume). Same plan stop and targets, so it tests the entry only: the pattern loses mostly on entries that never work.', pct: 5, slots: 20 },
   scalpBreak: { group: 'scalp', label: 'Scalper · breakout', short: 'Scalp breakout', profile: 'scalpBreak', entry: '5-minute candle closes above the last hour\'s high on at least 2x normal volume, near the top of its range, uptrend on the 20-candle average, not already stretched.', pct: 5, slots: 4, maxNew: 3 },
 };
 for (const k of Object.keys(BOOKS)) if (BOOKS[k].profile) BOOKS[k].exits = PROFILES[BOOKS[k].profile].label;
-export const DEGEN_COPIES = ['degenLadder', 'degenMoon', 'degenFlow']; // Degen tight and Scalper dip-buy removed 19 Oct (they duplicated other books)
+export const DEGEN_COPIES = ['degenLadder', 'degenMoon', 'degenFlow', 'degenStudy']; // Degen tight and Scalper dip-buy removed 19 Oct (they duplicated other books)
 
 // Exit rules compared on every logged runner (Learn tab, runner study). Same entries, only the exit differs.
 const DP = PROFILES.degen;
@@ -39,6 +47,8 @@ export const EXIT_SET = {
   'both cuts together': { ...DP, sellCandle: { volX: 2, lowPct: 0.25, dropPct: 0.05, lossPct: 0.08, look: 12 }, noFollow: { h: 8, upPct: 0.10 } },
   // from the "six bot desk" thread: close when volume dies (last 6 hours under 20% of the 24-hour pace)
   'out when volume dies (6h under 20% of the 24h pace)': { ...DP, volDeath: { ratio: 0.2 } },
+  'study: stop 40%, ride free at 2x, 50% giveback on closes': { ...PROFILES.study, barSec: 3600 },
+  'study with a 20% stop': { ...PROFILES.study, stopPct: 0.20, barSec: 3600 },
   "thread's rule: no price stop, hold until volume dies (7 days max)": { ...DP, stopPct: 0.95, ladder: [], trailPct: null, trailFrom: null, beAfterFirst: false, volDeath: { ratio: 0.2 }, maxHours: 168 },
 };
 export const EXIT_SET_HOURS = Math.max(...Object.values(EXIT_SET).map((p) => p.maxHours));
@@ -59,6 +69,45 @@ export function spikeSetup(p, cfg = SPIKE) {
   if (sp == null || sp < cfg.minSpike || b1 < cfg.minBuyers || b1 < cfg.buyerLead * s1 || !(vacc >= cfg.minVacc) || ch1 == null || ch1 < cfg.ch1Min || ch1 > cfg.ch1Max || (ch24 != null && ch24 > cfg.ch24Max)) return null;
   if ((num(p.liq) || 0) < cfg.minLiq || (num(p.v24) || 0) < cfg.minV24 || p.rug === 'danger') return null;
   return { spike: sp, why: [`${b1} wallets bought in the last hour, ${sp}x the usual hourly number`, `${b1} buyers vs ${s1} sellers`, `volume ${vacc}x its pace`, `price ${ch1 >= 0 ? '+' : ''}${ch1}% in the hour, ${ch24 != null ? (ch24 >= 0 ? '+' : '') + ch24 + '% in 24h' : ''}`] };
+}
+
+// ---------- execution trigger on 5-minute candles ----------
+// setup: { zoneLow, zoneHigh, stop (the setup's invalidation) }, from: setup time (ISO). bars: 5-minute [t,o,h,l,c,v] ascending.
+// Only candles that have closed by nowSec count. Returns null (still waiting), { dead, why } (setup gone), { pending } (triggered on the
+// last closed candle, the fill is the next open) or { at, px, stop, kind, why } (filled at the next 5-minute open).
+// Breakout retest setup (shared by the paper books, the dashboard's breakouts.json and the Breakout bot): the pattern's own plan,
+// with the fields the bot filters use (reward to risk to TP2, stop distance, chain, the market's volume day).
+export const BRK = { name: 'Breakout retest', minOpp: 50, minLiq: 100000, expireH: 48 };
+export function brkSetup(p, volDay = null, cfg = BRK) {
+  const sp = p && p.sp; if (!p || p.setupType !== cfg.name || !sp || !sp.valid || !(sp.entryLow > 0) || !(sp.entryHigh >= sp.entryLow) || !(sp.stop > 0) || !(sp.stop < sp.entryHigh) || !(sp.tp1 > sp.entryHigh)) return null;
+  if (!(p.opp >= cfg.minOpp) || (p.liq || 0) < cfg.minLiq || p.rug === 'danger' || (p.price > 0 && p.price <= sp.stop)) return null; // already through its stop: broken, not a setup
+  const mid = sp.entryMid || (sp.entryLow + sp.entryHigh) / 2;
+  return { zoneLow: r6(sp.entryLow), zoneHigh: r6(sp.entryHigh), stop: r6(sp.stop), tp1: r6(sp.tp1), tp2: r6(sp.tp2), tp3: r6(sp.tp3), rr2: sp.rr2 != null ? +(+sp.rr2).toFixed(2) : null, riskPct: sp.riskPct != null ? +(+sp.riskPct).toFixed(1) : +((mid - sp.stop) / mid * 100).toFixed(1), volDay: volDay || null, opp: p.opp ?? null, expireH: cfg.expireH };
+}
+export const TRIG = { flushLook: 6, volLook: 12, volFlush: 1.5, volBounce: 2, upper: 0.5, chasePct: 3, minStopPct: 5, maxStopPct: 20, expireH: 24 };
+export function execTrigger(setup, bars, nowSec, from, cfg = TRIG) {
+  const zl = num(setup && setup.zoneLow), zh = num(setup && setup.zoneHigh), inv = num(setup && setup.stop), t0 = Date.parse(from || '') / 1000;
+  if (!(zl > 0) || !(zh >= zl) || !isFinite(t0)) return { dead: true, why: 'invalid setup' };
+  const all = (bars || []).map((b) => b.slice(0, 6).map(Number)).filter((b) => b.every((x) => isFinite(x)) && b[0] + 300 <= nowSec);
+  const start = all.findIndex((b) => b[0] >= t0); if (start < 0) return nowSec - t0 > (setup.expireH || cfg.expireH) * 3600 ? { dead: true, why: 'expired (no trigger in 24 hours)' } : null;
+  for (let k = start; k < all.length; k++) {
+    const [t, o, h, l, c, v] = all[k];
+    if (t > t0 + (setup.expireH || cfg.expireH) * 3600) return { dead: true, why: 'expired (no trigger in 24 hours)' };
+    if (inv > 0 && c < inv) return { dead: true, why: 'cancelled (setup broke before a trigger)' };
+    if (k < cfg.volLook) continue;
+    const prev = all.slice(k - cfg.volLook, k), avgV = prev.reduce((a, b) => a + b[5], 0) / prev.length, win = all.slice(Math.max(start, k - cfg.flushLook + 1), k + 1), flushLow = Math.min(...win.map((b) => b[3]));
+    const rng = h - l, upperOk = rng > 0 && (c - l) / rng >= cfg.upper, green = c > o, noChase = c <= zh * (1 + cfg.chasePct / 100);
+    let kind = null;
+    if (flushLow < zl && c > zl && green && upperOk && noChase && avgV > 0 && v >= cfg.volFlush * avgV) kind = 'flush and reclaim';
+    else if (Math.min(...all.slice(Math.max(start, k - 2), k + 1).map((b) => b[3])) <= zh && c >= zl && green && rng > 0 && (c - l) / rng >= 0.6 && noChase && avgV > 0 && v >= cfg.volBounce * avgV) kind = 'bounce in the zone';
+    if (!kind) continue;
+    if (k + 1 >= all.length) return { pending: true, kind, flushLow: r6(flushLow), at: new Date((t + 300) * 1000).toISOString().slice(0, 19) + 'Z', vol: +(v / avgV).toFixed(1) };
+    const px = all[k + 1][1], stop = Math.min(flushLow * 0.99, px * (1 - cfg.minStopPct / 100)), stopPct = (1 - stop / px) * 100;
+    if (stopPct > cfg.maxStopPct) continue; // the flush was too deep to risk from here
+    return { at: new Date((t + 300) * 1000).toISOString().slice(0, 19) + 'Z', px: r6(px), stop: r6(stop), kind, stopPct: +stopPct.toFixed(1),
+      why: [`${kind} on the 5-minute chart`, `volume ${(v / avgV).toFixed(1)}x normal`, `stop ${stopPct.toFixed(1)}% under the entry`] };
+  }
+  return nowSec - t0 > (setup.expireH || cfg.expireH) * 3600 ? { dead: true, why: 'expired (no trigger in 24 hours)' } : null;
 }
 
 // "buy the flush, not the candle": a limit 6% under the alert price instead of buying the spike

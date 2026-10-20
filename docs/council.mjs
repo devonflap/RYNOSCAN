@@ -116,12 +116,17 @@ function hatExits(G, learned) {
   return { stance: clear.some((p) => p.call === 'better') ? 'for' : clear.length ? 'against' : 'wait', headline, points: points.length ? points : ['Waiting for shared trades to close.'], notes, pairs, metric: most ? String(most.n) : '0', metricLabel: 'most shared trades compared' };
 }
 
-// where each book works: its closed trades split by market mood, volume day, lifecycle phase, liquidity, hour and chain. Each slice is
+// where each book works: its closed trades split by market mood, volume day, lifecycle phase, liquidity, hour, chain, and for the bot's
+// books also setup type, bid-ready vs watch, trigger kind, score band and stop distance. Each slice is
 // compared with the rest of that book's trades; the q-value corrects for every slice tested across every book.
 const SLICES = [
   ['market mood', (t) => (t.mkt && t.mkt.sol) || null], ['volume day', (t) => (t.mkt && t.mkt.vol) || null], ['lifecycle phase', (t) => (t.sig && t.sig.phase) || null],
   ['liquidity', (t) => (t.liq == null ? null : t.liq < 150000 ? 'under $150k' : t.liq < 400000 ? '$150k-400k' : '$400k+')],
   ['hour (UTC)', (t) => { const h = new Date(t.at).getUTCHours(); return isFinite(h) ? (h < 6 ? '00-06' : h < 12 ? '06-12' : h < 18 ? '12-18' : '18-24') : null; }], ['chain', (t) => t.chain || null],
+  // where the bot's rules work (rows that carry these fields: the Bot rules books mostly)
+  ['setup type', (t) => (t.sig && t.sig.setupType) || null], ['signal', (t) => { const w = String(((t.sig && t.sig.why) || [])[0] || ''); return /bid-ready/.test(w) ? 'bid-ready' : /worth watching/.test(w) ? 'worth watching' : null; }],
+  ['trigger', (t) => (t.sig && t.sig.trig) || null], ['score', (t) => { const o = t.sig && t.sig.opp; return o == null ? null : o < 70 ? 'under 70' : o < 80 ? '70-79' : '80+'; }],
+  ['stop distance', (t) => { const d = t.entryPx > 0 && t.stop0 > 0 ? (1 - t.stop0 / t.entryPx) * 100 : null; return d == null ? null : d < 8 ? 'under 8%' : d < 12 ? '8-12%' : '12%+'; }],
 ];
 export function bookSlices(G, minBook = 20, minN = 8) {
   const tests = [];

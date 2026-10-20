@@ -1,0 +1,17 @@
+{
+  "mode": "dry",
+  "enabled": true,
+  "site": "https://devonflap.github.io/RYNOSCAN/data/",
+  "accountUsd": 1000,
+  "riskPct": 1,
+  "maxOpen": 4,
+  "maxOpenRiskPct": 4,
+  "dailyLossPct": 3,
+  "minOpp": 65,
+  "signals": ["bid", "watch"],
+  "pollSec": 60,
+  "summaryHourBrisbane": 20,
+  "tradeAlerts": false,
+  "dailySummary": false,
+  "realityEveryDays": 14
+}

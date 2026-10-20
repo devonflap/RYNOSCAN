@@ -60,4 +60,26 @@ ok(C1.final.actions.some((a) => /quarter of the Kelly figure/.test(a.text) && /r
 // learning loop: slices are judged against the rest of the trades, not against zero
 { const { learn } = await import('../src/learn.mjs'); const sigs = Array.from({ length: 60 }, (_, i) => ({ setup: 'Bottom reversal', chain: 'Solana', at: '2026-10-01T00:00:00Z', signalAt: '2026-10-01T00:00:00Z', status: 'stopped out', resultR: i % 3 === 0 ? -0.9 + (i % 2) * 0.1 : -0.3 + (i % 2) * 0.1, pq: i % 3 === 0 ? 60 : 80 }));
   const L = learn(sigs); ok(/Most slices look negative because the trades as a whole average/.test(L.insights[0]) && L.insights.some((t) => /Pattern quality under 70: .* against .* for the rest \(worse by/.test(t)), 'when everything loses, the learning loop shows which slices are worse than the rest'); }
+// RynoBot spot alert: Risky · Ryan / Risky · Claude get their own phone alert the first time the council calls them a bot candidate
+{ const { botSpotAlerts, runCouncil } = await import('../src/councilrun.mjs'); const fs = await import('node:fs'), os = await import('node:os'), path = await import('node:path');
+  const a1 = botSpotAlerts(C1, {}); ok(a1.alerts.length === 1 && a1.alerts[0].key === 'riskyPick' && a1.alerts[0].title === 'RynoBot: Risky · Claude has earned a bot spot' && /34 closed paper trades/.test(a1.alerts[0].body) && /Random entries on the same desk/.test(a1.alerts[0].body) && /add it to RynoBot/.test(a1.alerts[0].body) && a1.spot.riskyPick, 'bot spot: Claude\'s risky setup becomes a bot candidate -> its own alert with the numbers and the next step');
+  ok(botSpotAlerts(C1, { botSpot: a1.spot }).alerts.length === 0, 'bot spot: alerts once, not every scan');
+  const lose = { at: 'x', books: [{ key: 'riskyPick', short: 'Risky · Claude', call: 'losing', n: 40 }] }, r2 = botSpotAlerts(lose, { botSpot: a1.spot });
+  ok(!r2.spot.riskyPick && botSpotAlerts(C1, { botSpot: r2.spot }).alerts.length === 1, 'bot spot: re-arms only after the book falls to losing');
+  ok(botSpotAlerts({ at: 'x', books: [{ key: 'riskyRyan', short: 'Risky · Ryan', call: 'promising', n: 12 }, { key: 'risky', short: 'Risky coins', call: 'bot candidate', n: 40 }] }, {}).alerts.length === 0, 'bot spot: promising is not enough, and other books are not on this watch');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'council-')), sent = []; fs.writeFileSync(path.join(dir, 'lab.json'), JSON.stringify(lab));
+  const post = async (t, b) => sent.push(t); await runCouncil(dir, { now: D0 + 400 * 3600e3, post, since: null }); await runCouncil(dir, { now: D0 + 401 * 3600e3, post, since: null });
+  const saved = JSON.parse(fs.readFileSync(path.join(dir, 'council.json'), 'utf8'));
+  ok(sent.length === 1 && sent[0] === 'RynoBot: Risky · Claude has earned a bot spot' && saved.botSpot.riskyPick && saved.botSpot.riskyPick.n === 34, 'scan run: one phone alert over two scans, remembered in council.json, no double general alert');
+  const dir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'council-')); fs.writeFileSync(path.join(dir2, 'lab.json'), JSON.stringify(lab)); let tries = 0;
+  await runCouncil(dir2, { now: D0 + 400 * 3600e3, post: async () => { tries++; throw new Error('ntfy down'); }, since: null }); await runCouncil(dir2, { now: D0 + 401 * 3600e3, post: async () => { tries++; }, since: null });
+  ok(tries === 2 && JSON.parse(fs.readFileSync(path.join(dir2, 'council.json'), 'utf8')).botSpot.riskyPick, 'if the phone alert fails it tries again next scan'); }
+// bot-rule slices and the study exits judged against the bot rules on the same trigger entries
+{ const { bookSlices, gather } = await import('../docs/council.mjs'); const rows = [];
+  for (let i = 0; i < 30; i++) { const flush = i % 2 === 0, why = [`Falling wedge (${i % 3 ? 'worth watching' : 'bid-ready'}, score 7${i % 10})`];
+    rows.push(row('exec', i, flush ? 0.12 : -0.08, { profile: 'exec', setupType: 'Falling wedge', trig: flush ? 'flush and reclaim' : 'bounce in the zone', opp: 70 + (i % 10), why, stop0: i % 4 === 0 ? 0.93 : 0.8 }));
+    rows.push(row('execStudy', i, flush ? 0.2 : -0.1, { profile: 'study', setupType: 'Falling wedge', trig: flush ? 'flush and reclaim' : 'bounce in the zone', opp: 70 + (i % 10), why })); }
+  const G = gather({ lab: rows, now: D0 + 400 * 3600e3 }), sl = bookSlices(G), tr = sl.find((t) => t.book === 'exec' && t.slice === 'trigger' && t.bucket === 'flush and reclaim');
+  ok(tr && tr.n === 15 && tr.diff > 0 && sl.some((t) => t.book === 'exec' && t.slice === 'signal') && sl.some((t) => t.book === 'exec' && t.slice === 'stop distance'), 'the council slices the bot rules by trigger kind, bid-ready vs watch, score and stop distance');
+  const C = council({ lab: rows, now: D0 + 400 * 3600e3 }), pe = C.pairs.find((p) => p.alt === 'execStudy'); ok(pe && pe.base === 'exec' && pe.n === 30, 'study exits are compared with the bot rules on the same trigger entries (exits only)'); }
 process.exit(f);

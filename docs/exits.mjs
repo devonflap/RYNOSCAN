@@ -23,6 +23,13 @@ export const PROFILES = {
   fibPull: { label: 'Fib pullback: limit buy at the 0.5 retrace, stop 7% under the 0.786 level, sell 30% at the old high, 30% at the 1.272 extension, 20% at 1.618, last 20% trails 30%, 5 days', stopPct: 0.25, ladder: [[1.33, 0.3], [1.5, 0.3], [1.75, 0.2]], trailPct: 0.30, trailFrom: 'first', beAfterFirst: true, maxHours: 120, slipPct: 2, exitSlipPct: 0, sizeUsd: 1000, barSec: 3600 },
   patInside: { label: 'Inside the pattern: limit buy in the lower third, stop under the pattern low, sell half at the breakout line, 25% at half the pattern height above it, 25% at the full height, 7 days', stopPct: 0.15, ladder: [[1.2, 0.5], [1.3, 0.25], [1.4, 0.25]], trailPct: null, trailFrom: null, beAfterFirst: true, maxHours: 168, slipPct: 2, exitSlipPct: 0, sizeUsd: 1000, barSec: 3600 },
   degenFlow: { label: 'Current degen exits, plus a cut on sellers: when the trade is 8%+ under the entry price AND sellers take over (1.2x more wallets selling than buying with money flowing out on the hourly read, or 1.2x more sells than buys in the last hour and more sells in the last 5 minutes on the 15-minute check), sell everything', stopPct: 0.20, ladder: [[2, 0.5]], trailPct: 0.30, trailFrom: 'first', beAfterFirst: true, maxHours: 72, slipPct: 3, exitSlipPct: 0, sizeUsd: 1000, barSec: 3600, flowCut: { lossPct: 0.08, sellX: 1.2 } },
+  // the execution stack (the bot's exits): stop under the flush low (5% minimum), a third at +1R then stop to break-even, ride free at 2x,
+  // the rest on a 25% trail until free and then on a 50% giveback of the best 15-minute close; out early if it never reaches +1R in
+  // 6 hours or volume dies. Replayed on 15-minute candles.
+  exec: { label: 'Execution stack: stop under the flush low (at least 5%), sell a third at +1R and move the stop to break-even, ride free at 2x (sell enough to get the stake back), trail the rest 25% under the high until free, then 50% under the best close; out after 6 hours without +1R, or when volume dies; 3 days max', stopPct: 0.08, ladderR: [[1, 1 / 3]], rideFree: { at: 2 }, giveback: 0.5, trailPct: 0.25, trailFrom: 'first', beAfterFirst: true, noFollow: { h: 6, upR: 1 }, volDeath: { ratio: 0.2 }, maxHours: 72, slipPct: 2, exitSlipPct: 0.5, sizeUsd: 1000, barSec: 900 },
+  // study exits: a wide floor 40% under the entry, ride free at 2x, then out when a 15-minute candle closes 50% under the best close
+  brk: { label: 'As backtested: the pattern plan stop, a third at TP1 (stop to break-even), a third at TP2, the rest at TP3, 7 days; 1.5% round-trip costs', stopPct: 0.2, ladder: [], trailPct: null, trailFrom: null, beAfterFirst: true, maxHours: 168, slipPct: 0.75, exitSlipPct: 0.75, barSec: 3600 },
+  study: { label: 'Study exits: stop 40% under the entry, ride free at 2x (sell enough to get the stake back), the rest rides until a 15-minute candle closes 50% under its best close, 7 days max', stopPct: 0.40, ladder: [], rideFree: { at: 2 }, giveback: 0.5, trailPct: null, trailFrom: null, beAfterFirst: false, maxHours: 168, slipPct: 3, exitSlipPct: 0, sizeUsd: 1000, barSec: 900 },
   proven: { label: 'Proven wallets: stop 20%, half out at 2x (initial back), 25% at 3x, last 25% trails 35%, 5 days', stopPct: 0.20, ladder: [[2, 0.5], [3, 0.25]], trailPct: 0.35, trailFrom: 'first', beAfterFirst: true, maxHours: 120, slipPct: 3, exitSlipPct: 0, sizeUsd: 1000, barSec: 3600 },
   pulse: { label: 'Early pulse: stop 10%, 30% at +20% then stop to break-even, 30% at +50%, last 40% trails 20%, 12 hours', stopPct: 0.10, ladder: [[1.2, 0.3], [1.5, 0.3]], trailPct: 0.20, trailFrom: 'first', beAfterFirst: true, maxHours: 12, slipPct: 1.5, exitSlipPct: 0.5, sizeUsd: 500, barSec: 300 },
   pulseFlush: { label: 'Early pulse, buy the flush: limit buy 6% under the alert price, stop 10% under the fill, 30% at +20% then stop to break-even, 30% at +50%, last 40% trails 20%; cancelled if it runs 25% without dipping or after 3 hours; 12 hours max', stopPct: 0.10, ladder: [[1.2, 0.3], [1.5, 0.3]], trailPct: 0.20, trailFrom: 'first', beAfterFirst: true, maxHours: 12, slipPct: 0.5, exitSlipPct: 0.5, sizeUsd: 500, barSec: 300 },
@@ -39,6 +46,13 @@ const mx = (m) => (Math.round(m * 100) / 100) + 'x';
 //     on volX times the average volume of the previous `look` candles, while the trade is lossPct+ under entry: sell at the next open.
 //   P.volDeath = { ratio }: volume has died: the last 6 hourly candles traded less than `ratio` of the 24-hour pace (24h volume / 4). Sell at the next open.
 //   P.noFollow = { h, upPct }: after h hours, if the trade never got upPct above entry, has sold nothing and is under entry: sell at the next open.
+//   P.rideFree = { at }: when price reaches `at` times the entry, sell just enough to get the whole stake back ("ride free"); from then on
+//     the position cannot lose money, so the hard stop is dropped and the rest rides on the giveback line (or the time limit).
+//   P.giveback = x: the rest is sold when a candle CLOSES x under the best close since entry (confirmed price under the confirmed peak).
+//     Active after riding free, or from the start with givebackFrom: 'start'.
+//   P.ladderR = [[r, share]]: take-profits in multiples of the trade's own risk (+1R = entry plus the stop distance).
+//   s.fill = { px, at }: the entry is already known (a trigger found on 5-minute candles): the trade starts at that price and time.
+//   s.stopPx: an explicit stop price for a market or fixed entry (instead of stopPct).
 //   Decisions on a candle's close are only taken once that candle has closed (nowIso), so a forming candle never triggers anything.
 // Replay one trade. s: { signalAt, liq, plan? }. bars: [t(sec), open, high, low, close, ...] ascending.
 // Market entry (no plan): the open of the first candle that starts at or after the signal, plus slippage and price impact.
@@ -48,11 +62,12 @@ const mx = (m) => (Math.round(m * 100) / 100) + 'x';
 // then the take-profits. On the candle a limit order fills, only the stop is checked (we cannot know whether the high came before the dip).
 // The trailing stop only uses highs of candles that have already closed, so it never reacts to a high and a low inside the same candle.
 export function runExit(s, bars, nowIso, prof) {
-  const P = { trailFrom: 'first', beAfterFirst: true, exitSlipPct: 0, ...prof }, t0 = Date.parse(s && s.signalAt) / 1000, pl = s && s.plan && +s.plan.limit > 0 ? s.plan : null;
-  const B = (Array.isArray(bars) ? bars : []).filter((b) => b && +b[0] >= t0 && [b[1], b[2], b[3], b[4]].every((v) => isFinite(+v) && +v > 0)).map((b) => b.slice(0, 6).map(Number));
+  const P = { trailFrom: 'first', beAfterFirst: true, exitSlipPct: 0, ...prof }, bsz = P.barSec || 3600, fx = s && s.fill && +s.fill.px > 0 && isFinite(Date.parse(s.fill.at)) ? s.fill : null, pl = !fx && s && s.plan && +s.plan.limit > 0 ? s.plan : null;
+  const t0 = fx ? Date.parse(fx.at) / 1000 : Date.parse(s && s.signalAt) / 1000;
+  const B = (Array.isArray(bars) ? bars : []).filter((b) => b && (fx ? +b[0] + bsz > t0 : +b[0] >= t0) && [b[1], b[2], b[3], b[4]].every((v) => isFinite(+v) && +v > 0)).map((b) => b.slice(0, 6).map(Number));
   const out = { checkedAt: nowIso };
   if (!isFinite(t0) || !B.length) return { ...out, status: 'waiting for entry' };
-  if (+bars[0][0] > t0 + (P.barSec || 3600)) return { ...out, status: 'waiting for entry', gap: true }; // the candles on hand start after the signal, so the trade cannot be replayed faithfully
+  if (+bars[0][0] > t0 + bsz) return { ...out, status: 'waiting for entry', gap: true }; // the candles on hand start after the signal, so the trade cannot be replayed faithfully
   const liq = num(s.liq), imp = liq && liq > 0 ? Math.min(0.5, (P.sizeUsd || 0) / liq) : 0, cut = imp + (P.exitSlipPct || 0) / 100, eff = (x) => x * (1 - cut);
   let k0 = 0, base = B[0][1];
   if (pl) { let k = -1, why = null, at = null;
@@ -63,17 +78,19 @@ export function runExit(s, bars, nowIso, prof) {
       if (pl.cancelAbove && h >= pl.cancelAbove) { why = pl.cancelWhy || 'cancelled (ran before the entry filled)'; at = t; break; } }
     if (k < 0) return { ...out, status: why || 'waiting for entry', closedAt: why ? iso(at) : null };
     k0 = k; base = Math.min(B[k][1], pl.limit); }
-  const F = base * (1 + (P.slipPct || 0) / 100 + imp), E0 = B[k0][0];
-  const ladder = pl ? (pl.targets || []).filter(([px]) => px > F).map(([px, f]) => [px / F, f]) : (P.ladder || []).map(([m, f]) => [m, f]);
-  let stopNow = pl ? +pl.stop : F * (1 - P.stopPct); if (!(stopNow < F)) return { ...out, status: 'invalid plan', closedAt: iso(E0) };
-  const stop0 = stopNow; let lo = Math.min(F, B[k0][3]), hi = F, hiT = F, rem = 1, hits = 0, trailOn = P.trailFrom === 'start' && P.trailPct > 0, status = 'open', closedAt = null, last = B[k0][4];
+  if (fx) base = +fx.px;
+  const F = base * (1 + (P.slipPct || 0) / 100 + imp), E0 = fx ? t0 : B[k0][0];
+  let stopNow = pl ? +pl.stop : +s.stopPx > 0 ? +s.stopPx : F * (1 - P.stopPct); if (!(stopNow < F)) return { ...out, status: 'invalid plan', closedAt: iso(E0) };
+  const tg = !pl && Array.isArray(s && s.targets) && s.targets.length ? s.targets : null; // absolute targets on a row that filled by trigger
+  const ladder = pl && Array.isArray(pl.targets) && pl.targets.length ? pl.targets.filter(([px]) => px > F).map(([px, f]) => [px / F, f]) : tg ? tg.filter(([px]) => px > F).map(([px, f]) => [px / F, f]) : P.ladderR ? P.ladderR.map(([r, f]) => [1 + r * (F - stopNow) / F, f]) : (P.ladder || []).map(([m, f]) => [m, f]);
+  const stop0 = stopNow; let lo = Math.min(F, B[k0][3]), hi = F, hiT = F, rem = 1, hits = 0, trailOn = P.trailFrom === 'start' && P.trailPct > 0, status = 'open', closedAt = null, last = B[k0][4], free = false, peakC = F;
   let gotRaw = 0; const fills = [], sell = (t, level, frac, why) => { const f = Math.min(frac, rem); if (f <= 1e-9) return; rem = Math.max(0, rem - f); gotRaw += f * eff(level); fills.push({ t: iso(t), level: r6(level), px: r6(eff(level)), frac: +f.toFixed(4), why }); };
-  const lbl = (k) => (pl ? 'target ' + k : mx(ladder[k - 1][0]));
+  const lbl = (k) => (pl || tg ? 'target ' + k : mx(ladder[k - 1][0]));
   const bs = P.barSec || 3600, nowS = isFinite(Date.parse(nowIso)) ? Date.parse(nowIso) / 1000 : Infinity, cutT = s && s.cut && isFinite(Date.parse(s.cut.at)) ? Date.parse(s.cut.at) / 1000 : null, cutPx = cutT != null && +s.cut.px > 0 ? +s.cut.px : null;
   const VT = new Map(), VA = (Array.isArray(bars) ? bars : []).map((b, j) => { VT.set(+b[0], j); return +b[5]; }), volAvg = (t, n) => { const j = VT.get(t); if (j == null || j < n) return null; const a = VA.slice(j - n, j).filter((x) => isFinite(x) && x >= 0); return a.length >= n / 2 ? a.reduce((x, y) => x + y, 0) / a.length : null; };
   let pend = null;
   for (let i = k0; i < B.length; i++) {
-    const [t, o, h, l, c, v] = B[i], fillBar = pl && i === k0; last = c;
+    const [t, o, h, l, c, v] = B[i], fillBar = (pl || fx) && i === k0; last = c;
     if (t > E0 + P.maxHours * 3600) { sell(t, c, rem, 'time'); status = `time exit (${P.maxHours} hours)`; closedAt = t; break; }
     if (pend) { sell(t, o, rem, pend.why); status = pend.status; closedAt = t; pend = null; break; }
     if (cutT != null && cutPx == null && cutT >= E0 && t >= cutT) { sell(t, o, rem, 'cut'); status = 'cut early: sellers took over'; closedAt = t; break; }
@@ -85,17 +102,20 @@ export function runExit(s, bars, nowIso, prof) {
       sell(t, F * ladder[hits][0], ladder[hits][1], 'tp' + (hits + 1)); hits++;
       if (hits === 1) { if (P.beAfterFirst) stopNow = Math.max(stopNow, F); if (P.trailFrom === 'first' && P.trailPct > 0) { trailOn = true; hiT = Math.max(F, F * ladder[0][0]); } }
     }
-    if (rem <= 1e-9) { status = 'all targets hit'; closedAt = t; break; }
+    if (P.rideFree && !free && !fillBar && rem > 1e-9 && h >= F * P.rideFree.at) { const need = Math.max(0, 1 - gotRaw / F) / (P.rideFree.at * (1 - cut)); sell(t, F * P.rideFree.at, need, 'ridefree'); free = true; stopNow = 0; trailOn = false; }
+    if (rem <= 1e-9) { status = free ? 'all sold at the ride-free level' : 'all targets hit'; closedAt = t; break; }
     hi = Math.max(hi, h); lo = Math.min(lo, l); if (trailOn) hiT = Math.max(hiT, h);
     if (t + bs <= nowS) { const sc = P.sellCandle, nf = P.noFollow;
       if (sc && c < o && h > l && (c - l) / (h - l) <= sc.lowPct && (o - c) / o >= sc.dropPct && c <= F * (1 - sc.lossPct)) { const a = volAvg(t, sc.look || 12); if (a > 0 && v >= sc.volX * a) pend = { why: 'sellers', status: 'cut early: heavy selling candle' }; }
-      if (!pend && nf && hits === 0 && t + bs - E0 >= nf.h * 3600 && hi < F * (1 + nf.upPct) && c < F) pend = { why: 'time', status: `cut early: no follow-through after ${nf.h} hours` };
-      if (!pend && P.volDeath && bs === 3600) { const j = VT.get(t); if (j != null && j >= 23) { const s6 = VA.slice(j - 5, j + 1).reduce((a, x) => a + (isFinite(x) ? x : 0), 0), s24 = VA.slice(j - 23, j + 1).reduce((a, x) => a + (isFinite(x) ? x : 0), 0); if (s24 > 0 && s6 / (s24 / 4) < P.volDeath.ratio) pend = { why: 'volume', status: `volume died (6h volume under ${Math.round(P.volDeath.ratio * 100)}% of the 24h pace)` }; } } }
+      if (!pend && nf && hits === 0 && !free && t + bs - E0 >= nf.h * 3600 && hi < F * (1 + (nf.upR != null ? nf.upR * (F - stop0) / F : nf.upPct)) && c < F) pend = { why: 'time', status: `cut early: no follow-through after ${nf.h} hours` };
+      if (!pend && P.volDeath) { const j = VT.get(t), n6 = Math.round(6 * 3600 / bs), n24 = Math.round(24 * 3600 / bs); if (j != null && j >= n24 - 1) { const s6 = VA.slice(j - n6 + 1, j + 1).reduce((a, x) => a + (isFinite(x) ? x : 0), 0), s24 = VA.slice(j - n24 + 1, j + 1).reduce((a, x) => a + (isFinite(x) ? x : 0), 0); if (s24 > 0 && s6 / (s24 / 4) < P.volDeath.ratio) pend = { why: 'volume', status: `volume died (6h volume under ${Math.round(P.volDeath.ratio * 100)}% of the 24h pace)` }; } }
+      if (!fillBar) peakC = Math.max(peakC, c);
+      if (!pend && P.giveback && (free || P.givebackFrom === 'start') && c <= peakC * (1 - P.giveback)) pend = { why: 'giveback', status: `giveback: closed ${Math.round(P.giveback * 100)}% under the best close (${mx(peakC / F)})${free ? ' while riding free' : ''}` }; }
   }
   const open = status === 'open', ret = open ? gotRaw / F + rem * eff(last) / F - 1 : gotRaw / F - 1;
   return { ...out, status, entryAt: iso(E0), entryPx: r6(F), slipUsed: +((P.slipPct || 0) + imp * 100).toFixed(1), impactPct: +(imp * 100).toFixed(2), fills, rem: +rem.toFixed(4), tpHit: hits,
     stop0: r6(stop0), stopNow: r6(stopNow), stopNet: r6(eff(stopNow)), lastPx: r6(last), markPx: r6(eff(last)), hiPx: r6(hi), loPx: r6(lo), peakPct: +((hi / F - 1) * 100).toFixed(0), mfePct: +((hi / F - 1) * 100).toFixed(1), maePct: +((1 - lo / F) * 100).toFixed(1),
-    retX: +ret.toFixed(6), retPct: open ? null : +(ret * 100).toFixed(1), openRet: open ? +(ret * 100).toFixed(1) : null, closedAt: closedAt ? iso(closedAt) : null, ...(open && pend ? { pendingExit: pend.status } : {}) };
+    retX: +ret.toFixed(6), retPct: open ? null : +(ret * 100).toFixed(1), openRet: open ? +(ret * 100).toFixed(1) : null, closedAt: closedAt ? iso(closedAt) : null, free, peakClosePct: +((peakC / F - 1) * 100).toFixed(1), ...(open && pend ? { pendingExit: pend.status } : {}) };
 }
 
 // Dead pool: the pool stopped giving candles (rugged, delisted or migrated) for several scans in a row while the data feed itself
