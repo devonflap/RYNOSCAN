@@ -1,4 +1,3 @@
-Hourly refresh 07:10 Brisbane: 14 tracked coins refreshed, 14 scored, 13 above 65. On-chain volume Normal (1.06x 7-day avg).
-NEW watch: DELTA (Robinhood) Trend pullback, opp 94, checks 6/6, stop 15% away, upside 45.3%.
+Hourly refresh 08:10 Brisbane: 13 tracked coins refreshed, 13 scored, 12 above 65. On-chain volume Normal (1.06x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
