@@ -1,5 +1,4 @@
-Hourly refresh 03:10 Brisbane: 19 tracked coins refreshed, 19 scored, 14 above 65. On-chain volume Strong (1.43x 7-day avg).
-NEW watch: WOOD (Robinhood) Bottom reversal, opp 74, checks 4/6, stop 10.1% away, upside 59%; more sellers than buyers in the last hour; volume fading.
-NEW watch: FARTCOIN  (Solana) Falling wedge, opp 68, checks 5/6, stop 14.4% away, upside 43.2%; more sellers than buyers in the last hour.
+Hourly refresh 04:11 Brisbane: 17 tracked coins refreshed, 17 scored, 12 above 65. On-chain volume Strong (1.43x 7-day avg).
+NEW watch: SWORDCAT (Solana) Bottom reversal, opp 73, checks 5/6, stop 29.6% away, upside 254.1%; volume fading.
 Market: SOL neutral, ETH neutral.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
