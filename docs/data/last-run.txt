@@ -1,4 +1,10 @@
-Hourly refresh 01:10 Brisbane: 15 tracked coins refreshed, 15 scored, 13 above 65. On-chain volume Strong (1.47x 7-day avg).
-NEW bid-ready: HMM (Robinhood) Liquidity sweep reclaim, opp 91, checks 6/6, stop 17.9% away, upside 57.2%. Entry 0.0069038-0.0072132, stop 0.0057942, TP 0.0083228 / 0.0091874 / 0.011094.
+Full scan 02:12 Brisbane: 79 scanned, 65 scored, 15 above 65. On-chain volume Strong (1.43x 7-day avg).
+No longer bid-ready: HMM (Robinhood).
+NEW watch: CATE (Solana) Trend pullback, opp 79, checks 6/6, stop 8.5% away, upside 40.5%.
+NEW watch: MICRODUCK (Robinhood) Falling wedge, opp 75, checks 6/6, stop null% away, upside null%.
+NEW watch: SWORDCAT (Solana) Bottom reversal, opp 74, checks 5/6, stop 29.6% away, upside 254.1%; more sellers than buyers in the last hour.
+NEW watch: PRIORS (Robinhood) Double bottom, opp 74, checks 5/6, stop 40.6% away, upside 121.8%; more sellers than buyers in the last hour.
+NEW watch: SI (Solana) Bottom reversal, opp 73, checks 5/6, stop 19.4% away, upside 76.6%; more sellers than buyers in the last hour.
 Market: SOL neutral, ETH neutral.
+Removed for token safety: CRCLX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
