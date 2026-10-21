@@ -1,0 +1,59 @@
+// Robinhood chain execution against a fake chain and fake aggregators: parallel quotes, allowlist, best net of gas, simulation,
+// the v3 fallback, honeypot and fee-on-transfer checks, exits, and the market dial on sizing. No network, no key, no money.
+import fs from 'node:fs'; process.env.RYNOBOT_DIR = fs.mkdtempSync('/tmp/rynoevm-');
+import { RH, ALLOW, bestQuote, evmBuy, evmSell, gasFees, urPlan, v3Path, UR } from '../bot/evm.mjs';
+import { LIVE } from '../bot/live.mjs';
+import { cycle, newState, DEFAULTS } from '../bot/run.mjs';
+const out = console.log; let f = 0; const ok = (c, m) => { out((c ? 'PASS ' : 'FAIL ') + m); if (!c) f = 1; };
+const T0 = Date.parse('2026-10-22T00:00:00Z') / 1000, TOKEN = '0x' + 'ab'.repeat(20), TAKER = '0x' + 'cd'.repeat(20), ETH = 3000;
+// a fake chain: a token at $0.10 with 18 decimals; venues quote with different outputs; everything else deterministic
+function fakeIo(o = {}) { const calls = []; const outFor = (wei, px) => BigInt(Math.floor((Number(wei) / 1e18) * ETH / px * 1e18)); const sellOut = (amt, px) => BigInt(Math.floor((Number(amt) / 1e18) * px / ETH * 1e18));
+  const quote = (src, pxBuy, pxSell, to, spender) => async (sell, buy, amount) => { if (o.down && o.down.includes(src)) throw new Error('down'); if (o.slow && o.slow.includes(src)) await new Promise((r) => setTimeout(r, 3000)); return { out: sell === RH.weth ? outFor(amount, pxBuy) : sellOut(amount, pxSell), to, spender, data: '0x' + src }; };
+  const venues = { zerox: quote('0x', o.px0x ?? 0.1, o.pxSell0x ?? 0.098, o.to0x || '0x' + '11'.repeat(20), RH.zeroxAllowanceHolder), kyber: quote('kyber', o.pxKyber ?? 0.101, o.pxSellKyber ?? 0.097, RH.kyberRouter, RH.kyberRouter), oneinch: quote('1inch', 0.102, 0.096, '0x' + '22'.repeat(20), '0x' + '22'.repeat(20)), uniswap: quote('uni', o.pxUni ?? 0.1005, o.pxSellUni ?? 0.0975, RH.universalRouter, RH.permit2) };
+  const io = { calls, keys: { zerox: 'k', oneinch: 'k', uniswap: 'k' }, settler: async () => (o.settler || '0x' + '11'.repeat(20)),
+    getJson: async (u, h) => { calls.push(['get', u.split('?')[0]]); if (u.includes('api.0x.org')) { const q = new URL(u).searchParams, r = await venues.zerox(q.get('sellToken'), q.get('buyToken'), BigInt(q.get('sellAmount'))); return { buyAmount: String(r.out), transaction: { to: r.to, data: r.data, value: '0', gas: '150000' }, route: { fills: [{ source: 'Uniswap_V3' }] } }; }
+      if (u.includes('kyberswap.com') && u.includes('/routes')) { const q = new URL(u).searchParams, r = await venues.kyber(q.get('tokenIn'), q.get('tokenOut'), BigInt(q.get('amountIn'))); return { data: { routeSummary: { amountOut: String(r.out), route: [[{ exchange: 'uniswapv3' }]] } } }; }
+      if (u.includes('1inch.dev') && u.includes('/spender')) return { address: '0x' + '22'.repeat(20) };
+      if (u.includes('1inch.dev') && u.includes('/swap')) { const q = new URL(u).searchParams, r = await venues.oneinch(q.get('src'), q.get('dst'), BigInt(q.get('amount'))); return { dstAmount: String(r.out), tx: { to: r.to, data: r.data, value: '0', gas: 140000 } }; } throw new Error('unknown url ' + u); },
+    postJson: async (u, b) => { calls.push(['post', u]); if (u.includes('kyberswap.com')) return { data: { routerAddress: RH.kyberRouter, amountOut: b.routeSummary.amountOut, data: '0xkyber', gas: '160000' } };
+      if (u.includes('uniswap.org') && u.endsWith('/quote')) { const r = await venues.uniswap(b.tokenIn, b.tokenOut, BigInt(b.amount)); return { quote: { output: { amount: String(r.out) } }, permitData: null }; }
+      if (u.includes('uniswap.org') && u.endsWith('/swap')) return { swap: { to: o.uniTo || RH.universalRouter, data: '0xuni', value: '0', gasLimit: 170000 } }; throw new Error('unknown post ' + u); },
+    ethBalance: async () => BigInt(Math.floor((o.eth ?? 1) * 1e18)), tokenBalance: async () => BigInt(Math.floor((o.held ?? 0) * 1e18)),
+    tokenInfo: async () => (o.info || { decimals: 18, symbol: 'MEME' }), baseFee: async () => 100000000n, // 0.1 gwei
+    simulate: async (tx) => (o.revert && o.revert.includes(tx.data) ? { ok: false, error: 'execution reverted' } : { ok: true }),
+    v3Quote: async ({ tokenIn, fee, amountIn }) => { if (!o.v3) throw new Error('no pool'); return fee === 3000 ? (tokenIn === RH.weth ? outFor(amountIn, 0.103) : sellOut(amountIn, 0.095)) : 0n; }, v3Encode: async () => '0xv3', urEncode: o.noUr ? undefined : async (plan) => { calls.push(['ur', plan.commands.join(',')]); return '0xur'; },
+    approveIfNeeded: async (t, sp) => { calls.push(['approve', sp]); if (!ALLOW.has(sp.toLowerCase())) throw new Error('refused'); }, send: async (tx) => { calls.push(['send', tx.to]); return '0xtxhash'; } };
+  return io; }
+const base = { cfg: { ...LIVE }, token: TOKEN, usd: 30, expectedPx: 0.1, ethUsd: ETH, taker: TAKER };
+
+// quoting
+{ const io = fakeIo(); const r = await bestQuote(io, { sell: RH.weth, buy: TOKEN, amount: 10n ** 16n, taker: TAKER, slipBps: 100 }, { gasPrice: 100000000n, ethUsd: ETH, outUsdPerUnit: 0.1 / 1e18 });
+  ok(r.pick.src === '0x' && r.others.length === 2 && r.skipped.some((s) => /1inch: refused/.test(s)), 'four venues quoted in parallel: the best output wins (0x at $0.100), 1inch dropped because its router is not on the allowlist');
+  const r2 = await bestQuote(fakeIo({ down: ['0x', 'kyber'], slow: ['uni'] }), { sell: RH.weth, buy: TOKEN, amount: 10n ** 16n, taker: TAKER, slipBps: 100 }, {}); ok(r2.none && /timeout/.test(r2.why) && /down/.test(r2.why) && /no pool/.test(r2.why), 'venues down or too slow, no v3 pool: no route, with every reason');
+  const r3 = await bestQuote(fakeIo({ down: ['0x', 'kyber', '1inch'], uniTo: '0x' + 'ee'.repeat(20), v3: true }), { sell: RH.weth, buy: TOKEN, amount: 10n ** 16n, taker: TAKER, slipBps: 100 }, {}); ok(r3.pick.src === 'Uniswap v3 direct' && r3.pick.to === RH.universalRouter && /0.3% pool/.test(r3.pick.route) && r3.pick.value === 10n ** 16n && r3.pick.spender === RH.permit2, 'every aggregator fails or lies about its router: the Universal Router fallback finds the best fee tier and pays with native ETH');
+  const r4 = await bestQuote(fakeIo({ down: ['0x', 'kyber', '1inch'], uniTo: '0x' + 'ee'.repeat(20), v3: true, noUr: true }), { sell: RH.weth, buy: TOKEN, amount: 10n ** 16n, taker: TAKER, slipBps: 100 }, {}); ok(r4.pick.to === RH.swapRouter02 && /SwapRouter02/.test(r4.pick.route), 'without a router encoder it falls back to SwapRouter02');
+  const pb = urPlan({ side: 'buy', tokenIn: RH.weth, tokenOut: TOKEN, fee: 3000, amountIn: 10n ** 16n, minOut: 5n, taker: TAKER, deadline: 1 }), ps = urPlan({ side: 'sell', tokenIn: TOKEN, tokenOut: RH.weth, fee: 500, amountIn: 7n, minOut: 3n, taker: TAKER, deadline: 1 });
+  ok(pb.commands.join() === [UR.WRAP_ETH, UR.V3_SWAP_EXACT_IN].join() && pb.value === 10n ** 16n && pb.inputs[1][1][4] === false && ps.commands.join() === [UR.V3_SWAP_EXACT_IN, UR.UNWRAP_WETH].join() && ps.inputs[0][1][4] === true && v3Path(RH.weth, 3000, TOKEN).length === 2 + 40 + 6 + 40, 'router plans: a buy wraps the ETH it is sent and swaps it (no approval); a sell pulls through Permit2, swaps and unwraps');
+  ok(gasFees(100000000n).maxFeePerGas === 200000000n && gasFees(100000000n).maxPriorityFeePerGas === 1n, 'gas: 2x base fee, no tip (first-come-first-served sequencer)'); }
+// buys
+{ const io = fakeIo(); const r = await evmBuy({ ...base, io, mode: 'quote' }); ok(r.fill && r.fill.rehearsal && r.fill.venue === '0x' && Math.abs(r.fill.px - 0.1) < 1e-9 && Math.abs(r.fill.units - 300) < 1e-6 && /simulated OK, not sent/.test(r.why) && !io.calls.some((c) => c[0] === 'send'), 'rehearsal: best venue, simulated, booked at the quoted price, nothing sent');
+  const io2 = fakeIo({ held: 299 }); const r2 = await evmBuy({ ...base, io: io2, mode: 'live' }); ok(r2.fill && r2.fill.sig === '0xtxhash' && r2.fill.units === 299 && io2.calls.some((c) => c[0] === 'approve' && c[1] === RH.zeroxAllowanceHolder) && io2.calls.some((c) => c[0] === 'send'), 'live: approves only the allowlisted spender, sends, and the wallet balance becomes the position');
+  ok(/revert/.test((await evmBuy({ ...base, io: fakeIo({ revert: ['0x0x', '0xkyber', '0xuni'] }), mode: 'live' })).refused) || /simulation failed/.test((await evmBuy({ ...base, io: fakeIo({ revert: ['0x0x'] }), mode: 'live' })).refused), 'a quote that fails simulation is refused before anything is sent');
+  ok(/fee on transfer/.test((await evmBuy({ ...base, io: fakeIo({ info: { decimals: 18, feeOnTransfer: true } }), mode: 'live' })).refused), 'fee-on-transfer tokens are refused');
+  ok(/honeypot/.test((await evmBuy({ ...base, io: fakeIo({ pxSell0x: 0.01, pxSellKyber: 0.01, pxSellUni: 0.01 }), mode: 'live' })).refused), 'a token that sells back for a fraction is refused as a honeypot');
+  ok(/worse than expected/.test((await evmBuy({ ...base, io: fakeIo({ px0x: 0.108, pxKyber: 0.108, pxUni: 0.108 }), mode: 'live' })).refused), 'every venue 8% worse than expected: refused (limit 3%)');
+  ok(/wallet has 0.0100 ETH/.test((await evmBuy({ ...base, io: fakeIo({ eth: 0.01 }), mode: 'live' })).refused), 'not enough ETH for the order plus gas: refused');
+  const r3 = await evmSell({ ...base, io: fakeIo(), units: 300, decimals: 18, expectedPx: 0.1, mode: 'quote' }); ok(r3.fill && r3.fill.venue === '0x' && Math.abs(r3.fill.px - 0.098) < 1e-9, 'exit: best sell quote across venues, in rehearsal');
+  ok(/worse than the live price/.test((await evmSell({ ...base, io: fakeIo({ pxSell0x: 0.085, pxSellKyber: 0.085, pxSellUni: 0.085 }), units: 300, decimals: 18, expectedPx: 0.1, mode: 'live' })).refused), 'an exit 15% under the live price is refused (limit 9%)'); }
+// the bot: a Robinhood-chain setup goes through the EVM path in rehearsal; the market dial scales the size
+{ const cfg = { ...DEFAULTS, mode: 'quote', setupsEveryMin: 0, slipPct: 1 }, st = newState(cfg), jr = [], log0 = console.log; console.log = () => {};
+  const M = 300, mkb = (i, o, h, l, c, v) => [T0 + i * M, o, h, l, c, v], b0 = Array.from({ length: 14 }, (_, i) => mkb(i, 1.05, 1.06, 1.04, 1.05, 100)), flush = [...b0, mkb(14, 1.05, 1.05, 0.97, 0.98, 120), mkb(15, 0.98, 1.03, 0.97, 1.02, 200)];
+  const q = (px) => ({ priceUsd: String(px), priceNative: String(px / ETH), txns: { h1: { buys: 50, sells: 40 }, m5: { buys: 5, sells: 4 } }, volume: { h6: 30000, h24: 100000 }, pairCreatedAt: (T0 - 5 * 86400) * 1000, liquidity: { usd: 500000 } });
+  const setupsJson = [{ id: 'ROB:RHM', coin: 'RHM', chain: 'Robinhood', pool: '0x' + 'ff'.repeat(20), token: TOKEN, signal: 'Watch', opp: 80, setupType: 'Falling wedge', entryLow: 1.0, entryHigh: 1.04, stop: 0.9, tp1: 1.2, liquidity: 500000 }];
+  const io = fakeIo({ px0x: 1.03, pxKyber: 1.035, pxUni: 1.04, pxSell0x: 0.99, pxSellKyber: 0.99, pxSellUni: 0.99 }); let regime = 'Risk-off';
+  const deps = (ms, price) => ({ now: ms * 1000, getJson: async (u) => (u.endsWith('setups.json') ? setupsJson : u.endsWith('meta.json') ? { regime: { sol: { level: regime, why: ['below its 20-day average'] } } } : []), quotes: async () => ({ ['0x' + 'ff'.repeat(20)]: q(price) }), candles5: async () => flush, notify: async () => {}, journal: (o) => jr.push(o), heartbeat: async () => {}, evmIo: io });
+  await cycle(st, cfg, deps(T0 - 30, 1.05)); st.setups['0x' + 'ff'.repeat(20)].at = new Date((T0 - 60) * 1000).toISOString().slice(0, 19) + 'Z'; await cycle(st, cfg, deps(T0 + 16 * M + 30, 1.025)); console.log = log0;
+  const p = st.positions[0], b = jr.find((j) => j.type === 'buy');
+  ok(p && p.evm && p.execMode === 'quote' && p.venue === '0x' && Math.abs(p.entry - 1.03) < 1e-6 && Math.abs(p.units * 1.03 - 50) < 0.5, 'a Robinhood-chain coin is bought through the EVM path at the best venue\'s quoted price (capped at the $50 live max)');
+  ok(st.dial === 0.5 && b.dial === 0.5 && jr.some((j) => j.type === 'dial' && j.regime === 'Risk-off'), 'the market dial: risk-off halves the risk per trade, and it is logged'); }
+process.exit(f);

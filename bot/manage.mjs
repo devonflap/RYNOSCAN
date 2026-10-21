@@ -48,7 +48,7 @@ export function managePosition(pos0, q, closes5, nowSec, cfg = BOT) {
   if (!(price > 0) || !(pos.remUnits > 0)) return { pos, actions };
   const sell = (units, why, all = false) => { const u = Math.min(units, pos.remUnits); if (!(u > 0)) return; const px = price * (1 - (pos.slipOut ?? cfg.slipPct) / 100), usd = u * px; pos.remUnits -= u; pos.bankedUsd += usd; const a = { why, units: u, usd: +usd.toFixed(2), px: +px.toPrecision(6), all: all || pos.remUnits <= 1e-12, at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z' }; pos.sells.push(a); actions.push(a); };
   const sellAll = (why) => sell(pos.remUnits, why, true);
-  pos.peak = Math.max(pos.peak, price);
+  pos.peak = Math.max(pos.peak, price); pos.trough = Math.min(pos.trough ?? price, price);
   const opened = Date.parse(pos.openedAt) / 1000, heldH = (nowSec - opened) / 3600;
   for (const [t, c] of closes5 || []) if (t >= opened && c > 0) pos.peakClose = Math.max(pos.peakClose, c);
   const lastClose = closes5 && closes5.length ? closes5[closes5.length - 1][1] : null;
@@ -63,11 +63,11 @@ export function managePosition(pos0, q, closes5, nowSec, cfg = BOT) {
   // 4 no follow-through
   if (!pos.tp1Done && !pos.free && heldH >= cfg.noFollowH && pos.peak < pos.tp1 && price < pos.entry) { sellAll(`no follow-through after ${cfg.noFollowH} hours`); return { pos, actions }; }
   // 5 TP1
-  if (!pos.tp1Done && price >= pos.tp1) { sell(pos.units * cfg.tp1Share, 'TP1: a third at +1R'); pos.tp1Done = true; pos.stop = Math.max(pos.stop, pos.entry); }
+  if (!pos.tp1Done && price >= pos.tp1) { sell(pos.units * cfg.tp1Share, 'TP1: a third at +1R'); pos.tp1Done = true; pos.stop = Math.max(pos.stop, pos.entry); (pos.moves ||= []).push({ at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z', stop: pos.stop, why: 'break-even after TP1' }); }
   // 6 ride free
   if (!pos.free && price >= pos.freeAt && pos.remUnits > 0) { const need = Math.max(0, pos.costUsd - pos.bankedUsd), px = price * (1 - (pos.slipOut ?? cfg.slipPct) / 100); sell(need / px, 'ride free: stake back at 2x'); pos.free = true; pos.stop = 0; }
   // 7 trail before free / giveback after free
-  if (pos.tp1Done && !pos.free) pos.stop = Math.max(pos.stop, pos.peak * (1 - cfg.trailPct));
+  if (pos.tp1Done && !pos.free) { const t = pos.peak * (1 - cfg.trailPct); if (t > pos.stop) { pos.stop = +t.toPrecision(6); (pos.moves ||= []).push({ at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z', stop: pos.stop, why: 'trail 25% under the high' }); } }
   if (pos.free && lastClose != null && lastClose <= pos.peakClose * (1 - cfg.giveback)) { sellAll(`giveback: 5-minute close ${Math.round(cfg.giveback * 100)}% under the best close`); return { pos, actions }; }
   // 8 time limit
   if (heldH >= cfg.maxHoldH && pos.remUnits > 0) sellAll(`time limit (${cfg.maxHoldH} hours)`);
@@ -96,11 +96,18 @@ export function manageLadder(pos0, q, nowSec, cfg = BOT) {
   const pos = { ...pos0, sells: [...(pos0.sells || [])] }, price = n(q && q.priceUsd), actions = [];
   if (!(price > 0) || !(pos.remUnits > 0)) return { pos, actions };
   const sell = (units, why, all = false) => { const u = Math.min(units, pos.remUnits); if (!(u > 0)) return; const px = price * (1 - (pos.slipOut ?? cfg.slipPct) / 100), usd = u * px; pos.remUnits -= u; pos.bankedUsd += usd; const a = { why, units: u, usd: +usd.toFixed(2), px: +px.toPrecision(6), all: all || pos.remUnits <= 1e-12, at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z' }; pos.sells.push(a); actions.push(a); };
-  pos.peak = Math.max(pos.peak, price);
+  pos.peak = Math.max(pos.peak, price); pos.trough = Math.min(pos.trough ?? price, price);
   if (price <= pos.stop) { sell(pos.remUnits, pos.hits ? 'break-even stop' : 'stop', true); return { pos, actions }; }
   while (pos.hits < pos.targets.length && price >= pos.targets[pos.hits] && pos.remUnits > 0) {
     const last = pos.hits === pos.targets.length - 1 && pos.targets.length === 3; sell(last ? pos.remUnits : pos.units / 3, `TP${pos.hits + 1}: ${last ? 'the rest' : 'a third'}`, last);
-    pos.hits++; if (pos.hits === 1) { pos.tp1Done = true; pos.stop = Math.max(pos.stop, pos.entry); } }
+    pos.hits++; if (pos.hits === 1) { pos.tp1Done = true; pos.stop = Math.max(pos.stop, pos.entry); (pos.moves ||= []).push({ at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z', stop: pos.stop, why: 'break-even after TP1' }); } }
   if (pos.remUnits > 0 && (nowSec - Date.parse(pos.openedAt) / 1000) / 3600 >= (cfg.maxHoldH || 168)) sell(pos.remUnits, `time limit (${Math.round((cfg.maxHoldH || 168) / 24)} days)`, true);
   return { pos, actions };
+}
+
+// the desk's "close now": sell everything at the live price with this position's costs (paper). why is recorded on the trade.
+export function closeNow(pos0, q, nowSec, cfg = BOT, why = 'closed by hand from the desk') {
+  const pos = { ...pos0, sells: [...(pos0.sells || [])] }, price = n(q && q.priceUsd), actions = []; if (!(price > 0) || !(pos.remUnits > 0)) return { pos, actions };
+  const px = price * (1 - (pos.slipOut ?? cfg.slipPct) / 100), u = pos.remUnits, usd = u * px; pos.remUnits = 0; pos.bankedUsd += usd;
+  const a = { why, units: u, usd: +usd.toFixed(2), px: +px.toPrecision(6), all: true, manual: true, at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z' }; pos.sells.push(a); actions.push(a); return { pos, actions };
 }

@@ -1,0 +1,10 @@
+# Caddy in front of the RynoBot desk: HTTPS with a free Let's Encrypt certificate, renewed on its own.
+# bot/install.sh writes this to /etc/caddy/Caddyfile with your domain in place of __DOMAIN__ (the domain's A record must point at this server).
+__DOMAIN__ {
+  encode gzip
+  reverse_proxy 127.0.0.1:8080
+  header {
+    Strict-Transport-Security "max-age=31536000"
+    -Server
+  }
+}

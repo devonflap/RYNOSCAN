@@ -15,6 +15,7 @@ export const HATS = [
   { key: 'exits', name: 'Exit tuner', role: 'same coins, different exits', icon: '✂️' },
   { key: 'scout', name: 'Scout', role: 'looks for where the next edge is', icon: '🔭' },
   { key: 'exec', name: 'Execution', role: 'checks the fills are believable', icon: '⚙️' },
+  { key: 'live', name: 'Bot desk', role: 'reads what the server bots actually did', icon: '🤖' },
   { key: 'chair', name: 'Chair', role: 'never takes a position · gives the final answer', icon: '⚖️' },
 ];
 export const NEED = 30; // closed trades before any book is judged
@@ -168,6 +169,19 @@ function hatExec(G) {
   return { stance: pts.some((p) => /very cost|worse than paper/.test(p)) ? 'mixed' : enough ? 'for' : 'wait', headline: pts.length ? pts[0] : 'Fills look believable so far: no cost or liquidity warning.', points: pts.length ? pts : ['Nothing to flag on fills yet.'], notes, metric: String(pts.length), metricLabel: 'execution notes' };
 }
 
+// the server bots' own records (docs/data/bots/<bot>.json, published hourly by RynoBot when it has a GitHub token). What the bots really
+// filled, what they passed on and what happened next, and how their fills compare with the paper twins. Read only; it never changes a rule.
+function hatLive(botRecs, G) {
+  const recs = Object.values(botRecs || {}).filter((r) => r && r.bot), pts = [], notes = {}; if (!recs.length) return { stance: 'wait', headline: 'No bot records yet (the server bots publish hourly once they have a GitHub token).', points: ['Nothing from the server bots yet.'], notes, metric: '0', metricLabel: 'bot records' };
+  const twin = { rules: 'exec', breakout: 'brkBot' }, R = (x) => (x == null ? '—' : (x >= 0 ? '+' : '') + (+x).toFixed(2) + 'R'), P = (x) => (x == null ? '—' : (x >= 0 ? '+' : '') + (+x).toFixed(1) + '%');
+  for (const r of recs) { const s = r.stats || {}, lab = G.books[twin[r.bot]], mode = r.execMode === 'live' ? 'LIVE' : r.execMode === 'quote' ? 'rehearsal quotes' : 'paper';
+    const line = `${r.bot} bot (${mode}): ${s.closed || 0} closed, ${R(s.avgR)} a trade, ${P(r.account && r.account.pnlPct)} on the account${s.latencyN ? `; fills ${P(s.latencyPct)} off the trigger price over ${s.latencyN}` : ''}.`; pts.push(line); if (lab) notes[twin[r.bot]] = line;
+    if (lab && lab.ev.n >= 5 && s.closed >= 5 && s.avgR != null && lab.ev.avgR != null) { const gap = lab.ev.avgR - s.avgR; pts.push(`${r.bot}: the paper twin averages ${R(lab.ev.avgR)} against the bot's ${R(s.avgR)} (${gap >= 0.3 ? 'the paper flatters by ' + gap.toFixed(2) + 'R a trade' : 'close enough to trust the paper'}).`); }
+    const ps = r.passedSummary; if (ps && ps.n >= 5) pts.push(`${r.bot}: passed on ${ps.n} setups; ${Math.round((ps.avoided / ps.n) * 100)}% went on to stop out or fall (${P(ps.avgSince)} a day later on average)${ps.avoided / ps.n < 0.4 ? ': it is leaving good setups behind, look at the gates' : ': saying no has been right'}.`);
+    const refused = (r.events || []).filter((e) => e.type === 'refused').length; if (refused) pts.push(`${r.bot}: ${refused} order${refused === 1 ? '' : 's'} refused by the market checks (slippage, safety, honeypot) in the last stretch.`); }
+  const liveN = recs.filter((r) => r.execMode === 'live').length;
+  return { stance: recs.some((r) => (r.stats || {}).closed >= 10 && r.stats.avgR > 0) ? 'for' : recs.some((r) => (r.stats || {}).closed >= 10 && r.stats.avgR < 0) ? 'against' : 'wait', headline: pts[0], points: pts, notes, metric: String(liveN), metricLabel: 'bots trading live' };
+}
 // ---------- the chair ----------
 const CALLS = { 'bot candidate': 'for', promising: 'for', 'watch closely': 'mixed', unclear: 'wait', collecting: 'wait', losing: 'against' };
 function chair(G, H, bots, prevApproved = [], learned = null) {
@@ -207,17 +221,17 @@ function discuss(G, H, C) {
   const k = pick.key, say = (hat, text) => text && lines.push({ hat, text }), lines = [];
   say('stats', H.stats.notes[k]); say('skeptic', H.skeptic.notes[k] || (pick.n < 10 ? `Only ${pick.n} closed: one lucky or unlucky coin decides everything at this size. I start testing at 10.` : pick.avgR > 0 ? 'Nothing to test yet.' : 'Nothing to defend: it is not making money.'));
   say('risk', H.risk.notes[k] || (pick.n < 5 ? 'Too few closed trades to judge the risk yet.' : null));
-  say('exits', H.exits.notes[k]); say('exec', H.exec.notes[k]);
+  say('exits', H.exits.notes[k]); say('exec', H.exec.notes[k]); say('live', H.live && H.live.notes[k]);
   const why = { 'bot candidate': 'every check passed', promising: 'the numbers lean positive but the sample is small', 'watch closely': 'the statistics pass but another reviewer objects', unclear: 'the range still straddles zero', collecting: 'too few trades', losing: 'it is reliably losing' }[pick.call] || '';
   say('chair', `Ruling on ${pick.short}: ${pick.call}${why ? ', because ' + why : ''}.${pick.call === 'losing' ? ' I will not switch it off; that is your call.' : ''}`);
   return { about: k, short: pick.short, lines };
 }
 
 // the whole council. learned: learned.json; wscore: walletscore.json; history: [{ at, approved }] from earlier runs
-export function council({ signals = [], degen = [], lab = [], learned = null, wscore = null, since = null, history = [], now = Date.now() } = {}) {
+export function council({ signals = [], degen = [], lab = [], learned = null, wscore = null, since = null, history = [], now = Date.now(), botRecs = null } = {}) {
   const G = gather({ signals, degen, lab, since, now }), hist = Array.isArray(history) ? history : [];
   const bots = {}; for (const [k, B] of Object.entries(BOT)) bots[k] = botBook(G.allPos, { adaptive: B.adaptive, approvals: B.council ? hist : null, regime: !!B.regime, since, now });
-  const H = { stats: hatStats(G) }; H.skeptic = hatSkeptic(G); H.risk = hatRisk(G, bots); H.exits = hatExits(G, learned); H.scout = hatScout(learned, wscore, G); H.exec = hatExec(G);
+  const H = { stats: hatStats(G) }; H.skeptic = hatSkeptic(G); H.risk = hatRisk(G, bots); H.exits = hatExits(G, learned); H.scout = hatScout(learned, wscore, G); H.exec = hatExec(G); H.live = hatLive(botRecs, G);
   const prev = hist.length ? hist[hist.length - 1].approved || [] : []; H.chair = chair(G, H, bots, prev, learned);
   const talk = discuss(G, H, H.chair);
   const at = new Date(now).toISOString().slice(0, 19) + 'Z', same = prev.length === H.chair.approved.length && prev.every((k) => H.chair.approved.includes(k));

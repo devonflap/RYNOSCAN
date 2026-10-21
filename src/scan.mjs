@@ -372,7 +372,7 @@ try { meta.funnel = funnel(allRows, { minVolume: cfg.minVolume ?? settings.minVo
 const w = (f, d) => fs.writeFileSync(path.join(OUT, f), JSON.stringify(d));
 try { if (meta.funnel) { const fh = path.join(OUT, 'funnel-history.json'); fs.writeFileSync(fh, JSON.stringify(funnelAppend(readJson(fh, []), funnelCompact(meta.funnel, at), Date.now(), 14))); } } catch (e) { say('funnel history skipped: ' + (e.message || e)); }
 if (cfg.safetyChecks) fs.writeFileSync(cachePath, JSON.stringify(cache));
-w('setups.json', out); w('breakouts.json', allRows.map(p => [p, L.brkSetup(p, volDay)]).filter(([, b]) => b).map(([p, b]) => ({ id: C.CH[p.chain].slice(0, 3).toUpperCase() + ':' + p.sym, coin: p.sym, chain: C.CH[p.chain], pool: p.pool, signal: p.signal || 'No trade', liquidity: Math.round(p.liq || 0), rug: p.rug || null, at, ...b }))); w('signals.json', log); w('charts.json', charts); if (mode === 'full') w('chainvol.json', market); w('meta.json', meta);
+w('setups.json', out); w('breakouts.json', allRows.map(p => [p, L.brkSetup(p, volDay)]).filter(([, b]) => b).map(([p, b]) => ({ id: C.CH[p.chain].slice(0, 3).toUpperCase() + ':' + p.sym, coin: p.sym, chain: C.CH[p.chain], pool: p.pool, token: p.token || null, signal: p.signal || 'No trade', liquidity: Math.round(p.liq || 0), rug: p.rug || null, at, ...b }))); w('signals.json', log); w('charts.json', charts); if (mode === 'full') w('chainvol.json', market); w('meta.json', meta);
 say(`wrote ${out.length} coins, ${charts.length} charts, ${log.length} logged signals`);
 
 // 6. what changed since the last scan

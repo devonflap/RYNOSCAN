@@ -16,18 +16,24 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { candidates } from '../src/watch.mjs';
-import { BOT, decideEntry, sizeFor, openPosition, managePosition, pnlOf, decideLimit, openLadder, manageLadder, costPct } from './manage.mjs';
+import { BOT, decideEntry, sizeFor, openPosition, managePosition, pnlOf, decideLimit, openLadder, manageLadder, costPct, closeNow } from './manage.mjs';
 import { reality, reportText, REALITY } from './reality.mjs';
+import { recordFor, publish } from './publish.mjs';
+import { LIVE, liveCheck, buy as liveBuy, sell as liveSell, reconcile, defaultIo, keyPath } from './live.mjs';
+import { evmBuy, evmSell, evmIo } from './evm.mjs';
+import { KITTY, sweepPlan, applySweep, nativeFor, validKitty } from './kitty.mjs';
 import { keepsAll, labelOf, TUNE } from '../docs/tuner.mjs';
 
-const DIR = process.env.RYNOBOT_DIR || path.dirname(fileURLToPath(import.meta.url)); // RYNOBOT_DIR: tests and the desk dashboard
+const DIR0 = path.dirname(fileURLToPath(import.meta.url)), dirNow = () => process.env.RYNOBOT_DIR || DIR0; // RYNOBOT_DIR: tests
 // each bot: where its setups come from, how it enters and exits, and which paper book its reality check compares against
 export const BOTS = {
   rules: { name: 'rules', label: 'RynoBot', source: 'setups', entry: 'trigger', exit: 'stack', realityBook: 'exec' },
   breakout: { name: 'breakout', label: 'RynoBot Breakout', source: 'breakouts', entry: 'limit', exit: 'ladder', realityBook: 'brkBot', tuneKey: 'breakout', autoTune: true, minOpp: 50, maxStopPct: 35, maxHoldH: 168 },
+  // the degen desk's runners with the study exits: buy on sight, stop 40% under, ride free at 2x, then out on a 5-minute close 50% under the best close, 7 days
+  degen: { name: 'degen', label: 'RynoBot Degen', source: 'degen', entry: 'market', exit: 'stack', realityBook: 'degenStudy', minOpp: 0, minLiqUsd: 50000, maxStopPct: 45, minStopPct: 40, fixedStopPct: 40, tp1R: 1e9, rideFreeAt: 2, giveback: 0.5, noFollowH: 1e9, volDied: 0, sellersLoss: 2, maxHoldH: 168, maxOpen: 8, maxOpenRiskPct: 8, riskPct: 1 },
 };
-export const filesFor = (name = 'rules') => { const x = name === 'rules' ? '' : '-' + name; return { cfg: path.join(DIR, 'config.json'), state: path.join(DIR, `state${x}.json`), journal: path.join(DIR, `journal${x}.jsonl`), stopAll: path.join(DIR, 'STOP'), stop: path.join(DIR, 'STOP' + x), reality: path.join(DIR, `reality${x}.json`) }; };
-export const DEFAULTS = { site: 'https://devonflap.github.io/RYNOSCAN/data/', mode: 'dry', enabled: true, accountUsd: 10000, pollSec: 60, setupsEveryMin: 10, minOpp: 65, signals: ['bid', 'watch'], nearZonePct: 10, maxGtPerMin: 20, summaryHourBrisbane: 20, realityEveryDays: 14, minLiqUsd: 100000, coolH: 24, tradeAlerts: false, dailySummary: false, heartbeatMin: 30, ...BOT, ...BOTS.rules };
+export const filesFor = (name = 'rules') => { const x = name === 'rules' ? '' : '-' + name, DIR = dirNow(); return { cfg: path.join(DIR, 'config.json'), state: path.join(DIR, `state${x}.json`), journal: path.join(DIR, `journal${x}.jsonl`), stopAll: path.join(DIR, 'STOP'), stop: path.join(DIR, 'STOP-' + name), reality: path.join(DIR, `reality${x}.json`), cmd: path.join(DIR, `cmd-${name}.jsonl`) }; };
+export const DEFAULTS = { site: 'https://devonflap.github.io/RYNOSCAN/data/', mode: 'dry', enabled: true, accountUsd: 10000, pollSec: 60, setupsEveryMin: 10, minOpp: 65, signals: ['bid', 'watch'], nearZonePct: 10, maxGtPerMin: 20, summaryHourBrisbane: 20, realityEveryDays: 14, minLiqUsd: 100000, coolH: 24, tradeAlerts: false, dailySummary: false, heartbeatMin: 30, publish: false, publishMin: 60, regimeDial: true, dial: { 'Risk-off': 0.5, Neutral: 1, 'Risk-on': 1.25 }, ...KITTY, ...BOT, ...LIVE, ...BOTS.rules };
 const DS = { solana: 'solana', robinhood: 'robinhood', ethereum: 'ethereum', eth: 'ethereum' }, GT = { solana: 'solana', robinhood: 'robinhood', ethereum: 'eth', eth: 'eth' };
 const rd = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
 const wr = (f, o) => { const tmp = f + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(o, null, 1)); fs.renameSync(tmp, f); };
@@ -77,18 +83,23 @@ export async function cycle(st, cfg, deps = {}) {
   if (!st._c5) Object.defineProperty(st, '_c5', { value: new Map(), enumerable: false });
   let c5t = 0, c5g = 0; const slot = Math.floor((nowSec - 45) / 300), C5c = async (c, p) => { const k = String(p).toLowerCase(), hit = st._c5.get(k); if (hit && hit.slot === slot) return hit.bars; c5t++; const b = await C5(c, p); if (b) { c5g++; st._c5.set(k, { slot, bars: b }); } return b; };
   // offline spells (server down, bot restarted) are remembered so the reality check can tell "bot was offline" from a real miss
-  st.startedAt ||= nowIso; st.gaps ||= []; st.blocks ||= []; const held0 = new Set(st.positions.map((p) => p.pool));
+  st.startedAt ||= nowIso; st.gaps ||= []; st.blocks ||= [];
+  // execution mode: dry unless the live checks all pass (quote mode needs only a token address per setup and a wallet for the sizes)
+  { const why = cfg.mode === 'live' ? liveCheck(cfg, { dir: path.dirname(F.stop) }) : null, mode = cfg.mode === 'live' && !why ? 'live' : cfg.mode === 'quote' ? 'quote' : 'dry';
+    if (st.execMode !== mode) { J({ type: 'mode', mode, why: why || null }); if (!(st.execMode == null && mode === 'dry' && !why)) await N(`${NM}: now in ${mode === 'live' ? 'LIVE' : mode === 'quote' ? 'rehearsal (real quotes, nothing sent)' : 'dry-run'} mode`, why ? `Live was asked for but refused: ${why}. Staying in dry run.` : mode === 'live' ? `Real orders from wallet ${cfg.wallet}. Per order at most $${cfg.liveMaxUsd}, in total $${cfg.liveMaxOpenUsd}. Pause from the desk or touch bot/STOP-${cfg.name} to stop new buys.` : 'Nothing is sent to the market.', mode === 'live' ? 'high' : 'default'); st.execMode = mode; } }
+  if (st.execMode === 'live' && now - (st.reconAt || 0) > 3600e3) { try { const io = deps.io || defaultIo(cfg), solUsd = st.solUsd || null; const bal = await io.solBalance(cfg.wallet); if (solUsd > 0) { const rc = reconcile(bal, solUsd, st, cfg); st.recon = { ...rc, at: nowIso }; if (!rc.ok || rc.lowSol) await N(`${NM} problem: wallet check`, rc.lowSol ? `Only ${rc.walletSol} SOL left: under the fee reserve, new buys will be refused. Top the wallet up.` : `The wallet holds $${rc.walletUsd} but the bot's books say $${rc.botCash} cash (drift $${rc.driftUsd}). Check the journal for a failed or partial order.`, 'high'); } st.reconAt = now; } catch (e) { console.log('wallet check: ' + e.message); } } const held0 = new Set(st.positions.map((p) => p.pool));
   if (st.lastCycleAt && now - st.lastCycleAt > Math.max(5 * 60e3, cfg.pollSec * 5e3)) { st.gaps.push([new Date(st.lastCycleAt).toISOString().slice(0, 19) + 'Z', nowIso]); st.gaps = st.gaps.slice(-300); }
   // 1. setups from the scanner. rules: bid-ready and worth-watching with a zone and an invalidation (24 hours). breakout: Breakout retests (48 hours)
   if (now - (st.setupsAt || 0) > cfg.setupsEveryMin * 60e3) {
-    try { if (cfg.source === 'breakouts') await breakoutSetups(st, cfg, { G, J, N, now, nowIso }); else { const [setups, signals] = await Promise.all([G(cfg.site + 'setups.json'), G(cfg.site + 'signals.json').catch(() => [])]);
+    try { if (cfg.regimeDial) { try { const m = await G(cfg.site + 'meta.json'), lv = m && m.regime && m.regime.sol && m.regime.sol.level, mult = lv ? (cfg.dial[lv] ?? 1) : 1; if (st.dial !== mult) { J({ type: 'dial', regime: lv || 'unknown', mult }); st.dial = mult; st.dialWhy = lv ? `SOL ${lv.toLowerCase()}: ${m.regime.sol.why.slice(0, 2).join(', ')}` : 'no regime yet'; } } catch (e) { console.log('dial: ' + e.message); } }
+      if (cfg.source === 'breakouts') await breakoutSetups(st, cfg, { G, J, N, now, nowIso }); else if (cfg.source === 'degen') await degenSetups(st, cfg, { G, J, now, nowIso }); else { const [setups, signals] = await Promise.all([G(cfg.site + 'setups.json'), G(cfg.site + 'signals.json').catch(() => [])]);
       // the same setups the paper "Bot rules" book takes (src/scan.mjs): bid-ready or worth watching scored over minOpp, $100k+ liquidity,
       // no rug danger, and one setup per coin per 24 hours (so a stopped-out coin is not bought straight back)
       for (const it of candidates(Array.isArray(setups) ? setups : [], Array.isArray(signals) ? signals : [], cfg.minOpp)) {
         if (!cfg.signals.includes(it.kind) || !it.pool || !(it.entryLow > 0) || !(it.stop > 0) || st.setups[it.pool]) continue;
         if (!((it.opp ?? 0) > cfg.minOpp) || (it.liquidity != null && it.liquidity < cfg.minLiqUsd) || it.rug === 'danger') continue;
         if (now - ((st.seen || {})[it.pool] || 0) < cfg.coolH * 3600e3) continue; (st.seen ||= {})[it.pool] = now;
-        st.setups[it.pool] = { pool: it.pool, coin: it.coin, chain: it.chain, kind: it.kind, setup: it.setup, opp: it.opp, zoneLow: +it.entryLow, zoneHigh: +it.entryHigh, stop: +it.stop, at: nowIso, liq0: +it.liquidity || 0 }; J({ type: 'setup', coin: it.coin, pool: it.pool, kind: it.kind, zoneLow: +it.entryLow, zoneHigh: +it.entryHigh, stop: +it.stop }); } }
+        st.setups[it.pool] = { pool: it.pool, coin: it.coin, chain: it.chain, token: it.token || null, kind: it.kind, setup: it.setup, opp: it.opp, zoneLow: +it.entryLow, zoneHigh: +it.entryHigh, stop: +it.stop, at: nowIso, liq0: +it.liquidity || 0 }; J({ type: 'setup', coin: it.coin, pool: it.pool, kind: it.kind, zoneLow: +it.entryLow, zoneHigh: +it.entryHigh, stop: +it.stop }); } }
       st.setupsAt = now; await H('scanner', false, { title: 'scanner data' }); } catch (e) { console.log('setups: ' + e.message); st.setupsAt = now - Math.max(0, cfg.setupsEveryMin - 2) * 60e3;
       await H('scanner', e.message || 'error', { afterMin: 30, title: 'scanner data', text: (m, why) => `Can't read the scanner's setups from the dashboard for ${m} minutes (${why}).\nNo new setups are coming in; open positions are still managed.\nIf the dashboard won't load either, GitHub Pages is down and it comes back by itself.` }); }
   }
@@ -101,17 +112,29 @@ export async function cycle(st, cfg, deps = {}) {
   const following = (st.passed || []).filter((x) => !x.done), items = [...watchList, ...st.positions, ...following], q = await Q(items);
   for (const x of following) { const y = q[String(x.pool).toLowerCase()]; if (y && +y.priceUsd > 0) { x.last = +y.priceUsd; x.hi = Math.max(x.hi || 0, x.last); x.lo = Math.min(x.lo ?? x.last, x.last); } }
   await H('prices', items.length && !Object.keys(q || {}).length ? 'no prices returned' : false, { afterMin: st.positions.length ? 15 : 30, title: 'prices', text: (m) => `Can't get prices from DexScreener for ${m} minutes${st.positions.length ? `, so the ${st.positions.length} open position${st.positions.length === 1 ? ' is' : 's are'} not being checked` : ''}.\nUsually a DexScreener outage that clears by itself. If it lasts hours, run on the server: node bot/run.mjs --check` });
-  for (const s of watchList) { const x = q[String(s.pool).toLowerCase()]; if (x && +x.priceUsd > 0) { s.lastPx = +x.priceUsd; s.lastAt = nowIso; } }
+  for (const s of watchList) { const x = q[String(s.pool).toLowerCase()]; if (x && +x.priceUsd > 0) { s.lastPx = +x.priceUsd; s.lastAt = nowIso; if (+x.priceNative > 0) st.solUsd = +x.priceUsd / +x.priceNative; } }
+  // commands from the desk (bot/cmd-<name>.jsonl, written by bot/dash.mjs): each is done once, then recorded in the journal
+  const cmds = deps.commands ? deps.commands() : readCommands(F); st.cmdDone ||= [];
+  for (const c of cmds) { if (!c || !c.id || st.cmdDone.includes(c.id)) continue; st.cmdDone = [...st.cmdDone, c.id].slice(-200);
+    if (c.type === 'cancel') { const s = Object.values(st.setups).find((x) => x.pool === c.pool); if (s) { s.dropped = true; s.dropWhy = 'cancelled by hand from the desk'; J({ type: 'drop', coin: s.coin, pool: s.pool, why: 'cancelled by hand from the desk', manual: true }); } }
+    else if (c.type === 'close') { const p = st.positions.find((x) => x.pool === c.pool && !x.closeNow); if (p) p.closeNow = true; } }
   // 3. manage open positions first (exits never wait behind entries)
   for (let i = 0; i < st.positions.length; i++) {
     let pos = st.positions[i]; const qq = q[String(pos.pool).toLowerCase()]; if (!qq) continue;
-    let r; if (pos.mode === 'ladder') r = manageLadder(pos, qq, nowSec, cfg);
+    let r; if (pos.closeNow) r = closeNow(pos, qq, nowSec, cfg); else if (pos.mode === 'ladder') r = manageLadder(pos, qq, nowSec, cfg);
     else { let closes = null; if (!st.gtAt[pos.id] || now - st.gtAt[pos.id] > 5 * 60e3) { const b = await C5c(pos.chain, pos.pool); if (b) { closes = b.filter((x) => x[0] + 300 <= nowSec).map((x) => [x[0], x[4]]); st.gtAt[pos.id] = now; } } r = managePosition(pos, qq, closes, nowSec, cfg); }
     pos = st.positions[i] = r.pos; if (+qq.priceUsd > 0) { pos.lastPx = +qq.priceUsd; pos.lastAt = nowIso; }
+    if (pos.execMode && pos.execMode !== 'dry' && r.actions.length) { // the market decides the exit fill; a refused exit keeps the position and shouts
+      const solUsd = qq.priceNative > 0 ? +qq.priceUsd / +qq.priceNative : null, kept = []; let bankedBack = 0, unitsBack = 0;
+      for (const a of r.actions) { const paperUsd = a.usd; const m = !(solUsd > 0) ? { refused: 'no base-coin price' } : pos.evm ? await (deps.evmSell || evmSell)({ cfg, io: deps.evmIo || await evmIo(cfg, pos.execMode === 'live' ? keyPath(cfg.name, cfg.keyDir) : null), token: pos.token, units: a.units, decimals: pos.decimals ?? 18, expectedPx: +qq.priceUsd, ethUsd: solUsd, mode: pos.execMode, taker: cfg.wallet || '0x0000000000000000000000000000000000000001' }) : await (deps.liveSell || liveSell)({ cfg, io: deps.io || defaultIo(cfg), mint: pos.mint, units: a.units, decimals: pos.decimals || 9, expectedPx: +qq.priceUsd, solUsd, mode: pos.execMode, keyFile: keyPath(cfg.name, cfg.keyDir), pubkey: cfg.wallet });
+        if (m.refused) { J({ type: 'refused', coin: pos.coin, pool: pos.pool, why: 'exit: ' + m.refused, wanted: a.why }); await N(`${NM} problem: could not sell ${pos.coin}`, `${a.why}: ${m.refused}.\nThe position is still open; the bot keeps trying each check. If it keeps failing, sell by hand.`, 'high'); unitsBack += a.units; bankedBack += a.usd; continue; }
+        pos.bankedUsd += m.fill.usd - paperUsd; a.usd = m.fill.usd; a.px = m.fill.px; a.sig = m.fill.sig; a.market = m.why; kept.push(a); }
+      if (unitsBack > 0) { pos.remUnits += unitsBack; pos.bankedUsd -= bankedBack; if (pos.closeNow) pos.closeNow = false; pos.sells = pos.sells.filter((x) => kept.includes(x)); }
+      r.actions = kept; }
     for (const a of r.actions) { st.cash += a.usd; const pnl = a.all ? pnlOf(pos, 0) : null;
       if (a.all) { st.days[dayKey(now)] = (st.days[dayKey(now)] || 0) + pnl; }
       J({ type: 'sell', coin: pos.coin, pool: pos.pool, ...a, pnl });
-      await TN(`${NM} (dry run): SELL ${a.all ? 'ALL ' : ''}${pos.coin}`, `Would sell ${usd(a.usd)} of ${pos.coin} at ~${fmt(a.px)}: ${a.why}.${a.all ? `\nTrade result: ${pnl >= 0 ? '+' : ''}${usd(pnl)} (${((pnl / pos.costUsd) * 100).toFixed(1)}%).` : pos.free ? '\nNow riding free: the stake is back, the rest cannot lose money.' : pos.tp1Done ? `\nStop now at ${fmt(pos.stop)}.` : ''}${pos.url ? '\n' + pos.url : ''}\nDRY RUN: no order was placed.`, a.all && pnl < 0 ? 'high' : 'default'); }
+      await TN(`${NM} (${pos.execMode === 'live' ? 'LIVE' : pos.execMode === 'quote' ? 'rehearsal' : 'dry run'}): SELL ${a.all ? 'ALL ' : ''}${pos.coin}`, `${pos.execMode === 'live' ? 'Sold' : 'Would sell'} ${usd(a.usd)} of ${pos.coin} at ~${fmt(a.px)}: ${a.why}.${a.all ? `\nTrade result: ${pnl >= 0 ? '+' : ''}${usd(pnl)} (${((pnl / pos.costUsd) * 100).toFixed(1)}%).` : pos.free ? '\nNow riding free: the stake is back, the rest cannot lose money.' : pos.tp1Done ? `\nStop now at ${fmt(pos.stop)}.` : ''}${a.market ? '\nMarket: ' + a.market : ''}${pos.url ? '\n' + pos.url : ''}\n${pos.execMode === 'live' ? 'LIVE: real order.' : pos.execMode === 'quote' ? 'REHEARSAL: real quote, nothing sent.' : 'DRY RUN: no order was placed.'}`, a.all && pnl < 0 ? 'high' : 'default'); }
     if (pos.remUnits <= 1e-12) { const pnl = pnlOf(pos, 0); st.closed.push({ ...pos, closedAt: nowIso, pnl, R: pos.riskUsd > 0 ? +(pnl / pos.riskUsd).toFixed(2) : null, exitAvg: pos.units > 0 ? +(pos.bankedUsd / pos.units).toPrecision(6) : null }); st.positions.splice(i, 1); i--; }
   }
   st.closed = st.closed.slice(-500);
@@ -124,23 +147,35 @@ export async function cycle(st, cfg, deps = {}) {
   if (canBuy) for (const s of watchList) {
     const qq = q[String(s.pool).toLowerCase()], price = qq ? +qq.priceUsd : null; if (!(price > 0)) continue;
     let d; if (cfg.entry === 'limit') d = decideLimit(s, price, nowSec, cfg);
+    else if (cfg.entry === 'market') { const age = nowSec - Date.parse(s.at) / 1000; d = age > 2 * 3600 ? { act: 'drop', why: 'degen signal is over 2 hours old' } : price > s.zoneHigh * 1.15 ? { act: 'drop', why: 'price already 15%+ over the signal price: no chasing' } : { act: 'buy', price, stop: +(price * (1 - cfg.fixedStopPct / 100)).toPrecision(6), stopPct: cfg.fixedStopPct, kind: 'market on the degen signal', why: ['degen runner, bought on sight', ...(s.why || []).slice(0, 2)] }; }
     else { if (price > s.zoneHigh * (1 + cfg.nearZonePct / 100) || price < s.stop) continue; const b = await C5c(s.chain, s.pool); if (!b) continue; d = decideEntry(s, b, price, nowSec, cfg); }
-    if (!d) continue;
+    if (!d) continue; d = { ...d };
     if (d.act === 'drop') { s.dropped = true; s.dropWhy = d.why; J({ type: 'drop', coin: s.coin, pool: s.pool, why: d.why }); continue; }
     // the pool must still be there: liquidity can be pulled between the scan and the fill
     const liq = +(qq.liquidity && qq.liquidity.usd) || 0; if (liq < cfg.minLiqUsd) { s.dropped = true; s.dropWhy = 'liquidity too thin at buy time'; J({ type: 'drop', coin: s.coin, pool: s.pool, why: `liquidity is now $${Math.round(liq / 1000)}k (under $${Math.round(cfg.minLiqUsd / 1000)}k)` }); continue; }
     if (s.liq0 > 0 && liq < s.liq0 * (1 - cfg.liqDropPct / 100)) { s.dropped = true; s.dropWhy = 'liquidity being pulled'; J({ type: 'drop', coin: s.coin, pool: s.pool, why: `liquidity fell ${Math.round((1 - liq / s.liq0) * 100)}% since the setup: likely being pulled` }); continue; }
     // size on the real loss at the stop, with price impact for this pool's size: from the fill (price plus costs) to the stop less costs. Two passes, because the cost depends on the size.
     const openRisk = st.positions.reduce((a, p) => a + (p.free ? 0 : Math.max(0, p.remUnits * (p.entry - p.stop * (1 - (p.slipOut ?? cfg.slipPct) / 100)))), 0);
-    let riskPct = +((1 - (d.stop * (1 - cfg.slipPct / 100)) / (d.price * (1 + cfg.slipPct / 100))) * 100).toFixed(2), sz = sizeFor({ equity: eq, cash: st.cash }, { stopPct: riskPct }, liq, openRisk, cfg);
-    { const c = costPct(sz.usd, liq, cfg); riskPct = +((1 - (d.stop * (1 - c.outPct / 100)) / (d.price * (1 + c.inPct / 100))) * 100).toFixed(2); sz = sizeFor({ equity: eq, cash: st.cash }, { stopPct: riskPct }, liq, openRisk, cfg); }
+    const dial = cfg.regimeDial ? (st.dial ?? 1) : 1, dcfg = { ...cfg, riskPct: cfg.riskPct * dial };
+    let riskPct = +((1 - (d.stop * (1 - cfg.slipPct / 100)) / (d.price * (1 + cfg.slipPct / 100))) * 100).toFixed(2), sz = sizeFor({ equity: eq, cash: st.cash }, { stopPct: riskPct }, liq, openRisk, dcfg);
+    { const c = costPct(sz.usd, liq, cfg); riskPct = +((1 - (d.stop * (1 - c.outPct / 100)) / (d.price * (1 + c.inPct / 100))) * 100).toFixed(2); sz = sizeFor({ equity: eq, cash: st.cash }, { stopPct: riskPct }, liq, openRisk, dcfg); }
     if (sz.usd < 10) { J({ type: 'skip', coin: s.coin, why: 'size too small (' + (sz.cut || 'limits') + ')' }); s.dropped = true; s.dropWhy = 'size too small (' + (sz.cut || 'limits') + ')'; continue; }
-    const ladder = cfg.exit === 'ladder', pos = { ...(ladder ? openLadder({ ...s, url: qq.url }, d, sz.usd, nowIso, cfg, liq) : openPosition({ ...s, url: qq.url }, d, sz.usd, nowIso, cfg, liq)), setup: s.setup, kind: d.kind, book: cfg.realityBook, riskUsd: sz.riskUsd, lastPx: price, lastAt: nowIso,
-      meta: { opp: s.opp ?? null, signal: s.kind, zoneLow: s.zoneLow, zoneHigh: s.zoneHigh, rr2: s.rr2 ?? null, riskPct: s.riskPct ?? null, volDay: s.volDay ?? null, stopPct: d.stopPct, why: d.why, setupAt: s.at, trigPx: d.trigPx ?? null, trigAt: d.trigAt ?? null, quotePx: price, liq, impactPct: costPct(sz.usd, liq, cfg).impactPct } }; st.positions.push(pos); st.cash -= sz.usd; s.dropped = true;
-    J({ type: 'buy', coin: s.coin, pool: s.pool, usd: sz.usd, entry: pos.entry, stop: pos.stop, why: d.why });
+    // quote (rehearsal) and live: the market's own quote decides the fill; live also sends it. Dry: paper fill from the DexScreener price.
+    let mkt = null; if (st.execMode !== 'dry') {
+      if (!s.token) { J({ type: 'skip', coin: s.coin, why: 'no token address for a market quote' }); s.dropped = true; continue; }
+      const openUsd = st.positions.reduce((a, p) => a + p.remUnits * (p.lastPx || p.entry), 0), usdCap = Math.min(sz.usd, cfg.liveMaxUsd, Math.max(0, cfg.liveMaxOpenUsd - openUsd)); if (usdCap < 10) { J({ type: 'skip', coin: s.coin, why: `live caps: $${usdCap.toFixed(0)} left under liveMaxOpenUsd $${cfg.liveMaxOpenUsd}` }); s.dropped = true; continue; }
+      const isRh = /robinhood/i.test(s.chain), baseUsd = qq.priceNative > 0 ? +qq.priceUsd / +qq.priceNative : null; if (!(baseUsd > 0)) { J({ type: 'skip', coin: s.coin, why: 'no base-coin price in the quote' }); continue; }
+      if ((isRh ? 'robinhood' : 'solana') !== (cfg.walletChain || 'solana') && st.execMode === 'live') { J({ type: 'skip', coin: s.coin, why: `this bot's wallet is on ${cfg.walletChain || 'solana'}, the coin is on ${s.chain}` }); s.dropped = true; continue; }
+      const r = isRh ? await (deps.evmBuy || evmBuy)({ cfg, io: deps.evmIo || await evmIo(cfg, st.execMode === 'live' ? keyPath(cfg.name, cfg.keyDir) : null), token: s.token, usd: usdCap, expectedPx: d.price, ethUsd: baseUsd, mode: st.execMode, taker: cfg.wallet || '0x0000000000000000000000000000000000000001', log: console.log })
+        : await (deps.liveBuy || liveBuy)({ cfg, io: deps.io || defaultIo(cfg), mint: s.token, usd: usdCap, expectedPx: d.price, solUsd: baseUsd, mode: st.execMode, keyFile: keyPath(cfg.name, cfg.keyDir), pubkey: cfg.wallet, log: console.log });
+      if (r.refused) { J({ type: 'refused', coin: s.coin, pool: s.pool, why: r.refused, quoted: r.quoted || null }); await N(`${NM}: order refused`, `${s.coin}: ${r.refused}.${st.execMode === 'live' ? ' No money moved.' : ''}`, 'default'); s.dropped = true; s.dropWhy = 'order refused: ' + r.refused; continue; }
+      mkt = r; sz.usd = r.fill.usd; sz.riskUsd = +(r.fill.usd * riskPct / 100).toFixed(2); d = { ...d, price: r.fill.px }; }
+    const ladder = cfg.exit === 'ladder', pos = { ...(ladder ? openLadder({ ...s, url: qq.url }, d, sz.usd, nowIso, { ...cfg, slipPct: mkt ? 0 : cfg.slipPct }, mkt ? 0 : liq) : openPosition({ ...s, url: qq.url }, d, sz.usd, nowIso, { ...cfg, slipPct: mkt ? 0 : cfg.slipPct }, mkt ? 0 : liq)), ...(mkt ? { units: mkt.fill.units, remUnits: mkt.fill.units, entry: mkt.fill.px, token: s.token, mint: s.token, decimals: mkt.fill.decimals || null, execMode: st.execMode, sig: mkt.fill.sig, route: mkt.fill.route, venue: mkt.fill.venue || null, evm: /robinhood/i.test(s.chain), slipOut: 0 } : {}), setup: s.setup, kind: d.kind, book: cfg.realityBook, riskUsd: sz.riskUsd, lastPx: price, lastAt: nowIso,
+      meta: { opp: s.opp ?? null, signal: s.kind, zoneLow: s.zoneLow, zoneHigh: s.zoneHigh, rr2: s.rr2 ?? null, riskPct: s.riskPct ?? null, volDay: s.volDay ?? null, stopPct: d.stopPct, why: d.why, setupAt: s.at, liq0: s.liq0 || null, trigPx: d.trigPx ?? null, trigAt: d.trigAt ?? null, quotePx: price, liq, impactPct: costPct(sz.usd, liq, cfg).impactPct, costInPct: +costPct(sz.usd, liq, cfg).inPct.toFixed(2) } }; st.positions.push(pos); st.cash -= sz.usd; s.dropped = true;
+    J({ type: 'buy', coin: s.coin, pool: s.pool, usd: sz.usd, entry: pos.entry, stop: pos.stop, why: d.why, mode: st.execMode, sig: mkt ? mkt.fill.sig : null, market: mkt ? mkt.why : null, dial });
     const plan = ladder ? `Targets: a third at ${fmt(pos.targets[0])} (stop to break-even), a third at ${fmt(pos.targets[1])}, the rest at ${fmt(pos.targets[2])}; out after ${Math.round(cfg.maxHoldH / 24)} days.`
       : `TP1 ${fmt(pos.tp1)} (+1R): sell a third, stop to break-even.\nRide free at ${fmt(pos.freeAt)} (2x): sell enough to get the stake back.\nThen out on a 5-minute close 50% under the best close, or after 72 hours.`;
-    await TN(`${NM} (dry run): BUY ${s.coin}`, `Would buy ${usd(sz.usd)} of ${s.coin} (${s.chain}) at ~${fmt(d.price)} (limit ${fmt(d.price * 1.01)}; pool $${Math.round(liq / 1000)}k, costs about ${costPct(sz.usd, liq, cfg).inPct.toFixed(1)}% each way).\nStop ${fmt(pos.stop)} (${d.stopPct}% under the price; ${riskPct}% loss at the stop after costs, risk ${usd(sz.riskUsd)}).\n${plan}\nWhy: ${s.setup || 'setup'} (${s.kind === 'bid' ? 'bid-ready' : s.kind === 'brk' ? `reward to risk ${s.rr2 ?? '?'}R to TP2` : 'worth watching'}), ${d.why.join(', ')}${sz.cut ? ` · size cut by the ${sz.cut}` : ''}.${qq.url ? '\n' + qq.url : ''}\nDRY RUN: no order was placed.`, 'high');
+    await TN(`${NM} (${st.execMode === 'live' ? 'LIVE' : st.execMode === 'quote' ? 'rehearsal' : 'dry run'}): BUY ${s.coin}`, `${st.execMode === 'live' ? 'Bought' : 'Would buy'} ${usd(sz.usd)} of ${s.coin} (${s.chain}) at ~${fmt(d.price)} (limit ${fmt(d.price * 1.01)}; pool $${Math.round(liq / 1000)}k, costs about ${costPct(sz.usd, liq, cfg).inPct.toFixed(1)}% each way).\nStop ${fmt(pos.stop)} (${d.stopPct}% under the price; ${riskPct}% loss at the stop after costs, risk ${usd(sz.riskUsd)}).\n${plan}\nWhy: ${s.setup || 'setup'} (${s.kind === 'bid' ? 'bid-ready' : s.kind === 'brk' ? `reward to risk ${s.rr2 ?? '?'}R to TP2` : 'worth watching'}), ${d.why.join(', ')}${sz.cut ? ` · size cut by the ${sz.cut}` : ''}${dial !== 1 ? ` · size x${dial} (${st.dialWhy || 'market dial'})` : ''}.${mkt ? '\nMarket: ' + mkt.why : ''}${qq.url ? '\n' + qq.url : ''}\n${st.execMode === 'live' ? 'LIVE: real order, tx ' + (mkt.fill.sig || '') : st.execMode === 'quote' ? 'REHEARSAL: real quote, nothing sent.' : 'DRY RUN: no order was placed.'}`, 'high');
     if (st.positions.length >= cfg.maxOpen) break;
   }
   if (c5t) await H('candles', c5g ? false : 'no candles returned', { afterMin: 30, title: '5-minute candles', text: (m) => `Can't get 5-minute candles from GeckoTerminal for ${m} minutes.\nNo new entries can trigger, and the after-2x giveback exit is paused (stops and targets still work on the live price).\nUsually a GeckoTerminal outage or rate limit that clears by itself.` });
@@ -153,8 +188,19 @@ export async function cycle(st, cfg, deps = {}) {
     try { const rows = await G(cfg.site + 'lab.json', 60000), r = reality(st, (deps.readJournal || (() => readJournal(F)))(), Array.isArray(rows) ? rows : [], { now, cfg: { ...REALITY, book: cfg.realityBook || 'exec' } }); st.realityAt = now;
       (deps.saveReality || ((x) => saveReality(F, x)))(r); J({ type: 'reality', n: r.n, gapPct: r.gapPct, gapR: r.gapR, call: r.call });
       await N(`${NM} (dry run): reality check`, reportText(r, now + every)); } catch (e) { console.log('reality check: ' + e.message); } }
+  // 6a. the kitty: banked profit above the pot's start size is swept out (paper books; in live mode the SOL or ETH really moves to your kitty wallet)
+  { const sw = sweepPlan(st, cfg); if (sw) { if (st.execMode !== 'live') { applySweep(st, sw.usd, { at: nowIso, mode: st.execMode || 'dry' }); J({ type: 'kitty', usd: sw.usd, kitty: st.kitty, mode: st.execMode || 'dry' }); console.log(`[${nowIso}] ${NM}: swept $${sw.usd} of banked profit to the kitty (now $${st.kitty}); pot back to $${sw.potAfter}`); }
+      else if (!validKitty(cfg.kittyWallet, cfg.walletChain)) { if (!st.kittyWarned) { st.kittyWarned = true; await N(`${NM}: profit waiting for a kitty wallet`, `$${sw.usd} of banked profit is sitting in the trading pot. ${cfg.kittyWallet ? 'The kittyWallet in config does not look like an address on ' + (cfg.walletChain || 'solana') + '. Fix it' : 'Add'} "kittyWallet": "<your Phantom's public address on ${cfg.walletChain || 'solana'}>" to this bot's config and it will be sent there (and out of harm's way) at the next check.`); } }
+      else if (now - (st.sweepTryAt || 0) > 15 * 60e3) { st.sweepTryAt = now; try { const isRh = /robinhood/i.test(cfg.walletChain || ''), nativeUsd = st.solUsd || null, io = isRh ? (deps.evmIo || await evmIo(cfg, keyPath(cfg.name, cfg.keyDir))) : (deps.io || defaultIo(cfg));
+          const bal = isRh ? Number(await io.ethBalance(cfg.wallet)) / 1e18 : await io.solBalance(cfg.wallet), amt = nativeFor(sw.usd, nativeUsd, bal, isRh ? (cfg.ethReserve ?? 0.002) : (cfg.feeReserveSol || LIVE.feeReserveSol));
+          if (amt == null) throw new Error(!(nativeUsd > 0) ? 'no base-coin price yet' : `wallet holds ${bal.toFixed(4)}, not enough to send ${(sw.usd / nativeUsd).toFixed(4)} and keep the fee reserve`);
+          const sig = isRh ? await io.transferEth(cfg.kittyWallet, amt) : await io.transferSol(keyPath(cfg.name, cfg.keyDir), cfg.kittyWallet, amt); applySweep(st, sw.usd, { at: nowIso, mode: 'live', native: amt, sig }); J({ type: 'kitty', usd: sw.usd, kitty: st.kitty, mode: 'live', native: amt, sig });
+          await N(`${NM}: profit sent to your kitty`, `$${sw.usd} (${amt} ${isRh ? 'ETH' : 'SOL'}) sent from the bot's wallet to ${cfg.kittyWallet.slice(0, 6)}…${cfg.kittyWallet.slice(-4)}. Kitty total $${st.kitty}. The pot is back to $${sw.potAfter}.`); await H('kitty', false, { title: 'sending profit to the kitty' }); }
+        catch (e) { console.log('kitty sweep: ' + e.message); await H('kitty', e.message, { afterMin: 120, title: 'sending profit to the kitty', text: (m, why) => `Can't send banked profit to the kitty wallet (${why}). The profit stays in the bot's wallet and the sweep is retried every 15 minutes; the bot trades on.` }); } } } }
   // equity curve every 5 minutes (the desk dashboard draws it)
   if (now - (st.eqAt || 0) >= 5 * 60e3) { st.eq = [...(st.eq || []), [now, +equity(st, q).toFixed(2)]].slice(-5000); st.eqAt = now; }
+  // 6b. publish this bot's record to the scanner once an hour (only with a GitHub token on the server)
+  if (cfg.publish === true && (deps.token ?? process.env.GITHUB_TOKEN) && now - (st.pubAt || 0) >= (cfg.publishMin || 60) * 60e3) { st.pubAt = now; try { const rec = recordFor(cfg.name, { st, cfg, journal: (deps.readJournal || (() => readJournal(F)))().slice(-200), now }); const r = await (deps.publish || publish)(cfg.name, rec, { token: deps.token ?? process.env.GITHUB_TOKEN, fetcher: deps.fetcher }); if (r.ok) st.pubOk = nowIso; await H('publish', false, { title: 'publishing to the scanner' }); } catch (e) { console.log('publish: ' + e.message); await H('publish', e.message, { afterMin: 180, title: 'publishing to the scanner', text: (m, why) => `Can't publish the bot's record to GitHub for ${m} minutes (${why}).\nThe bot trades on; the council just does not see its fills. Check the GITHUB_TOKEN in /etc/rynobot.env (Contents: read and write on RYNOSCAN).` }); } }
   // 7. heartbeat to the silent <topic>-hb topic; the GitHub watchdog alerts the phone if these stop
   if (cfg.heartbeatMin > 0 && now - (st.hbAt || 0) >= cfg.heartbeatMin * 60e3) { st.hbAt = now; await (deps.heartbeat || heartbeat)(`hb:${cfg.name || 'rules'} ${nowIso} open=${st.positions.length} watching=${Object.keys(st.setups).length}`); }
   st.lastCycleAt = now;
@@ -162,6 +208,15 @@ export async function cycle(st, cfg, deps = {}) {
 }
 // Breakout retest setups from the scanner (breakouts.json), filtered like the paper twin ("Breakout retest · bot filters"): $100k+ liquidity,
 // no rug danger, score over minOpp, stop no wider than maxStopPct, one per coin per 24 hours, and the tuner's active filters (council.json).
+// the degen desk's new paper trades (degen.json) become setups for the degen bot: one per coin per 24 hours
+async function degenSetups(st, cfg, { G, J, now, nowIso }) {
+  const rows = await G(cfg.site + 'degen.json'); for (const r of Array.isArray(rows) ? rows : []) {
+    if (!r || !r.pool || st.setups[r.pool] || !(r.entryMid > 0) || !(r.stop > 0)) continue; if (now - Date.parse(r.signalAt) > 2 * 3600e3 || !['waiting for entry', 'open'].includes(r.status)) continue;
+    if ((r.liq ?? 0) < cfg.minLiqUsd) continue; if (now - ((st.seen || {})[r.pool] || 0) < cfg.coolH * 3600e3) continue; (st.seen ||= {})[r.pool] = now;
+    st.setups[r.pool] = { pool: r.pool, coin: r.coin, chain: r.chain, token: r.token || null, kind: 'degen', setup: 'Degen runner', opp: r.score ?? null, zoneLow: +r.entryMid, zoneHigh: +r.entryMid, stop: +r.stop, why: Array.isArray(r.why) ? r.why : [], expireH: 2, at: r.signalAt || nowIso, liq0: +r.liq || 0 };
+    J({ type: 'setup', coin: r.coin, pool: r.pool, kind: 'degen', zoneLow: +r.entryMid, zoneHigh: +r.entryMid, stop: +r.stop }); }
+}
+function readCommands(F) { try { const lines = fs.readFileSync(F.cmd, 'utf8').split('\n').filter(Boolean); fs.writeFileSync(F.cmd, '', { mode: 0o664 }); return lines.map((l) => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean); } catch { return []; } }
 async function breakoutSetups(st, cfg, { G, J, N, now, nowIso }) {
   const [rows, council] = await Promise.all([G(cfg.site + 'breakouts.json'), cfg.autoTune ? G(cfg.site + 'council.json').catch(() => null) : null]);
   const t = council && council.botTuning && council.botTuning[cfg.tuneKey], start = (TUNE[cfg.tuneKey] || { start: [] }).start, active = cfg.autoTune && t && Array.isArray(t.active) ? t.active : start;
@@ -173,7 +228,7 @@ async function breakoutSetups(st, cfg, { G, J, N, now, nowIso }) {
     if (!((r.opp ?? 0) >= cfg.minOpp) || (r.liquidity ?? 0) < cfg.minLiqUsd || r.rug === 'danger' || !(r.riskPct <= cfg.maxStopPct) || !keepsAll(active, r)) continue;
     if (now - Date.parse(r.at || nowIso) > (r.expireH || 48) * 3600e3) continue;
     if (now - ((st.seen || {})[r.pool] || 0) < cfg.coolH * 3600e3) continue; (st.seen ||= {})[r.pool] = now;
-    st.setups[r.pool] = { pool: r.pool, coin: r.coin, chain: r.chain, kind: 'brk', setup: 'Breakout retest', opp: r.opp, zoneLow: +r.zoneLow, zoneHigh: +r.zoneHigh, stop: +r.stop, tp1: +r.tp1, tp2: +r.tp2 || null, tp3: +r.tp3 || null, rr2: r.rr2, riskPct: r.riskPct, volDay: r.volDay, expireH: r.expireH || 48, at: r.at || nowIso, liq0: +r.liquidity || 0 };
+    st.setups[r.pool] = { pool: r.pool, coin: r.coin, chain: r.chain, token: r.token || null, kind: 'brk', setup: 'Breakout retest', opp: r.opp, zoneLow: +r.zoneLow, zoneHigh: +r.zoneHigh, stop: +r.stop, tp1: +r.tp1, tp2: +r.tp2 || null, tp3: +r.tp3 || null, rr2: r.rr2, riskPct: r.riskPct, volDay: r.volDay, expireH: r.expireH || 48, at: r.at || nowIso, liq0: +r.liquidity || 0 };
     J({ type: 'setup', coin: r.coin, pool: r.pool, kind: 'brk', zoneLow: +r.zoneLow, zoneHigh: +r.zoneHigh, stop: +r.stop, filters: active });
   }
 }
@@ -181,7 +236,8 @@ export function equity(st, q = {}) { return st.cash + st.positions.reduce((a, p)
 
 async function main() {
   const args = process.argv.slice(2), bi = args.indexOf('--bot'), name = bi >= 0 ? args[bi + 1] : 'rules', cfg = loadConfig(name), F = filesFor(name), NM = cfg.label;
-  if (cfg.mode !== 'dry') { console.error('RynoBot: live trading is not built. It stays in dry-run mode until the dry run has 2-4 weeks of results worth trusting. Set "mode": "dry" in bot/config.json.'); process.exit(1); }
+  if (!['dry', 'quote', 'live'].includes(cfg.mode)) { console.error(`${NM}: "mode" must be dry, quote or live in bot/config.json.`); process.exit(1); }
+  if (cfg.mode === 'live') { const why = liveCheck(cfg, { dir: path.dirname(F.stop) }); if (why) console.error(`${NM}: live was asked for but refused (${why}). Running in dry-run mode.`); }
   if (args.includes('--check')) { let ok = true; try { const f = cfg.source === 'breakouts' ? 'breakouts.json' : 'setups.json', s = await getJson(cfg.site + f); console.log(`scanner data (${NM}): ${Array.isArray(s) ? s.length : 0} setups in ${f}`); } catch (e) { ok = false; console.log('scanner data FAILED: ' + e.message); }
     try { const q = await getJson('https://api.dexscreener.com/latest/dex/search?q=SOL'); console.log('DexScreener: ok (' + ((q.pairs || []).length) + ' pairs)'); } catch (e) { ok = false; console.log('DexScreener FAILED: ' + e.message); }
     try { const g = await getJson('https://api.geckoterminal.com/api/v2/networks'); console.log('GeckoTerminal: ok (' + ((g.data || []).length) + ' networks)'); } catch (e) { ok = false; console.log('GeckoTerminal FAILED: ' + e.message); }
@@ -191,7 +247,7 @@ async function main() {
   // a bot that has not traded yet takes the configured account size (so changing accountUsd needs no reset)
   if (st.start !== cfg.accountUsd && !st.positions.length && !st.closed.length) { st.cash = st.start = cfg.accountUsd; st.eq = []; st.eqAt = 0; }
   if (args.includes('--status')) { const q = await quotes(st.positions).catch(() => ({})), e = equity(st, q), wins = st.closed.filter((p) => p.pnl > 0).length;
-    console.log(`${NM}: paper account ${usd(e)} (started ${usd(st.start)}, ${((e / st.start - 1) * 100).toFixed(1)}%) since ${st.startedAt || 'not started'}.\nClosed ${st.closed.length} (${wins} won), total ${usd(st.closed.reduce((a, p) => a + p.pnl, 0))}. Watching ${Object.keys(st.setups).length} setups.`);
+    console.log(`${NM}: paper account ${usd(e)} (started ${usd(st.start)}, ${((e / st.start - 1) * 100).toFixed(1)}%) since ${st.startedAt || 'not started'}.\nClosed ${st.closed.length} (${wins} won), total ${usd(st.closed.reduce((a, p) => a + p.pnl, 0))}. Kitty ${usd(st.kitty || 0)} (swept profit, not at risk). Watching ${Object.keys(st.setups).length} setups.`);
     if (st.filters) console.log(`  filters: ${st.filters.length ? st.filters.map(labelOf).join('; ') : 'none'}`);
     for (const p of st.positions) { const x = q[String(p.pool).toLowerCase()], px = x ? +x.priceUsd : null; console.log(`  open ${p.coin}: in at ${fmt(p.entry)}, now ${fmt(px)}, ${px ? ((pnlOf(p, px) / p.costUsd) * 100).toFixed(1) + '%' : '?'}${p.free ? ' (riding free)' : ''}`); }
     for (const p of st.closed.slice(-10).reverse()) console.log(`  closed ${p.coin} ${p.closedAt}: ${p.pnl >= 0 ? '+' : ''}${usd(p.pnl)} (${((p.pnl / p.costUsd) * 100).toFixed(1)}%), ${(p.sells[p.sells.length - 1] || {}).why || ''}`);

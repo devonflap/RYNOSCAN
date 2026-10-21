@@ -13,5 +13,12 @@
   "summaryHourBrisbane": 20,
   "tradeAlerts": false,
   "dailySummary": false,
-  "realityEveryDays": 14
+  "realityEveryDays": 14,
+  "kitty": true,
+  "kittyMinUsd": 25,
+  "bots": {
+    "rules": { "kittyWallet": "" },
+    "breakout": { "kittyWallet": "" },
+    "degen": { "kittyWallet": "" }
+  }
 }

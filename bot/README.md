@@ -4,6 +4,7 @@ Two always-on bots that do what a trading bot would do, except place orders. Eac
 
 - **rules** (`rynobot@rules`): the scanner's bid-ready and worth-watching setups, bought on the 5-minute trigger (below).
 - **breakout** (`rynobot@breakout`): Breakout retest, see **The Breakout bot** further down.
+- **degen** (`rynobot@degen`): the degen desk's runners bought on sight with the **study exits** (stop 40%, ride free at 2x, then out on a 5-minute close 50% under the best close, 7 days). Deliberately bare: no sellers, volume or follow-through exits, so it tests the study exits as they are. Its paper twin is the dashboard's **Degen → Study exits** book. Up to 8 positions, 1% risk each, 8% total.
 
 Every minute the rules bot:
 
@@ -19,7 +20,40 @@ Every minute the rules bot:
 
 Sizing: 1% of the paper account lost if the stop is hit, **after costs**. Costs are 1% slippage plus price impact for this pool (a buy moves a pool's price by about twice its share of the pool, and the sell moves it back, so a $2,000 order in a $100k pool costs about 5% each way). The size is also capped at 25% of the account, 1% of the pool's liquidity, 1.5% price impact, 4% total open risk and 4 positions at once, and there are no new entries once the account is down 3% on the day, open positions included. At buy time the pool must still hold $100k+ and not have lost 40% of its liquidity since the setup was found (a pool being pulled).
 
-**Nothing is ever bought or sold.** There is no wallet, no private key and no trading code here. `"mode"` must be `"dry"`; anything else makes the bot refuse to start. Live trading gets built only after 2 to 4 weeks of dry-run results that are worth trusting, with its own wallet and keys kept only on the server.
+## Modes: dry, rehearsal, live
+
+`"mode"` in `bot/config.json` (shared, or per bot under `"bots"`):
+
+- **`dry`** (default): paper fills from DexScreener prices. Nothing touches the market.
+- **`quote`** (rehearsal): every buy and sell asks the real market for a quote (Jupiter on Solana) and books the **quoted** fill, but sends nothing. This measures the real slippage, routing and price impact for this bot's sizes with zero risk, and runs the same token safety and honeypot checks a live order would. Needs the Solana libraries (`npm install`, done by the installer) and a token address on each setup; no wallet or key.
+- **`live`**: sends the swap, waits for confirmation, reads the wallet to confirm what was really bought. Live is refused, and the bot stays in dry run with a phone message saying why, unless **all** of these hold: a wallet address for the bot in config, its key file on the server (`/etc/rynobot/keys/<bot>.json`, owner read only), the file `bot/ARMED-<bot>` containing exactly `I understand this bot will spend real money from its own wallet`, and the caps set (`liveMaxUsd` per order, default $50; `liveMaxOpenUsd` in total, default $300).
+
+**Slippage.** The tolerance sent with an order is not a cost; it is the most the fill may move against you before the chain rejects the trade. Too tight and orders fail (you pay the fee and miss the entry; on a stop that is dangerous), too loose and a sandwich bot takes the difference. So each order sets its own: twice the quote's price impact plus 0.5%, floor 0.5%, capped at `liveSlipPct` (3%) for buys and three times that for exits. The real cost is in the quote itself (impact plus fees), and the order carries a priority fee (capped at 0.002 SOL) so it lands fast. On Robinhood chain the same tolerance goes into the aggregator quote or the router call as the minimum output.
+
+**Robinhood chain.** Built from the October 2026 research: the bot quotes **0x, KyberSwap, 1inch and the Uniswap Trading API in parallel** (about 1.5 seconds), drops any quote whose call target or spender is not on its allowlist (Permit2, Uniswap's Universal Router v2.1.2, SwapRouter02, 0x's AllowanceHolder, KyberSwap's router; 0x's Settler is checked against 0x's on-chain registry and never approved), takes the best output net of gas, and **simulates the transaction** before sending. If every aggregator fails or has no route (common for brand-new tokens) it falls back to a direct Uniswap v3 swap built by the bot itself: QuoterV2 picks the best fee tier, then it encodes **Universal Router v2.1.2** calldata (a buy wraps the ETH it sends and swaps it, so no approval is ever needed on the way in; a sell pulls the token through Permit2, swaps and unwraps back to ETH), simulated like any other order. SwapRouter02 is the fallback to the fallback. Gas is 2x the live base fee with no tip, because Robinhood's single sequencer is first come first served and a tip buys nothing; speed does. Fee-on-transfer tokens are refused. API keys go in `/etc/rynobot.env` as `ZEROX_API_KEY`, `ONEINCH_API_KEY`, `UNISWAP_API_KEY` (KyberSwap needs none; with no keys the bot still has KyberSwap plus the direct fallback). Budget 1c to 50c of gas a swap, and use a paid RPC (`"rhRpc"` in config) before going live: the public one is rate-limited. A bot's wallet is on one chain (`walletChain`), so a live bot trades only coins on its wallet's chain; in rehearsal it quotes both.
+
+Every live or rehearsal order goes through: token safety (no freeze authority, no mint authority), a honeypot check (it must be sellable back for at least half), a wallet balance check (order plus a 0.03 SOL fee reserve), a slippage limit (`liveSlipPct` 3% on buys, 3x that on exits so a stop can still get out), and after a live buy the wallet's token balance is what the position holds. A refused exit keeps the position, tells your phone, and is retried every check. Once an hour in live mode the bot compares the wallet with its books and shouts if they drift. Live works on Solana (Jupiter) and Robinhood chain (the executor above); a bot trades the chain its wallet is on.
+
+## Wallets
+
+One wallet per bot, on one chain per bot, made **on the server**, so neither bot can touch the other's money:
+
+```
+node bot/wallet.mjs create --bot rules                      # new Solana wallet; key saved owner-only; address put in bot/config.json
+node bot/wallet.mjs create --bot degen --chain robinhood    # the same on Robinhood chain (an Ethereum-style wallet)
+node bot/wallet.mjs show --bot rules                        # address and balance (the chain is read from the key file)
+node bot/wallet.mjs export --bot rules                      # the secret key, shown once, for a one-time import into Phantom
+```
+
+Fund a Solana wallet by sending SOL to the address from Phantom or an exchange, with no more than that bot may lose, plus 0.03 SOL for fees. Fund a Robinhood-chain wallet with ETH on Robinhood chain (withdraw from Robinhood to Robinhood chain, or bridge) and keep 0.002 ETH spare for gas.
+
+**Seeing a bot's wallet in Phantom (one-time export).** Phantom cannot be "connected" to a server (its key stays in your phone and every trade would need a tap), so the bots have their own keys. To watch or withdraw from a bot's wallet by hand, run `export` on the server once and import the key into Phantom: *Add wallet > Import private key*, pick Solana for a Solana bot or Ethereum for a Robinhood-chain bot (the same key and address hold the Robinhood-chain ETH; if the app does not list Robinhood chain yet, MetaMask or Rabby show it after adding the network, which `show` prints: chain id 4663, RPC `https://rpc.mainnet.chain.robinhood.com`). Then clear the screen and the shell history (`history -c`). Never paste a Phantom key into the server or a chat; the bots never need your main wallet.
+
+On the desk each bot wears its chain's colour (Solana purple, Robinhood green, BNB yellow, Base blue, Ethereum blue-grey): once a wallet is set the bot trades only that chain, so the colour tells you at a glance which money each bot is on. Until then the colour follows the chain most of its paper trades are on.
+
+## Publishing to the scanner
+
+With `"publish": true` in config and a GitHub token in `/etc/rynobot.env` (`GITHUB_TOKEN=`; a fine-grained token on the RYNOSCAN repo only, Contents: read and write), each bot writes its record to `docs/data/bots/<bot>.json` once an hour: trades with their pre- and post-entry facts, passed-on setups, refused orders. The council's new **Bot desk** hat reads these every scan and compares the bots with their paper twins. Nothing private is published (no wallet, no balances).
 
 The same trigger and exits are also replayed on the dashboard's **Bot rules** tab (5-minute entries, 15-minute exits), next to a plain zone limit and the study exits on the same setups, so the bot's rules are always measured against the alternatives.
 
@@ -36,11 +70,21 @@ Breakout retest exactly as the backtest traded it, because that is what the +0.9
 
 ## The bot desk (a web page on the server)
 
-Open `http://<server address>:8080` on your computer or phone (any user name, plus the desk password you chose at install). It shows both bots side by side: paper account and its curve with each day's result, what each bot is watching and how far the nearest setup is from its zone, risk in use, today's result, the record, open positions with live P&L in dollars and R, the watch list, closed trades, and what the bots did. Click any position, trade or watched setup to see it on a 5-minute chart with the entry, stop, targets and every buy and sell, next to the rules it was taken under. It refreshes itself every 15 seconds.
+Open `http://<server address>:8080` (or `https://<your domain>` once HTTPS is set up: `bash bot/install.sh --https desk.yourdomain.com`) on your computer or phone, any user name plus the desk password you chose at install. **Overview** at the top: combined equity with its curve, today, average a day, open positions, risk in use and the record; every bot's account curve on one chart; bot profit (banked and open) as bars; where the money is (cash and positions by bot); then the **Active bots** table (chain, mode, equity, total P&L, average a day, banked, open, record, status). Below it the bot cards side by side: paper account and its curve with each day's result, what each bot is watching and how far the nearest setup is from its zone, risk in use, today's result, the record, open positions with live P&L in dollars and R, the watch list, closed trades, and what the bots did. Click any position, trade or watched setup to see it on a 5-minute chart with the entry, stop, targets and every buy and sell, next to the rules it was taken under. It refreshes itself every 15 seconds.
 
 Also on it: a ticker of everything held and watched, each open position's stop-to-target bar, the win or loss streak with the average win and loss, **Passed on** (every setup the bot said no to, followed for 24 hours: what it did since, its best price, and whether its stop would have hit, so you can see how often saying no was right), and the latest reality check.
 
-It is read only: nothing on the page can change a setting, place an order or stop a bot. It runs as the `rynobot-dash` service and only reads the bots' files; the password is kept in `/etc/rynobot.env`. Change the port with `DASH_PORT=` in that file.
+**Controls on the desk** need the **separate control password** chosen at install (asked once per browser tab) plus a confirm click: **Close now** on an open position (the bot sells everything left at the live price at its next check, marked "by hand"), **Cancel** on a watched setup, and **Pause / Resume new buys** per bot (open positions are still managed while paused). With no control password set the desk is **read only** and the buttons are greyed out; `DASH_CONTROLS=local` in `/etc/rynobot-desk.env` allows them only from the server itself (SSH tunnel). Nothing else on the page can change anything: no rules, no sizing, no keys. See **bot/SECURITY.md**.
+
+**Charts.** Click any position, trade or watched setup: the **live chart** is DexScreener's own, embedded (fast, always current, with its indicators), and beside it a **ladder** draws the trade's levels on one price scale (entry, stops, targets, every buy ▲ and sell ▼, and the price now). **Our candles + marks** switches to the bot's own 5-minute candles with the entry, stop, targets and fills drawn on the chart (fetched by the server, cached; slower). Your choice is remembered.
+
+**Wallets.** Each bot gets its own wallet, so neither can touch the other's money; that is the lock-off. Only the public address goes in `bot/config.json`: `"bots": { "rules": { "wallet": "<address>", "walletChain": "solana" } }` (chains: solana, bsc, base, ethereum). The desk then shows the balance, read from the chain, with a link to the explorer. The private key is never stored in the repo, the desk or a chat: it lives in `/etc/rynobot/keys/<bot>.json` on the server, readable only by your user; the desk runs as another user and cannot read it. Fund each wallet with no more than that bot is allowed to lose.
+
+**Going live** has its own checklist at the bottom of the desk, ticking off by itself as the dry run goes on: two weeks of dry run, reality checks with enough shared trades, a council bot candidate, one wallet per bot, keys only on the server, the hard limits and kill switches (in place), and the live order code, which is deliberately not built until the data earns it.
+
+Every coin name on the desk links to its DexScreener chart. Click a row for the full record of that trade: before the entry (when the setup was found, how long it waited, the trigger candle, the price when the bot acted and what it paid after costs, pool liquidity then and now, price impact) and since the entry (best and worst price, every stop move, what is banked and what is still held).
+
+It runs as the `rynobot-dash` service under its own user `rynodesk`, reads the bots' files and nothing secret: its environment file `/etc/rynobot-desk.env` holds only the desk password (`DASH_PASS_B64`), the optional control password (`DASH_CONTROL_B64`), `DASH_CONTROLS`, `DASH_BIND` and `DASH_PORT`. The ntfy topic, GitHub token and API keys stay in `/etc/rynobot.env`, which the desk cannot open. Wrong passwords slow down per address and are logged for fail2ban. The full posture, and the checklist before real money, is in **bot/SECURITY.md**.
 
 ## What reaches your phone
 
@@ -57,6 +101,16 @@ Only what needs you. The bot trades; you don't, so would-be buys and sells stay 
 - **The reality check**, every 2 weeks.
 
 To get the would-be trades on your phone again, set `"tradeAlerts": true` in `bot/config.json`; `"dailySummary": true` brings back the 8pm summary.
+
+## The kitty (banked profit, out of harm's way)
+
+The pot stays at $10,000. Whenever cash plus what is still invested in open positions adds up to more than that, the excess is banked profit and is swept to the **kitty** (at least $25 at a time, from cash only, so an open winner is not counted until it is sold). Position size, the daily loss limit and risk in use all look at the pot, never the kitty: a winning streak does not grow the bets, and the kitty is never used to top the pot up after losses. The desk shows pot, kitty and the total; the total is what P&L is measured on.
+
+In dry run and rehearsal the kitty is a paper number. In live mode the same amount of SOL or ETH is **really sent** from the bot's wallet to your kitty wallet: `"kittyWallet"` under that bot in `bot/config.json`, the **public address of your own Phantom** on the bot's chain (Solana address for a Solana bot, 0x address for a Robinhood-chain bot). No key is involved: the bot can only ever send profit to the address you wrote down, and from Phantom you off-ramp as usual. A live bot with no kitty wallet set does not sweep (one phone message asks for the address) so its books and wallet never drift apart. Each sweep keeps the fee reserve in the wallet, goes in the journal with its transaction, and tells your phone. `"kitty": false` switches it off (profit then compounds in the pot).
+
+## The market dial
+
+Every bot scales its risk per trade by the scanner's market regime (from the Grok/QuantGPT desk idea, and what the paper **Sized by market** bot sim tests): SOL risk-off x0.5, neutral x1, risk-on x1.25 (`"dial"` in config; `"regimeDial": false` turns it off). It changes the size only, never the entries, exits or stops, and each buy says which dial it used.
 
 ## Reality check (every 2 weeks, automatic)
 
@@ -85,7 +139,8 @@ The scanner itself stays on GitHub (free, and it runs the dashboard). The bot on
    cd RYNOSCAN
    bash bot/install.sh
    ```
-3. It asks for your **ntfy topic** (the same one as the `NTFY_TOPIC` secret on GitHub). It is stored in `/etc/rynobot.env`, readable only by the server's admin.
+3. It asks for your **ntfy topic** (the same one as the `NTFY_TOPIC` secret on GitHub), stored in `/etc/rynobot.env`, readable only by the server's admin; then a **desk password** (12+ characters) and an optional **control password** (blank keeps the desk read only), stored in `/etc/rynobot-desk.env` for the desk's own user.
+   Before sharing the desk address or going live, give it HTTPS: point a domain's A record at the server and run `bash bot/install.sh --https desk.yourdomain.com` (Caddy, Let's Encrypt, fail2ban; port 8080 closes).
 4. You get "RynoBot started (dry run)" on your phone. From then on it stays quiet unless something breaks, plus the reality check every 2 weeks (see **What reaches your phone**).
 
 ## Everyday commands (on the server, inside the RYNOSCAN folder)
@@ -102,6 +157,7 @@ Add `--bot breakout` to any `node bot/run.mjs` command for the Breakout bot (wit
 | update to the latest RynoScan | `git pull && sudo systemctl restart 'rynobot*'` |
 | check the data feeds | `node bot/run.mjs --check` |
 | see the reality check now | `node bot/run.mjs --bot breakout --reality` |
+| rehearsal for one bot | set `"bots": { "breakout": { "mode": "quote" } }` in `bot/config.json`, then `sudo systemctl restart rynobot@breakout` |
 | stop one bot completely | `sudo systemctl stop rynobot@breakout` |
 | start a bot's paper account again from $10,000 | `node bot/run.mjs --bot breakout --reset` then `sudo systemctl restart rynobot@breakout` (the old files are kept) |
 | restart the desk | `sudo systemctl restart rynobot-dash` |

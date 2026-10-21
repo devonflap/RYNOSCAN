@@ -1,16 +1,20 @@
 [Unit]
-Description=RynoBot %i (dry-run trading bot for RynoScan)
+Description=RynoBot %i (trading bot for RynoScan)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
 User=__USER__
+UMask=0002
 WorkingDirectory=__DIR__
 EnvironmentFile=/etc/rynobot.env
 ExecStart=/usr/bin/env node bot/run.mjs --bot %i
 Restart=always
 RestartSec=15
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
 
 [Install]
 WantedBy=multi-user.target

@@ -46,7 +46,7 @@ export function walletOk(w) { if (!w) return true; if (w.sellers >= w.buyers * 1
 
 export function makeSignal(c, at, wallet, cfg = DEGEN) {
   const p = c.p, px = +p.price, chain = p.chain, id = String(chain).slice(0, 3).toUpperCase() + ':' + p.sym, F = px * (1 + cfg.slipPct / 100);
-  return { signalId: id + '@' + at.slice(0, 13), id, coin: p.sym, chain: { solana: 'Solana', eth: 'Ethereum', robinhood: 'Robinhood' }[chain] || chain, pool: p.pool, net: p.net, setup: 'Degen runner', desk: 'degen', signalAt: at, priceAtSignal: r4(px),
+  return { signalId: id + '@' + at.slice(0, 13), id, coin: p.sym, token: p.token || null, chain: { solana: 'Solana', eth: 'Ethereum', robinhood: 'Robinhood' }[chain] || chain, pool: p.pool, net: p.net, setup: 'Degen runner', desk: 'degen', signalAt: at, priceAtSignal: r4(px),
     entryLow: r4(F), entryHigh: r4(F), entryMid: r4(F), stop: r4(F * (1 - cfg.stopPct)), tp1: r4(F * cfg.tpMult), tp2: null, tp3: null, status: 'waiting for entry', tpHit: 0, resultR: null, openR: null, closedAt: null, checkedAt: at,
     why: c.why, score: c.score, liq: Math.round(p.liq), v24: Math.round(p.v24), ageD: p.ageD ?? null, hs: p.hs ? { holders: p.hs.holders ?? null, top10: p.hs.top10 ?? null, growPct: p.hs.growPct ?? null } : null, wallet: wallet || null, walletVerdict: walletVerdict(wallet), walletHist: wallet ? [{ t: at, b: wallet.buyers, s: wallet.sellers, n: wallet.netUsd }] : [] };
 }
