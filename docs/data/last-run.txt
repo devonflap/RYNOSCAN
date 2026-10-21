@@ -1,10 +1,7 @@
-Full scan 18:11 Brisbane: 67 scanned, 57 scored, 12 above 65. On-chain volume Strong (1.32x 7-day avg).
-NEW bid-ready: CASHCAT (Robinhood) Falling wedge, opp 74, checks 5/6, stop 19% away, upside 56.9%. Entry 0.11445-0.11773, stop 0.094069, TP 0.13811 / 0.16013 / 0.18215.
-NEW watch: PUMP (Solana) Falling wedge, opp 82, checks 6/6, stop 22.8% away, upside 68.4%.
-NEW watch: USELESS (Solana) Falling wedge, opp 72, checks 5/6, stop 18.5% away, upside 55.4%; volume fading.
-NEW watch: BONER (Robinhood) Bottom reversal, opp 71, checks 4/6, stop 36.4% away, upside 176.3%; more sellers than buyers in the last hour; volume fading.
-NEW watch: MOW (Robinhood) Bottom reversal, opp 69, checks 5/6, stop 9.6% away, upside 28.8%; no socials/website listed.
-NEW watch: GIGATENEV (Robinhood) Breakout retest, opp 66, checks 3/6, stop null% away, upside null%; more sellers than buyers in the last hour; volume fading; weak last 6h; paid DexScreener boost active (promotion, not organic demand).
+Hourly refresh 19:10 Brisbane: 13 tracked coins refreshed, 13 scored, 10 above 65. On-chain volume Strong (1.32x 7-day avg).
+NEW bid-ready: INDEX (Robinhood) Double bottom, opp 77, checks 5/6, stop 22% away, upside 62.7%. Entry 0.0080895-0.0083665, stop 0.0064178, TP 0.010038 / 0.01083 / 0.013386.
+No longer bid-ready: CASHCAT (Robinhood).
+NEW watch: CARDS (Solana) Bottom reversal, opp 67, checks 5/6, stop 35% away, upside 105%; volume fading.
+Signal CASHCAT: open, open -0.13R.
 Market: SOL neutral, ETH neutral.
-Removed for token safety: TTWO (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
