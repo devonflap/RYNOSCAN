@@ -1,4 +1,8 @@
-Hourly refresh 09:10 Brisbane: 12 tracked coins refreshed, 12 scored, 10 above 65. On-chain volume Normal (1.06x 7-day avg).
-NEW watch: PUMP (Solana) Bottom reversal, opp 74, checks 4/6, stop 19.5% away, upside 58.4%; more sellers than buyers in the last hour; volume fading.
-Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Full scan 10:11 Brisbane: 63 scanned, 52 scored, 16 above 65. On-chain volume Strong (1.26x 7-day avg).
+NEW bid-ready: DELTA (Robinhood) Liquidity sweep reclaim, opp 87, checks 6/6, stop 21.6% away, upside 64.7%. Entry 0.012124-0.012484, stop 0.0096515, TP 0.014957 / 0.017609 / 0.020262.
+NEW watch: CASHCAT (Robinhood) Base breakout, opp 79, checks 5/6, stop 18.4% away, upside 55.2%; more sellers than buyers in the last hour.
+NEW watch: ORBIO (Robinhood) Falling wedge, opp 73, checks 5/6, stop 63.5% away, upside 190.4%; more sellers than buyers in the last hour.
+NEW watch: GTA6 (Solana) Volume breakout, opp 71, checks 4/6, stop null% away, upside null%; more sellers than buyers in the last hour; volume fading.
+Market: SOL neutral, ETH neutral.
+Removed for token safety: SPCX (Mint Authority still enabled), TTWO (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
