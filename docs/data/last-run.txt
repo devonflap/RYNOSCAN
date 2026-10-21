@@ -1,6 +1,8 @@
-Hourly refresh 08:10 Brisbane: 11 tracked coins refreshed, 11 scored, 6 above 65. On-chain volume Strong (3.24x 7-day avg).
-NEW bid-ready: WOOD (Robinhood) Bottom reversal, opp 81, checks 6/6, stop 10% away, upside 59.5%. Entry 0.0022735-0.002368, stop 0.0020891, TP 0.0027639 / 0.0031224 / 0.0037026.
-NEW bid-ready: STONK (Solana) Bull flag, opp 77, checks 5/6, stop 35.9% away, upside 107.7%. Entry 0.12991-0.13421, stop 0.084657, TP 0.17946 / 0.22686 / 0.27427.
-Signal BONER: open, open -0.17R.
+Hourly refresh 09:10 Brisbane: 10 tracked coins refreshed, 10 scored, 5 above 65. On-chain volume Strong (3.24x 7-day avg).
+No longer bid-ready: WOOD (Robinhood).
+No longer bid-ready: BONER (Robinhood).
+NEW watch: DELTA (Robinhood) Falling wedge, opp 68, checks 5/6, stop 32.5% away, upside 97.6%; volume fading.
+Signal STONK: open, open -0.38R.
+Signal INDEX: open (TP1 hit), open 0.8R.
 Market: SOL neutral, ETH neutral.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
