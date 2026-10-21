@@ -254,3 +254,43 @@ nav{gap:6px}nav a{font-size:.8rem;padding:5px 11px}
 .cn-bar i{display:block;height:100%;background:var(--brand)}
 @media (max-width:560px){.cn-line{grid-template-columns:1fr;gap:2px}.cn-grid{grid-template-columns:1fr}}
 .plans>article.plan{min-width:0;max-width:100%}.plan svg{max-width:100%}
+
+/* ---- 21 Oct: the desk look (same tokens as the RynoBot desk) ---- */
+:root{--bg0:#15171b;--bg1:#15171b;--panel:#1e2126;--panel2:#262a30;--line:#343941;--fg:#e8e5df;--mut:#9aa0a8;--cyan:#e8e5df;--blue:#9aa0a8;--ok:#3fb37f;--bad:#f05a62;--vio:#9945ff;--r:10px;--gauge:"Bahnschrift","DIN Alternate","DIN 2014","Roboto Condensed","Arial Narrow",system-ui,sans-serif}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:radial-gradient(ellipse 60% 40% at 20% -10%,rgba(214,66,39,.16),transparent 60%),radial-gradient(ellipse 40% 30% at 100% 0%,rgba(238,106,75,.08),transparent 60%),linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px),var(--bg0);background-size:100% 100%,100% 100%,28px 28px,28px 28px;background-attachment:fixed}
+.shell{max-width:none}
+.side{flex:0 0 228px;padding:16px 14px;background:linear-gradient(180deg,#1b1e23,#16181c);border-right:1px solid var(--line);gap:2px}
+.sgroup{font-size:.66rem;letter-spacing:.1em;color:#666c75;padding:14px 10px 6px}
+.sitem{border-radius:7px;padding:9px 10px;font-weight:500;color:var(--mut)}.sitem svg{width:18px;height:18px}
+.sitem:hover{color:var(--fg);background:var(--panel2)}
+.sitem.on,.sitem.cur,.side .vtab.on{color:var(--fg);background:rgba(214,66,39,.14);border-color:rgba(214,66,39,.45)}
+.sitem.on svg,.sitem.cur svg{color:var(--brand);filter:drop-shadow(0 0 6px var(--brand))}
+.wrap{padding:18px 22px 48px;gap:16px}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.015),transparent),var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.25);backdrop-filter:none;padding:16px 18px}
+.card>h2,.card summary h2{font-family:var(--gauge);font-size:1.05rem;font-weight:600;letter-spacing:.02em}
+.hero{padding:6px 2px 2px;gap:16px;border-bottom:1px solid var(--line);padding-bottom:12px;position:relative}
+.hero::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,transparent,var(--brand) 30%,var(--warn) 60%,transparent)}
+.hero .logo{width:54px;border-radius:10px;filter:drop-shadow(0 0 18px rgba(214,66,39,.45))}
+.hero h1{font-family:var(--gauge);font-size:clamp(1.8rem,4vw,2.3rem);font-weight:700;letter-spacing:.02em}
+.hero h1 span{color:var(--warn);text-shadow:0 0 18px rgba(238,106,75,.4)}
+.tiles{gap:12px}.tile{border-radius:10px;background:var(--panel);border:1px solid var(--line);padding:14px 16px 12px;transition:transform .18s ease,box-shadow .18s ease}
+.tile:before{inset:0 0 auto 0;width:auto;height:2px;background:var(--c,var(--brand));box-shadow:0 0 14px var(--c,var(--brand))}
+.tile:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,0,0,.35);border-color:var(--line)}
+.tile .big{font-family:var(--gauge);font-weight:700;font-size:1.7rem}.tile .lbl{font-size:.78rem}
+.plan,.vcell,.step,.dk-stat,.dk-trade,.dk-wrow,.dk-fold,.cn-card,.cn-final,.cn-line,.opinion,.rmenu{background:var(--panel2);border-color:var(--line);border-radius:10px}
+.plan .t b,.dk-nm,.dk-v,.dk-pnl,.vcell .v,.score b,.step b,.cn-met b,.verdict .vh{font-family:var(--gauge)}
+.dk-v,.dk-pnl{letter-spacing:.01em}
+.badge,.g,.chip,.act,.sortsel,.refreshbtn,.lchip,.dk-chip,.dk-tab,.pill{border-radius:6px}
+.badge{font-weight:600;letter-spacing:.02em}
+.chip.on,.act.on{background:rgba(214,66,39,.14);border-color:var(--brand);color:var(--warn)}
+.lookup input{background:var(--panel2);border-radius:8px}.lookup button{border-radius:8px;font-weight:600}
+.tbl th{font-weight:500}.tbl tbody tr:nth-child(even) td{background:rgba(255,255,255,.015)}.tbl tbody tr:hover td{background:var(--panel2)}
+.tbl td{font-variant-numeric:tabular-nums}.tbl td.n{font-family:var(--gauge)}
+.verdict{border-left-width:3px}.verdict.go{box-shadow:0 6px 24px rgba(0,0,0,.25),inset 3px 0 0 var(--ok)}
+.vtab.on{background:rgba(214,66,39,.14);border-color:rgba(214,66,39,.45);color:var(--fg)}
+.dexframe{border-radius:8px;background:#0b0d10}
+details.card summary h2{font-family:var(--gauge)}
+.health{border-radius:8px}.banner{border-radius:8px}
+.foot{color:#666c75}
+@media(max-width:900px){.side{background:#16181c}.wrap{padding:12px 16px 40px}}
+.wrap>.hero{order:-1}

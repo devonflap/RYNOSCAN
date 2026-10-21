@@ -6,7 +6,6 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=rynodesk
-Group=__GROUP__
 UMask=0002
 WorkingDirectory=__DIR__
 EnvironmentFile=/etc/rynobot-desk.env

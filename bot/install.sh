@@ -2,6 +2,7 @@
 # Sets up RynoBot on an Ubuntu or Debian server so it runs 24/7 and restarts itself after a crash or a reboot.
 # Run it from inside the RYNOSCAN folder:   bash bot/install.sh            (run it again after a git pull: it is safe to repeat)
 #   bash bot/install.sh --https desk.yourdomain.com     also puts the desk behind HTTPS (Caddy + Let's Encrypt) and fail2ban
+#   bash bot/install.sh --passwords                     choose new desk and control passwords (the old ones are forgotten)
 # What it sets up, and why (see bot/SECURITY.md):
 #   - three bot services (rules, breakout, degen) running as you, with the secrets file /etc/rynobot.env (root only)
 #   - the desk as its OWN user "rynodesk" with its own environment file holding only the desk passwords: it cannot read the bot keys,
@@ -9,7 +10,8 @@
 #   - a desk password (the view) and an optional, separate control password (close/cancel/pause); no control password = read only
 set -euo pipefail
 cd "$(dirname "$0")/.."
-DOMAIN=""; if [ "${1:-}" = "--https" ]; then DOMAIN="${2:-}"; [ -n "$DOMAIN" ] || { echo "usage: bash bot/install.sh --https desk.yourdomain.com"; exit 1; }; fi
+DOMAIN=""; if [ "${1:-}" = "--passwords" ]; then sudo sed -i '/^DASH_PASS_B64=/d; /^DASH_CONTROL_B64=/d' /etc/rynobot-desk.env 2>/dev/null || true; echo "Desk and control passwords cleared; choose new ones below."; fi
+if [ "${1:-}" = "--https" ]; then DOMAIN="${2:-}"; [ -n "$DOMAIN" ] || { echo "usage: bash bot/install.sh --https desk.yourdomain.com"; exit 1; }; fi
 need_node=1
 if command -v node >/dev/null 2>&1; then [ "$(node -p 'process.versions.node.split(".")[0]')" -ge 20 ] && need_node=0; fi
 if [ "$need_node" = 1 ]; then
@@ -30,9 +32,13 @@ fi
 sudo chmod 600 /etc/rynobot.env; sudo chown root:root /etc/rynobot.env
 # the desk's own user and environment file (desk passwords only; never the bot secrets)
 id -u rynodesk >/dev/null 2>&1 || sudo useradd -r -s /usr/sbin/nologin -d /nonexistent rynodesk
-sudo usermod -aG "$GROUP" rynodesk
-sudo chmod 2775 bot   # group-writable with the group kept on new files: the desk writes command and STOP files the bot reads
-sudo chown "$RUN_AS:$GROUP" bot; chmod g+r bot/*.json bot/*.jsonl 2>/dev/null || true
+# the desk user may enter the folders down to this repo (traverse only), read the repo, and read/write bot/ (ACLs, so no group membership
+# is handed out: on a droplet run as root that would otherwise put the desk in the root group)
+command -v setfacl >/dev/null 2>&1 || sudo apt-get install -y acl >/dev/null 2>&1
+d="$PWD"; while [ "$d" != "/" ]; do sudo setfacl -m u:rynodesk:x "$d"; d="$(dirname "$d")"; done
+sudo setfacl -m u:rynodesk:rx "$PWD" "$PWD/docs"; sudo setfacl -m u:rynodesk:r "$PWD/docs/logo.png" 2>/dev/null || true
+sudo setfacl -R -m u:rynodesk:rwX bot && sudo setfacl -R -d -m u:rynodesk:rwX bot   # existing files, and every file the bots write later
+sudo chmod g+s bot; sudo chown "$RUN_AS:$GROUP" bot   # files the desk creates (commands, STOP) take the bot's group so the bot can write them
 [ -f /etc/rynobot-desk.env ] || sudo touch /etc/rynobot-desk.env
 sudo chown root:rynodesk /etc/rynobot-desk.env; sudo chmod 640 /etc/rynobot-desk.env
 if sudo grep -q '^DASH_PASS_B64=' /etc/rynobot.env; then   # older install: move the desk password out of the bot secrets
@@ -55,7 +61,7 @@ sed "s#__DIR__#$PWD#; s#__USER__#$RUN_AS#" "bot/rynobot@.service" | sudo tee "/e
 sudo systemctl disable --now rynobot 2>/dev/null || true   # an older single-bot install, if there is one
 sudo systemctl daemon-reload
 for b in $BOTS; do sudo systemctl enable "rynobot@$b" >/dev/null 2>&1; sudo systemctl restart "rynobot@$b"; done   # restart picks up new code after a git pull
-sed "s#__DIR__#$PWD#; s#__GROUP__#$GROUP#" bot/rynobot-dash.service | sudo tee /etc/systemd/system/rynobot-dash.service >/dev/null
+sed "s#__DIR__#$PWD#" bot/rynobot-dash.service | sudo tee /etc/systemd/system/rynobot-dash.service >/dev/null
 if [ -n "$DOMAIN" ]; then
   # HTTPS: Caddy answers on 80/443 with a Let's Encrypt certificate and passes to the desk, which now listens on this machine only
   command -v caddy >/dev/null 2>&1 || { sudo apt-get update -qq; sudo apt-get install -y caddy fail2ban; }
@@ -73,6 +79,7 @@ if command -v fail2ban-client >/dev/null 2>&1; then
   sudo systemctl enable fail2ban >/dev/null 2>&1; sudo systemctl restart fail2ban
 fi
 sudo systemctl daemon-reload; sudo systemctl enable rynobot-dash >/dev/null 2>&1; sudo systemctl restart rynobot-dash
+sleep 2; if ! systemctl is-active --quiet rynobot-dash; then echo; echo "THE DESK DID NOT START. Its last log lines:"; sudo journalctl -u rynobot-dash -n 20 --no-pager; echo; fi
 IP=$(hostname -I 2>/dev/null | awk '{print $1}')
 sleep 2
 for b in $BOTS; do node bot/run.mjs --bot "$b" --check || true; done   # checks the data feeds; the ntfy topic is only readable by the services

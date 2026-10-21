@@ -36,6 +36,8 @@ refresh, so do not use the desk on public Wi-Fi until this is done.
 - `DASH_CONTROLS=local` in `/etc/rynobot-desk.env` makes the controls work only from the server itself. Use an SSH tunnel for that:
   `ssh -L 8080:127.0.0.1:8080 you@server`, then open `http://localhost:8080`. The public address stays view-only.
 - A secret link is not auth; the desk does not have one.
+- Forgot or want to change a password: `bash bot/install.sh --passwords` asks for both again (nothing else is touched). To change
+  just the control password: `sudo sed -i '/^DASH_CONTROL_B64=/d' /etc/rynobot-desk.env && bash bot/install.sh`.
 
 ## Brute force
 
