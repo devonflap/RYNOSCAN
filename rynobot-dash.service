@@ -1,0 +1,21 @@
+[Unit]
+Description=RynoBot desk (web dashboard; its own user, no access to the bot keys or secrets)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=rynodesk
+UMask=0002
+WorkingDirectory=__DIR__
+EnvironmentFile=/etc/rynobot-desk.env
+ExecStart=/usr/bin/env node bot/dash.mjs
+Restart=always
+RestartSec=15
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+InaccessiblePaths=-/etc/rynobot -/etc/rynobot.env
+
+[Install]
+WantedBy=multi-user.target
