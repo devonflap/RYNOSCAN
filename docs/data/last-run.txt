@@ -1,3 +1,9 @@
-Hourly refresh 13:10 Brisbane: 10 tracked coins refreshed, 10 scored, 8 above 65. On-chain volume Strong (1.26x 7-day avg).
+Full scan 14:11 Brisbane: 65 scanned, 54 scored, 15 above 65. On-chain volume Strong (1.3x 7-day avg).
+NEW bid-ready: WOOD (Robinhood) Bottom reversal, opp 68, checks 6/6, stop 13% away, upside 53%. Entry 0.0023801-0.0024595, stop 0.0021041, TP 0.0027639 / 0.0031224 / 0.0037026.
+NEW watch: OTC (Solana) Double bottom, opp 77, checks 6/6, stop 27.7% away, upside 83.2%.
+NEW watch: CARDS (Solana) Bull flag, opp 77, checks 6/6, stop null% away, upside null%.
+NEW watch: CATE (Solana) Liquidity sweep reclaim, opp 72, checks 5/6, stop 9.1% away, upside 40%; volume fading.
+NEW watch: AI (Robinhood) Double bottom, opp 67, checks 4/6, stop 19.9% away, upside 63.7%; more sellers than buyers in the last hour; volume fading.
 Market: SOL neutral, ETH neutral.
+Removed for token safety: TTWO (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
