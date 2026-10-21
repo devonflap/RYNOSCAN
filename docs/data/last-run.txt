@@ -1,9 +1,4 @@
-Full scan 22:11 Brisbane: 75 scanned, 60 scored, 22 above 65. On-chain volume Strong (1.47x 7-day avg).
-NEW bid-ready: HMM (Robinhood) Liquidity sweep reclaim, opp 91, checks 6/6, stop 17.9% away, upside 57.2%. Entry 0.0069038-0.0072132, stop 0.0057942, TP 0.0083228 / 0.0091874 / 0.011094.
-NEW watch: TRUMP (Solana) Falling wedge, opp 79, checks 6/6, stop 9.7% away, upside 29.2%.
-NEW watch: OTC (Solana) Double bottom, opp 79, checks 6/6, stop 34.3% away, upside 102.8%.
-NEW watch: BONER (Robinhood) Liquidity sweep reclaim, opp 77, checks 5/6, stop 36.6% away, upside 158.1%; more sellers than buyers in the last hour.
-NEW watch: ANSEM (Solana) Bottom reversal, opp 72, checks 5/6, stop 24.9% away, upside 74.8%; volume fading.
-NEW watch: DOPE (Robinhood) Bottom reversal, opp 71, checks 5/6, stop 25.9% away, upside 369.2%; more sellers than buyers in the last hour.
+Hourly refresh 23:10 Brisbane: 24 tracked coins refreshed, 24 scored, 15 above 65. On-chain volume Strong (1.47x 7-day avg).
+NEW watch: TROLL (Solana) Bottom reversal, opp 80, checks 6/6, stop 14.7% away, upside 44.1%.
 Market: SOL neutral, ETH neutral.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
