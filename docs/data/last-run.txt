@@ -1,10 +1,5 @@
-Full scan 02:12 Brisbane: 79 scanned, 65 scored, 15 above 65. On-chain volume Strong (1.43x 7-day avg).
-No longer bid-ready: HMM (Robinhood).
-NEW watch: CATE (Solana) Trend pullback, opp 79, checks 6/6, stop 8.5% away, upside 40.5%.
-NEW watch: MICRODUCK (Robinhood) Falling wedge, opp 75, checks 6/6, stop null% away, upside null%.
-NEW watch: SWORDCAT (Solana) Bottom reversal, opp 74, checks 5/6, stop 29.6% away, upside 254.1%; more sellers than buyers in the last hour.
-NEW watch: PRIORS (Robinhood) Double bottom, opp 74, checks 5/6, stop 40.6% away, upside 121.8%; more sellers than buyers in the last hour.
-NEW watch: SI (Solana) Bottom reversal, opp 73, checks 5/6, stop 19.4% away, upside 76.6%; more sellers than buyers in the last hour.
+Hourly refresh 03:10 Brisbane: 19 tracked coins refreshed, 19 scored, 14 above 65. On-chain volume Strong (1.43x 7-day avg).
+NEW watch: WOOD (Robinhood) Bottom reversal, opp 74, checks 4/6, stop 10.1% away, upside 59%; more sellers than buyers in the last hour; volume fading.
+NEW watch: FARTCOIN  (Solana) Falling wedge, opp 68, checks 5/6, stop 14.4% away, upside 43.2%; more sellers than buyers in the last hour.
 Market: SOL neutral, ETH neutral.
-Removed for token safety: CRCLX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
