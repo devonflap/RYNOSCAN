@@ -1,4 +1,5 @@
-Hourly refresh 23:10 Brisbane: 24 tracked coins refreshed, 24 scored, 15 above 65. On-chain volume Strong (1.47x 7-day avg).
-NEW watch: TROLL (Solana) Bottom reversal, opp 80, checks 6/6, stop 14.7% away, upside 44.1%.
+Hourly refresh 00:10 Brisbane: 17 tracked coins refreshed, 17 scored, 13 above 65. On-chain volume Strong (1.47x 7-day avg).
+No longer bid-ready: HMM (Robinhood).
+Signal HMM: open, open -0.11R.
 Market: SOL neutral, ETH neutral.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
