@@ -1,7 +1,5 @@
-Hourly refresh 19:10 Brisbane: 13 tracked coins refreshed, 13 scored, 10 above 65. On-chain volume Strong (1.32x 7-day avg).
-NEW bid-ready: INDEX (Robinhood) Double bottom, opp 77, checks 5/6, stop 22% away, upside 62.7%. Entry 0.0080895-0.0083665, stop 0.0064178, TP 0.010038 / 0.01083 / 0.013386.
-No longer bid-ready: CASHCAT (Robinhood).
-NEW watch: CARDS (Solana) Bottom reversal, opp 67, checks 5/6, stop 35% away, upside 105%; volume fading.
-Signal CASHCAT: open, open -0.13R.
+Hourly refresh 20:10 Brisbane: 12 tracked coins refreshed, 12 scored, 8 above 65. On-chain volume Strong (1.32x 7-day avg).
+No longer bid-ready: INDEX (Robinhood).
+Signal INDEX: open, open -0.06R.
 Market: SOL neutral, ETH neutral.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
