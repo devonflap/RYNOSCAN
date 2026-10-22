@@ -1,76 +1,125 @@
 [
  {
-  "symbol": "WIF",
-  "name": "dogwifhat",
-  "chain": "solana"
- },
- {
-  "symbol": "POPCAT",
-  "name": "Popcat",
-  "chain": "solana"
- },
- {
-  "symbol": "AI16Z",
-  "name": "ai16z",
-  "chain": "solana"
- },
- {
   "symbol": "HOOKR",
-  "chain": "solana"
+  "chain": "robinhood",
+  "pool": "0x590dcb6a87828bf688b48089a62239b693378f1fb64d2286e6a399ed8c005fdf"
  },
  {
   "symbol": "CASHCAT",
-  "chain": "solana"
+  "chain": "robinhood",
+  "pool": "0xb585765e96e71860d1a8c794a8592ee168288a780db9f4c0f7a9878b02698fcd"
  },
  {
-  "symbol": "TROLL",
-  "chain": "solana"
+  "symbol": "AI",
+  "chain": "robinhood",
+  "pool": "0x603d7656eefb4d050ff102b4d0766b459bcd1250c655feabea682a9cf5b63a60"
  },
  {
-  "symbol": "PONKE",
-  "chain": "solana"
- },
- {
-  "symbol": "CARDS",
-  "chain": "solana"
+  "symbol": "PONS",
+  "chain": "robinhood",
+  "pool": "0x6cc4455ed5841ae5248ec99e903135649d2086728fce2551ca20b882e6bad41a"
  },
  {
   "symbol": "V4",
-  "chain": "solana"
+  "chain": "robinhood",
+  "pool": "0x3df16f271060e4941c0386047def159f42e629dc0455db623c5b363eeacbcc1d"
+ },
+ {
+  "symbol": "NET",
+  "chain": "robinhood",
+  "pool": "0x0d662a58507a46cd6a22632228306dc0d9c26f5fce90c37ced3b8358db33deb3"
+ },
+ {
+  "symbol": "TROLL",
+  "chain": "solana",
+  "pool": "4w2cysotX6czaUGmmWg13hDpY4QEMG2CzeKYEQyK9Ama"
+ },
+ {
+  "symbol": "CARDS",
+  "chain": "solana",
+  "pool": "HnhpJPJgBG2KwniMTNW8cVBHvk1hFog3RC3kjnyc23tD"
+ },
+ {
+  "symbol": "BUTTCOIN",
+  "chain": "solana",
+  "pool": "FFcYgSSgWHforA9rXXkA48p8YFoz8TSW85Jpo3CQHDyS"
+ },
+ {
+  "symbol": "USELESS",
+  "chain": "solana",
+  "pool": "Q2sPHPdUWFMg7M7wwrQKLrn619cAucfRsmhVJffodSp"
  },
  {
   "symbol": "TTT",
   "chain": "solana"
  },
  {
-  "symbol": "BUTTCOIN",
-  "chain": "solana"
+  "symbol": "WIF",
+  "name": "dogwifhat",
+  "chain": "solana",
+  "token": "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm"
  },
  {
-  "symbol": "PNUT",
-  "name": "Peanut the Squirrel",
-  "chain": "solana"
+  "symbol": "POPCAT",
+  "chain": "solana",
+  "token": "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr"
  },
  {
-  "symbol": "GOAT",
-  "name": "Goatseus Maximus",
-  "chain": "solana"
- },
- {
-  "symbol": "MOODENG",
-  "chain": "solana"
- },
- {
-  "symbol": "FARTCOIN",
-  "chain": "solana"
+  "symbol": "AI16Z",
+  "chain": "solana",
+  "token": "HeLp6NuQkmYB4pYWo2zYs22mESHXPQYzXbB8n4V98jwC"
  },
  {
   "symbol": "BONK",
-  "chain": "solana"
+  "chain": "solana",
+  "token": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"
+ },
+ {
+  "symbol": "FARTCOIN",
+  "chain": "solana",
+  "token": "9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump"
+ },
+ {
+  "symbol": "PNUT",
+  "chain": "solana",
+  "token": "2qEHjDLDLbuBgRYvsxhc5D6uDWAivNFZGan56P1tpump"
+ },
+ {
+  "symbol": "GOAT",
+  "chain": "solana",
+  "token": "CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuypump"
+ },
+ {
+  "symbol": "MOODENG",
+  "chain": "solana",
+  "token": "ED5nyyWEzpPPiWimP8vYm7sD7TD3LaT3dAAcHvCjpump"
+ },
+ {
+  "symbol": "TORCH",
+  "chain": "robinhood",
+  "pool": "0x1649550af1e3363b4c25236434530af7e6886b183e1f574a98fdd1d04d287a2d",
+  "kind": "dud"
+ },
+ {
+  "symbol": "DACITY",
+  "chain": "solana",
+  "pool": "G2UuRbmVDzDFP4qyoBJrSKBXSi7d6V4bPP9tHPs36y4b",
+  "kind": "dud"
+ },
+ {
+  "symbol": "GTA6",
+  "chain": "solana",
+  "pool": "5A15QUc6kMxw9dsVpVUv6ZdTTBeyWBN2scyy1MEQJFQs",
+  "kind": "dud"
+ },
+ {
+  "symbol": "MASK",
+  "chain": "solana",
+  "pool": "D1rDVEp78cvBctREKZmpLdRnPNe3Ufmgq6ZjMYye9kmq",
+  "kind": "dud"
  },
  {
   "symbol": "HAWK",
-  "name": "Hawk Tuah",
   "chain": "solana",
   "kind": "dud"
  },
@@ -81,21 +130,6 @@
  },
  {
   "symbol": "MELANIA",
-  "chain": "solana",
-  "kind": "dud"
- },
- {
-  "symbol": "GTA6",
-  "chain": "solana",
-  "kind": "dud"
- },
- {
-  "symbol": "TORCH",
-  "chain": "solana",
-  "kind": "dud"
- },
- {
-  "symbol": "DACITY",
   "chain": "solana",
   "kind": "dud"
  }
