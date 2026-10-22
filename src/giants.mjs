@@ -49,13 +49,14 @@ export function studyChart(bars, cfg = GIANTS) {
 }
 // across the giants: what is typical, and which exit kept the most (the sum over all of them is the answer to "what extracts the most")
 export function summarise(rows) {
-  const all = rows.filter((r) => r.study), duds = all.filter((r) => r.kind === 'dud'), ok = all.filter((r) => r.kind !== 'dud'); if (!ok.length) return null; const med = (xs) => { const s = xs.filter((x) => x != null).sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : null; };
+  const all = rows.filter((r) => r.study && !r.study.truncated && r.study.days >= 10), trunc = rows.filter((r) => r.study && r.study.truncated), guessed = rows.filter((r) => r.guessed), duds = all.filter((r) => r.kind === 'dud'), ok = all.filter((r) => r.kind !== 'dud'); if (!ok.length) return { n: 0, truncated: trunc.length, lines: [`No giant with a complete history yet: ${trunc.length} of the listed coins are older than the free candle feed reaches (about six months), so their launch cannot be seen. List the recent giants (with pool addresses) or add a paid CoinGecko key for deeper history.`] }; const med = (xs) => { const s = xs.filter((x) => x != null).sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : null; };
   const simKeys = Object.keys(ok[0].study.sims), totals = Object.fromEntries(simKeys.map((k) => [k, ok.reduce((a, r) => a + (r.study.sims[k].out || 0), 0)])), best = simKeys.filter((k) => k !== 'peakSold').sort((a, b) => totals[b] - totals[a])[0];
   const dips50 = med(ok.map((r) => r.study.dipCount[50])), dips30 = med(ok.map((r) => r.study.dipCount[30])), worst = med(ok.map((r) => r.study.worstDip)), daysToPeak = med(ok.map((r) => r.study.peakDay)), x = med(ok.map((r) => r.study.xFromDay1));
   const entryByDay = {}; for (const r of ok) for (const e of r.study.entries) (entryByDay[e.day] ||= []).push(e.toPeak); const entryMed = Object.fromEntries(Object.entries(entryByDay).map(([d, xs]) => [d, med(xs)]));
   const pbs = ok.map((r) => r.study.pullback).filter(Boolean);
   const lines = [];
-  lines.push(`${ok.length} giants studied. The typical one took ${daysToPeak} days from launch to its top, went ${x}x from the day-1 close, and on the WAY there fell 30%+ ${dips30} times and 50%+ ${dips50} times (worst dip before the top: ${worst}%).`);
+  if (trunc.length) lines.push(`${trunc.length} listed coin${trunc.length === 1 ? '' : 's'} (${trunc.map((r) => r.symbol).join(', ')}) left out: older than the free candle feed reaches (about six months), so the launch is not in the data. ${guessed.length ? 'Pools picked by symbol search (check these are the real coins): ' + guessed.map((r) => r.symbol + ' = ' + (r.name || '?')).join(', ') + '.' : ''}`);
+  lines.push(`${ok.length} giants studied${ok.some((r) => r.source === 'coingecko') ? ' (' + ok.filter((r) => r.source === 'coingecko').length + ' from CoinGecko\'s full history on daily closes, the rest from on-chain candles)' : ''}. The typical one took ${daysToPeak} days from launch to its top, went ${x}x from the day-1 close, and on the WAY there fell 30%+ ${dips30} times and 50%+ ${dips50} times (worst dip before the top: ${worst}%).`);
   lines.push(dips50 >= 1 ? `So a rule that sells everything on a 50% giveback is out of the typical giant before the top: the clips must fund the ride, and the moonbag must trail wider than a giant's dips (${worst}%+), or it never sees the top.` : `A 50% giveback rule would have survived the typical giant's route to the top (worst dip ${worst}%): the moonbag's trail needs to sit just wider than that.`);
   lines.push(`From a $${GIANTS.stake} entry on the day-1 close, summed over all ${ok.length}: ${simKeys.filter((k) => k !== 'peakSold').sort((a, b) => totals[b] - totals[a]).map((k) => `${k} $${r0(totals[k]).toLocaleString('en')}`).join(', ')} (the exact top would have been $${r0(totals.peakSold).toLocaleString('en')}). Best rule: ${best}: ${ok[0].study.sims[best].why}.`);
   lines.push(`Entry day against the multiple to the top (median): ${Object.entries(entryMed).map(([d, m]) => `day ${d} ${m}x`).join(', ')}${pbs.length ? `; the first 30% pullback after a 2x: ${med(pbs.map((p) => p.toPeak))}x (${pbs.length} of ${ok.length} gave one)` : ''}.`);
@@ -63,22 +64,40 @@ export function summarise(rows) {
   let fingerprint = null; if (duds.length >= 3) { const f = (rs, k) => med(rs.map((r) => r.study.fp && r.study.fp[k])), g3 = f(ok, 'xDay3'), d3 = f(duds, 'xDay3'), gv = f(ok, 'volDay3VsDay1'), dv = f(duds, 'volDay3VsDay1'), gh = ok.filter((r) => r.study.fp && r.study.fp.heldDay1Close).length / ok.length, dh = duds.filter((r) => r.study.fp && r.study.fp.heldDay1Close).length / duds.length;
     fingerprint = { giants: { xDay3: g3, volDay3VsDay1: gv, heldDay1Close: r2(gh) }, duds: { xDay3: d3, volDay3VsDay1: dv, heldDay1Close: r2(dh) } };
     lines.push(`Day-3 fingerprint, giants against ${duds.length} duds (coins that pumped and died): on day 3 the giants stood at ${g3}x their day-1 close with ${gv}x day-1's volume and ${Math.round(gh * 100)}% were still above the day-1 close; the duds at ${d3}x, ${dv}x the volume, ${Math.round(dh * 100)}% above. ${g3 > d3 * 1.3 && gh > dh ? 'That separation is the rider\'s entry gate: a coin that is still up and still turning over on day 3 is the one to ride.' : 'Not a clean separation yet: add more duds and giants to src/giants.json.'}`); }
-  return { n: ok.length, duds: duds.length, fingerprint, daysToPeak, x, dips30, dips50, worstDip: worst, totals: Object.fromEntries(Object.entries(totals).map(([k, v]) => [k, r0(v)])), best, entryMed, lines };
+  return { n: ok.length, truncated: trunc.length, guessed: guessed.map((r) => r.symbol), duds: duds.length, fingerprint, daysToPeak, x, dips30, dips50, worstDip: worst, totals: Object.fromEntries(Object.entries(totals).map(([k, v]) => [k, r0(v)])), best, entryMed, lines };
 }
 // --- fetch: resolve each coin to its main Solana pool (or use the pool given), then daily candles from birth (GeckoTerminal pages 1000 at a time)
 export async function resolvePool(api, g) {
-  if (g.pool) return { pool: g.pool, chain: g.chain || 'solana' }; const j = await api.getJson('https://api.dexscreener.com/latest/dex/search?q=' + encodeURIComponent(g.symbol));
+  if (g.pool) return { pool: g.pool, chain: g.chain || 'solana', name: g.name || null };
+  // a token address is exact (the symbol search is what picks copycats): all its pairs, the deepest one wins
+  if (g.token) { const j = await api.getJson('https://api.dexscreener.com/latest/dex/tokens/' + encodeURIComponent(g.token)); const ps = (j && j.pairs || []).filter((p) => !g.chain || p.chainId === g.chain).sort((a, b) => (+(b.liquidity && b.liquidity.usd) || 0) - (+(a.liquidity && a.liquidity.usd) || 0)); return ps[0] ? { pool: ps[0].pairAddress, chain: ps[0].chainId, name: ps[0].baseToken.name } : null; }
+  const j = await api.getJson('https://api.dexscreener.com/latest/dex/search?q=' + encodeURIComponent(g.symbol));
   const ps = (j && j.pairs || []).filter((p) => (p.baseToken && p.baseToken.symbol || '').toUpperCase() === g.symbol.toUpperCase() && (!g.chain || p.chainId === g.chain)).sort((a, b) => (+(b.liquidity && b.liquidity.usd) || 0) - (+(a.liquidity && a.liquidity.usd) || 0));
-  return ps[0] ? { pool: ps[0].pairAddress, chain: ps[0].chainId, name: ps[0].baseToken.name } : null;
+  return ps[0] ? { pool: ps[0].pairAddress, chain: ps[0].chainId, name: ps[0].baseToken.name, guessed: true } : null;
 }
+export const GT_NET = { solana: 'solana', robinhood: 'robinhood', ethereum: 'eth', eth: 'eth', base: 'base', bsc: 'bsc' };
+// when the pool was born (GeckoTerminal pool info): the free feed only serves about six months of candles, so an older coin's history
+// starts in the middle of its life and its launch-based numbers (days to the top, entry days) mean nothing. Those are marked truncated.
+export async function poolBorn(api, chain, pool) { try { const j = await api.get(`/networks/${GT_NET[chain] || chain}/pools/${pool}`); const t = j && j.data && j.data.attributes && j.data.attributes.pool_created_at; return t ? Math.floor(Date.parse(t) / 1000) : null; } catch { return null; } }
 export async function dailyFromBirth(api, chain, pool, maxPages = 4) {
-  const net = { solana: 'solana', ethereum: 'eth', base: 'base', bsc: 'bsc', robinhood: 'robinhood' }[chain] || chain; let before = Math.floor(Date.now() / 1000) + 86400, all = [];
+  const net = GT_NET[chain] || chain; let before = Math.floor(Date.now() / 1000) + 86400, all = [];
   for (let p = 0; p < maxPages; p++) { const j = await api.get(`/networks/${net}/pools/${pool}/ohlcv/day?aggregate=1&limit=1000&before_timestamp=${before}&currency=usd`); const L = (j && j.data && j.data.attributes && j.data.attributes.ohlcv_list) || []; if (!L.length) break; all = [...L.map((b) => b.map(Number)), ...all]; before = Math.min(...L.map((b) => b[0])) - 1; if (L.length < 1000) break; }
   return all.sort((a, b) => a[0] - b[0]);
 }
+// the full life of an older giant from CoinGecko's own history (the paid key the scanner already has): daily closes and volumes from
+// listing day, turned into candles (open = the previous close, high/low = the two closes, so dips are measured on closes: a touch kinder
+// than true lows, and the summary says so). Used when the list gives a CoinGecko id; the on-chain feed only reaches back six months.
+export async function dailyFromCoinGecko(api, id) {
+  const j = await api.getCG(`/coins/${encodeURIComponent(id)}/market_chart?vs_currency=usd&days=max`); const P = (j && j.prices) || [], V = (j && j.total_volumes) || []; if (P.length < 5) return [];
+  const vol = new Map(V.map(([t, v]) => [Math.floor(t / 86400e3), v])); const out = []; let prev = null; for (const [t, c] of P) { const d = Math.floor(t / 86400e3), o = prev ?? c; out.push([d * 86400, o, Math.max(o, c), Math.min(o, c), c, vol.get(d) || 0]); prev = c; }
+  return out;
+}
 export async function runGiants({ list = JSON.parse(fs.readFileSync(path.join('src', 'giants.json'), 'utf8')), out = path.join(process.env.OUT_DIR || 'docs/data', 'giants.json'), api = makeApi(), log = console.log } = {}) {
-  const rows = []; for (const g of list) { try { const p = await resolvePool(api, g); if (!p) { rows.push({ symbol: g.symbol, error: 'no pool found' }); log(g.symbol + ': no pool'); continue; }
-      const bars = await dailyFromBirth(api, p.chain, p.pool), study = studyChart(bars); rows.push({ symbol: g.symbol, name: p.name || g.name || null, kind: g.kind || 'giant', chain: p.chain, pool: p.pool, bars: bars.length, study }); log(`${g.symbol}: ${bars.length} days, ${study ? study.x + 'x, top on day ' + study.peakDay : 'too short'}`); }
+  const rows = []; for (const g of list) { try {
+      if (g.cg && api.keyed) { try { const bars = await dailyFromCoinGecko(api, g.cg); if (bars.length >= 10) { const study = studyChart(bars); if (study) { study.truncated = false; study.source = 'coingecko (closes)'; } rows.push({ symbol: g.symbol, name: g.name || g.cg, kind: g.kind || 'giant', chain: g.chain || null, pool: null, cg: g.cg, source: 'coingecko', born: new Date(bars[0][0] * 1000).toISOString().slice(0, 10), truncated: false, bars: bars.length, study }); log(`${g.symbol}: ${bars.length} days from CoinGecko (${g.cg}), ${study ? study.x + 'x, top on day ' + study.peakDay : 'too short'}`); continue; } } catch (e) { log(`${g.symbol}: COINGECKO FAILED (${e.message}): falling back to the six-month on-chain candles`); } }
+      else if (g.cg && !api.keyed) log(`${g.symbol}: no CG_API_KEY in this run, so no full history; using the on-chain candles`);
+      const p = await resolvePool(api, g); if (!p) { rows.push({ symbol: g.symbol, error: 'no pool found' }); log(g.symbol + ': no pool'); continue; }
+      const bars = await dailyFromBirth(api, p.chain, p.pool), born = await poolBorn(api, p.chain, p.pool), truncated = !!(born && bars.length && bars[0][0] - born > 3 * 86400), study = studyChart(bars); if (study) study.truncated = truncated; rows.push({ symbol: g.symbol, name: p.name || g.name || null, kind: g.kind || 'giant', chain: p.chain, pool: p.pool, guessed: !!p.guessed, born: born ? new Date(born * 1000).toISOString().slice(0, 10) : null, truncated, bars: bars.length, study }); log(`${g.symbol}: ${bars.length} days${truncated ? ' (history starts after the launch: truncated)' : ''}, ${study ? study.x + 'x, top on day ' + study.peakDay : 'too short'}`); }
     catch (e) { rows.push({ symbol: g.symbol, error: e.message }); log(g.symbol + ': ' + e.message); } }
   const result = { at: new Date().toISOString().slice(0, 19) + 'Z', rows, summary: summarise(rows) }; fs.mkdirSync(path.dirname(out), { recursive: true }); fs.writeFileSync(out, JSON.stringify(result)); return result;
 }

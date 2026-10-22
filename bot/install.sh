@@ -59,7 +59,7 @@ fi
 BOTS="runner breakout rider lab ignition minute trench"
 # retired bots (rules, degen): stop their services and tell the GitHub watchdog so it does not report them as gone quiet
 TOPIC_HB="$(sudo grep '^NTFY_TOPIC=' /etc/rynobot.env 2>/dev/null | cut -d= -f2-)"
-for old in rules degen range; do if systemctl list-unit-files "rynobot@$old.service" >/dev/null 2>&1 && systemctl is-enabled "rynobot@$old" >/dev/null 2>&1; then sudo systemctl disable --now "rynobot@$old" >/dev/null 2>&1 || true; echo "Retired the $old bot (its files are kept: bot/state-$old.json, bot/journal-$old.jsonl)."; [ -n "$TOPIC_HB" ] && curl -fsS -o /dev/null -X POST -H "Priority: min" -d "quiet-alerted:$old retired" "https://ntfy.sh/${TOPIC_HB}-hb" || true; fi; done
+for old in rules degen range; do sudo systemctl stop "rynobot@$old" >/dev/null 2>&1 || true; sudo systemctl mask "rynobot@$old" >/dev/null 2>&1 || true; if systemctl list-unit-files "rynobot@$old.service" >/dev/null 2>&1 && systemctl is-enabled "rynobot@$old" >/dev/null 2>&1; then sudo systemctl disable --now "rynobot@$old" >/dev/null 2>&1 || true; sudo systemctl mask "rynobot@$old" >/dev/null 2>&1 || true; echo "Retired the $old bot (its files are kept: bot/state-$old.json, bot/journal-$old.jsonl)."; [ -n "$TOPIC_HB" ] && curl -fsS -o /dev/null -X POST -H "Priority: min" -d "quiet-alerted:$old retired" "https://ntfy.sh/${TOPIC_HB}-hb" || true; fi; done
 sed "s#__DIR__#$PWD#; s#__USER__#$RUN_AS#" "bot/rynobot@.service" | sudo tee "/etc/systemd/system/rynobot@.service" >/dev/null
 sudo systemctl disable --now rynobot 2>/dev/null || true   # an older single-bot install, if there is one
 sudo systemctl daemon-reload
