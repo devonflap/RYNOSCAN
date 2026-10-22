@@ -54,7 +54,8 @@ export function trenchFeed({ url = 'wss://pumpportal.fun/api/data', cfg = TRENCH
 }
 // setups from the feed for the engine: one per launch, bought on sight by the market entry (cfg.signalMaxAgeH keeps it to minutes)
 export function trenchSetupsIn(st, cfg, feed, { J, now, nowIso, solUsd }) {
-  const nowSec = Math.floor(now / 1000); let newN = 0; feed.prune(nowSec, new Set(st.positions.map((p) => p.pool)));
+  const nowSec = Math.floor(now / 1000); let newN = 0; feed.prune(nowSec, new Set([...st.positions.map((p) => p.pool), ...Object.keys(st.setups)]));
+  for (const s of Object.values(st.setups)) if (!s.dropped && !feed.tokens.has(s.pool)) { s.dropped = true; s.dropWhy = 'launch gone from the feed'; J({ type: 'drop', coin: s.coin, pool: s.pool, why: 'launch gone from the feed' }); }
   for (const t of feed.tokens.values()) { if (newN >= (cfg.trenchMaxNew || 3)) break; if (st.setups[t.mint] || (st.seen || {})[t.mint]) continue; const r = trenchSetup(t, nowSec, cfg); if (!r) continue;
     (st.seen ||= {})[t.mint] = now; if (r.dead) { J({ type: 'skip', coin: t.symbol, pool: t.mint, why: r.dead }); continue; } newN++;
     const pxUsd = r.price * solUsd; st.setups[t.mint] = { pool: t.mint, coin: t.symbol, chain: 'solana', token: t.mint, kind: 'trench', setup: 'Trench launch', opp: null, zoneLow: pxUsd, zoneHigh: pxUsd, stop: +(pxUsd * (1 - (cfg.fixedStopPct || 35) / 100)).toPrecision(6), mults: cfg.mults, shares: cfg.shares, why: r.why, buyers: r.buyers, mcapSol: r.mcapSol, devPct: r.devPct, expireH: cfg.signalMaxAgeH || 0.1, at: nowIso, liq0: t.vSol * solUsd, url: 'https://pump.fun/coin/' + t.mint };

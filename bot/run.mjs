@@ -163,7 +163,7 @@ export async function cycle(st, cfg, deps = {}) {
       J({ type: 'setup', coin: c.coin, pool: c.pool, kind: 'runner', zoneLow: r.price, zoneHigh: r.price, stop: st.setups[c.pool].stop, why: r.why }); } }
   // 1c. the missed-runner log (for the council's review): a universe coin up missH1Pct in the hour or missH24Pct in a day that this bot is not
   // in, with the gate that stood in the way (the first one the minute scan tripped on), or the entry that was dropped, or the exit that let it go
-  if (cfg.liveScan) { st.missed ||= []; const inPos = new Set(st.positions.map((p) => p.pool)), outRecently = new Map(st.closed.filter((p) => now - Date.parse(p.closedAt || 0) < 48 * 3600e3).map((p) => [p.pool, p]));
+  if (cfg.liveScan || cfg.source === 'ignition') { st.missed ||= []; const inPos = new Set(st.positions.map((p) => p.pool)), outRecently = new Map(st.closed.filter((p) => now - Date.parse(p.closedAt || 0) < 48 * 3600e3).map((p) => [p.pool, p]));
     for (const c of st.universe || []) { const qq = uq[String(c.pool).toLowerCase()]; if (!qq) continue; const pc = qq.priceChange || {}, c1 = +pc.h1 || 0, c24 = +pc.h24 || 0; if (!(c1 >= (cfg.missH1Pct || 40) || c24 >= (cfg.missH24Pct || 100))) continue;
       if (inPos.has(c.pool)) continue; const had = st.missed.find((x) => x.pool === c.pool && now - Date.parse(x.at) < 24 * 3600e3); if (had) { had.peakC24 = Math.max(had.peakC24 || 0, c24); had.peakC1 = Math.max(had.peakC1 || 0, c1); continue; }
       const liq = +(qq.liquidity && qq.liquidity.usd) || 0, out = outRecently.get(c.pool), setup = st.setups[c.pool]; let gate, why;
@@ -172,6 +172,7 @@ export async function cycle(st, cfg, deps = {}) {
       else if (setup) { gate = 'entry'; why = 'saw it, the entry has not fired yet'; }
       else if (now - ((st.seen || {})[c.pool] || 0) < cfg.coolH * 3600e3) { gate = 'cooldown'; why = `seen in the last ${cfg.coolH} hours (one trade per coin)`; }
       else if (liq < cfg.minLiqUsd) { gate = 'liquidity'; why = `liquidity $${Math.round(liq / 1000)}k (needs $${Math.round(cfg.minLiqUsd / 1000)}k)`; }
+      else if (cfg.source === 'ignition') { gate = 'ignition candle'; why = 'no hourly close of +5% on 12x the median volume while it ran (or the candle came with sellers leading / already up 150%)'; }
       else { const w = runnerWhyNot(qq, cfg); gate = w.gate; why = w.why; }
       st.missed.push({ coin: c.coin, chain: c.chain, pool: c.pool, at: nowIso, c1: +c1.toFixed(1), c24: +c24.toFixed(0), peakC1: +c1.toFixed(1), peakC24: +c24.toFixed(0), liq: Math.round(liq), gate, why }); J({ type: 'missed', coin: c.coin, pool: c.pool, c1, c24, gate, why }); }
     st.missed = st.missed.filter((x) => now - Date.parse(x.at) < 14 * 86400e3).slice(-300); }
@@ -208,7 +209,7 @@ export async function cycle(st, cfg, deps = {}) {
   for (const x of st.passed || []) if (!x.done && now - Date.parse(x.at) >= 24 * 3600e3) x.done = true;
   const following = (st.passed || []).filter((x) => !x.done), items = [...watchList, ...st.positions, ...following], q = await Q(items);
   for (const x of following) { const y = q[String(x.pool).toLowerCase()]; if (y && +y.priceUsd > 0) { x.last = +y.priceUsd; x.hi = Math.max(x.hi || 0, x.last); x.lo = Math.min(x.lo ?? x.last, x.last); } }
-  await H('prices', items.length && !Object.keys(q || {}).length ? 'no prices returned' : false, { afterMin: st.positions.length ? 15 : 30, title: 'prices', text: (m) => `Can't get prices from DexScreener for ${m} minutes${st.positions.length ? `, so the ${st.positions.length} open position${st.positions.length === 1 ? ' is' : 's are'} not being checked` : ''}.\nUsually a DexScreener outage that clears by itself. If it lasts hours, run on the server: node bot/run.mjs --check` });
+  await H('prices', cfg.engine !== 'trench' && items.length && !Object.keys(q || {}).length ? 'no prices returned' : false, { afterMin: st.positions.length ? 15 : 30, title: 'prices', text: (m) => `Can't get prices from DexScreener for ${m} minutes${st.positions.length ? `, so the ${st.positions.length} open position${st.positions.length === 1 ? ' is' : 's are'} not being checked` : ''}.\nUsually a DexScreener outage that clears by itself. If it lasts hours, run on the server: node bot/run.mjs --check` });
   for (const s of watchList) { const x = q[String(s.pool).toLowerCase()]; if (x && +x.priceUsd > 0) { s.lastPx = +x.priceUsd; s.lastAt = nowIso; if (+x.priceNative > 0) st.solUsd = +x.priceUsd / +x.priceNative; } }
   // commands from the desk (bot/cmd-<name>.jsonl, written by bot/dash.mjs): each is done once, then recorded in the journal
   const cmds = deps.commands ? deps.commands() : readCommands(F); st.cmdDone ||= [];
