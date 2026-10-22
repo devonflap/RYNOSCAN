@@ -75,6 +75,9 @@ const base = { cfg: { ...LIVE }, mint: 'M'.repeat(44), usd: 50, expectedPx: 0.1,
   const calls = []; const fetcher = async (u, o = {}) => { calls.push([o.method || 'GET', u]); return { ok: true, json: async () => ({ sha: 'abc' }), text: async () => '' }; };
   const r = await publish('rules', rec, { token: 't', fetcher }); ok(r.ok && calls[1][0] === 'PUT' && /docs\/data\/bots\/rules.json/.test(calls[1][1]), 'published to docs/data/bots/rules.json with the file\'s current sha');
   ok((await publish('rules', rec, { token: '', fetcher })).skipped === 'no GITHUB_TOKEN', 'no token: nothing happens');
+  { let n = 0; const f2 = async (u, o) => { if (!o || !o.method) return { ok: true, json: async () => ({ sha: 'abc' + n }) }; n++; return n < 3 ? { ok: false, status: 409, text: async () => 'is at X but expected Y' } : { ok: true, json: async () => ({}) }; };
+    const r2 = await publish('rules', rec, { token: 't', fetcher: f2 }); ok(r2.ok && r2.tries === 3, 'a 409 (the branch moved under us) is retried with a fresh sha until it lands');
+    let m = 0; const f3 = async (u, o) => (!o || !o.method ? { ok: true, json: async () => ({ sha: 'x' }) } : (m++, { ok: false, status: 401, text: async () => 'bad credentials' })); let err = null; try { await publish('rules', rec, { token: 't', fetcher: f3 }); } catch (e) { err = e.message; } ok(/401/.test(err) && m === 1, 'any other error is reported at once, not retried'); }
   const c = council({ botRecs: { rules: rec }, now: T0 * 1000 + 7200e3 }), live = c.hats.find((h) => h.key === 'live');
   ok(live && /rules bot \(rehearsal quotes\): 1 closed, \+1\.00R/.test(live.headline), 'the council\'s Bot desk hat reads the record');
   const cfg = { ...DEFAULTS, publish: true, setupsEveryMin: 1e9 }, st2 = newState(cfg), pubs = [], log0 = console.log; console.log = () => {};
