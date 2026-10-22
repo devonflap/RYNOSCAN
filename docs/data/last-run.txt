@@ -1,8 +1,3 @@
-Full scan 22:16 Brisbane: 85 scanned, 67 scored, 4 above 65. On-chain volume Strong (2.27x 7-day avg).
-NEW watch: GIGATENEV (Robinhood) Breakout retest, opp 76, checks 5/6, stop null% away, upside null%; thin liquidity; paid DexScreener boost active (promotion, not organic demand).
-NEW watch: PILL (Solana) Breakout retest, opp 73, checks 4/6, stop null% away, upside null%; more sellers than buyers in the last hour; volume fading.
-NEW watch: CARDS (Solana) Cup & handle, opp 70, checks 4/6, stop 21.2% away, upside 63.6%; more sellers than buyers in the last hour; volume fading.
-NEW watch: ORBIO (Robinhood) Bottom reversal, opp 68, checks 6/6, stop 57.6% away, upside 172.7%.
+Hourly refresh 23:10 Brisbane: 8 tracked coins refreshed, 8 scored, 2 above 65. On-chain volume Strong (2.27x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: ZEREBRO (Top 10 holders high ownership), ANSEM (Single holder ownership), DUCAT (owner can mint more).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
