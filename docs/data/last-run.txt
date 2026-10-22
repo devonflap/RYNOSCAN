@@ -1,6 +1,4 @@
-Full scan 02:12 Brisbane: 83 scanned, 68 scored, 3 above 65. On-chain volume Strong (2.12x 7-day avg).
-NEW watch: PILL (Solana) Breakout retest, opp 89, checks 5/6, stop 88% away, upside 264.1%; volume fading.
-NEW watch: GIGATENEV (Robinhood) Trend pullback, opp 74, checks 5/6, stop null% away, upside null%; more sellers than buyers in the last hour; paid DexScreener boost active (promotion, not organic demand).
+Hourly refresh 03:10 Brisbane: 7 tracked coins refreshed, 7 scored, 3 above 65. On-chain volume Strong (2.12x 7-day avg).
+Signal INDEX: stopped after TP1 (TP1 hit), result 0.22R.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: ZEREBRO (Top 10 holders high ownership), SPCX (Mint Authority still enabled), DJT (Mint Authority still enabled), NOTE (owner can mint more), CRCLX (Mint Authority still enabled), TTWO (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
