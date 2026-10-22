@@ -1,0 +1,30 @@
+name: RynoScan giants study
+on:
+  schedule:
+    - cron: "15 14 * * 0"   # Sundays, after the backtest (Brisbane Monday 12:15am)
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: rynoscan-giants
+  cancel-in-progress: false
+jobs:
+  giants:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Reverse-engineer the giants (src/giants.json lists them; edit it to add coins)
+        env:
+          CG_API_KEY: ${{ secrets.CG_API_KEY }}
+          CG_PLAN: ${{ vars.CG_PLAN }}
+        run: node src/giants.mjs
+      - name: Save results
+        run: |
+          git config user.name "rynoscan-bot"
+          git config user.email "rynoscan-bot@users.noreply.github.com"
+          git add docs/data/giants.json
+          git diff --cached --quiet && echo "no changes" || (git commit -m "giants $(date -u +%Y-%m-%d)" && git pull --rebase -q && git push)
