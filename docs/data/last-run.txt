@@ -1,5 +1,3 @@
-Hourly refresh 19:10 Brisbane: 9 tracked coins refreshed, 9 scored, 4 above 65. On-chain volume Strong (2.43x 7-day avg).
-Signal STONK: stopped out, result -1.11R.
+Hourly refresh 20:10 Brisbane: 8 tracked coins refreshed, 8 scored, 3 above 65. On-chain volume Strong (2.43x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: MEW (Single holder ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
