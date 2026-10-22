@@ -1,0 +1,102 @@
+[
+ {
+  "symbol": "WIF",
+  "name": "dogwifhat",
+  "chain": "solana"
+ },
+ {
+  "symbol": "POPCAT",
+  "name": "Popcat",
+  "chain": "solana"
+ },
+ {
+  "symbol": "AI16Z",
+  "name": "ai16z",
+  "chain": "solana"
+ },
+ {
+  "symbol": "HOOKR",
+  "chain": "solana"
+ },
+ {
+  "symbol": "CASHCAT",
+  "chain": "solana"
+ },
+ {
+  "symbol": "TROLL",
+  "chain": "solana"
+ },
+ {
+  "symbol": "PONKE",
+  "chain": "solana"
+ },
+ {
+  "symbol": "CARDS",
+  "chain": "solana"
+ },
+ {
+  "symbol": "V4",
+  "chain": "solana"
+ },
+ {
+  "symbol": "TTT",
+  "chain": "solana"
+ },
+ {
+  "symbol": "BUTTCOIN",
+  "chain": "solana"
+ },
+ {
+  "symbol": "PNUT",
+  "name": "Peanut the Squirrel",
+  "chain": "solana"
+ },
+ {
+  "symbol": "GOAT",
+  "name": "Goatseus Maximus",
+  "chain": "solana"
+ },
+ {
+  "symbol": "MOODENG",
+  "chain": "solana"
+ },
+ {
+  "symbol": "FARTCOIN",
+  "chain": "solana"
+ },
+ {
+  "symbol": "BONK",
+  "chain": "solana"
+ },
+ {
+  "symbol": "HAWK",
+  "name": "Hawk Tuah",
+  "chain": "solana",
+  "kind": "dud"
+ },
+ {
+  "symbol": "LIBRA",
+  "chain": "solana",
+  "kind": "dud"
+ },
+ {
+  "symbol": "MELANIA",
+  "chain": "solana",
+  "kind": "dud"
+ },
+ {
+  "symbol": "GTA6",
+  "chain": "solana",
+  "kind": "dud"
+ },
+ {
+  "symbol": "TORCH",
+  "chain": "solana",
+  "kind": "dud"
+ },
+ {
+  "symbol": "DACITY",
+  "chain": "solana",
+  "kind": "dud"
+ }
+]

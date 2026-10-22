@@ -41,7 +41,7 @@ export function breakoutTuning(dir, prev, now = Date.now()) {
 export async function runCouncil(dir = process.env.OUT_DIR || 'docs/data', { now = Date.now(), topic = '', site = '', post = null, since: sinceIn } = {}) {
   const since = sinceIn !== undefined ? sinceIn : rd('docs', 'paper-config.json', {}).since || null, prev = rd(dir, 'council.json', {});
   const botRecs = {}; try { for (const f of fs.readdirSync(path.join(dir, 'bots'))) if (f.endsWith('.json')) botRecs[f.slice(0, -5)] = rd(path.join(dir, 'bots'), f, null); } catch { /* none yet */ }
-  const c = council({ signals: rd(dir, 'signals.json', []), degen: rd(dir, 'degen.json', []), lab: rd(dir, 'lab.json', []), learned: rd(dir, 'learned.json', null), wscore: rd(dir, 'walletscore.json', null), since, history: prev.history || [], now, botRecs });
+  const c = council({ signals: rd(dir, 'signals.json', []), degen: rd(dir, 'degen.json', []), lab: rd(dir, 'lab.json', []), learned: rd(dir, 'learned.json', null), wscore: rd(dir, 'walletscore.json', null), since, history: prev.history || [], now, botRecs, giants: rd(dir, 'giants.json', null) });
   const send = post || (async (title, body, tags) => { const h = { Title: title, Priority: 'high', Tags: tags }; if (site) h.Click = site; await fetch('https://ntfy.sh/' + encodeURIComponent(topic), { method: 'POST', body, headers: h }); });
   // the books waiting for a RynoBot spot: their own alert, once each
   const bs = botSpotAlerts(c, prev); c.botSpot = bs.spot; c.botSpotNeed = NEED; c.botSpotSent = [];

@@ -99,6 +99,14 @@ export function manageLadder(pos0, q, nowSec, cfg = BOT) {
   const sell = (units, why, all = false) => { const u = Math.min(units, pos.remUnits); if (!(u > 0)) return; const px = price * (1 - (pos.slipOut ?? cfg.slipPct) / 100), usd = u * px; pos.remUnits -= u; pos.bankedUsd += usd; const a = { why, units: u, usd: +usd.toFixed(2), px: +px.toPrecision(6), all: all || pos.remUnits <= 1e-12, at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z' }; pos.sells.push(a); actions.push(a); };
   pos.peak = Math.max(pos.peak, price); pos.trough = Math.min(pos.trough ?? price, price);
   if (price <= pos.stop) { sell(pos.remUnits, pos.hits ? 'break-even stop' : 'stop', true); return { pos, actions }; }
+  // the dump cut (degen runner): sellers plainly in control and the price already well off its high, at any stage, in profit or not: everything out
+  if (cfg.dumpCut && pos.remUnits > 0) { const t1 = (q.txns && q.txns.h1) || {}, t5 = (q.txns && q.txns.m5) || {}, b1 = +t1.buys || 0, s1 = +t1.sells || 0, b5 = +t5.buys || 0, s5 = +t5.sells || 0, D = cfg.dumpCut;
+    if (s5 >= (D.min5 || 8) && s5 >= (D.sellX5 || 1.5) * Math.max(1, b5) && s1 >= (D.sellX1 || 1.2) * Math.max(1, b1) && price <= pos.peak * (1 - (D.offHighPct || 0.15))) { sell(pos.remUnits, `sellers dumping (${s5} sells vs ${b5} buys in 5 minutes, ${Math.round((1 - price / pos.peak) * 100)}% off the high)`, true); return { pos, actions }; } }
+  // the giveback rule (HOOKR, 22 Oct: up well over 30%, dumped back to the entry and the bot sat through it): once the trade has shown armPct,
+  // giving back keep (half) of the best gain is the exit, before the clips or the stop ever get a say. Off once the moonbag is free.
+  if (cfg.peakGiveback && !pos.free && pos.remUnits > 0) { const G = cfg.peakGiveback, gain = pos.peak / pos.entry - 1; if (gain >= (G.armPct ?? 0.3) && price <= pos.entry * (1 + gain * (1 - (G.keep ?? 0.5)))) { sell(pos.remUnits, `gave back ${Math.round((G.keep ?? 0.5) * 100)}% of a +${Math.round(gain * 100)}% gain`, true); return { pos, actions }; } }
+  // a dead chart (the trencher): no trade at all for deadMin minutes means the buyers are gone; out at whatever the curve pays
+  if (cfg.deadMin > 0 && q.lastTradeSec > 0 && nowSec - q.lastTradeSec >= cfg.deadMin * 60) { sell(pos.remUnits, `dead chart: no trades for ${Math.round((nowSec - q.lastTradeSec) / 60)} minutes`, true); return { pos, actions }; }
   // the seller cut (from the Degen cut-on-sellers book): underwater by sellersLoss and sellers lead the hour and the last 5 minutes: out
   if (cfg.flowCut && !pos.hits && price <= pos.entry * (1 - cfg.sellersLoss)) { const t1 = (q.txns && q.txns.h1) || {}, t5 = (q.txns && q.txns.m5) || {}, b1 = +t1.buys || 0, s1 = +t1.sells || 0;
     if (s1 > 0 && s1 >= cfg.sellersX * b1 && (+t5.sells || 0) > (+t5.buys || 0)) { sell(pos.remUnits, `sellers took over (${s1} sells vs ${b1} buys in the hour)`, true); return { pos, actions }; } }
@@ -118,6 +126,24 @@ export function manageLadder(pos0, q, nowSec, cfg = BOT) {
   return { pos, actions };
 }
 
+// a stop that fits the coin (edge report: never widen risk to fit a thin pool; here the other way round, never use a fixed 20% on a coin whose
+// structure says 12%): the low of the last closed hourly candle less 2%, kept between minPct and maxPct under the price; fixed stopPct when no candles
+export function structureStop(price, bars1h, nowSec, { minPct = 12, maxPct = 30, fixedPct = 20 } = {}) {
+  const closed = (bars1h || []).filter((b) => b[0] + 3600 <= nowSec); if (!closed.length || !(price > 0)) return { stop: +(price * (1 - fixedPct / 100)).toPrecision(6), stopPct: fixedPct, why: 'fixed' };
+  const low = Math.min(...closed.slice(-2).map((b) => b[3])) * 0.98, pct = (1 - low / price) * 100, use = Math.min(maxPct, Math.max(minPct, pct));
+  return { stop: +(price * (1 - use / 100)).toPrecision(6), stopPct: +use.toFixed(1), why: pct < minPct ? `under the last hours' low would be only ${pct.toFixed(0)}%: widened to ${minPct}%` : pct > maxPct ? `the last hours' low is ${pct.toFixed(0)}% down: capped at ${maxPct}%` : `2% under the last two hours' low` };
+}
+// the pullback entry: after a signal, wait for the first dip of dipPct from the post-signal high and buy the first 5-minute close back above the
+// previous close (the dip being bought, not the spike). Gives up after waitH hours or if the dip breaks the signal price by more than failPct.
+export function decidePullback(setup, bars5, price, nowSec, cfg = BOT) {
+  const dipPct = cfg.pbDipPct ?? 12, waitH = cfg.pbWaitH ?? 3, failPct = cfg.pbFailPct ?? 15, t0 = Date.parse(setup.at) / 1000; if (!(price > 0)) return null;
+  if (nowSec - t0 > waitH * 3600) return { act: 'drop', why: `no pullback within ${waitH} hours` };
+  const B = (bars5 || []).filter((b) => b[0] >= t0 && b[0] + 300 <= nowSec); if (B.length < 2) return null;
+  let hi = setup.zoneHigh, dipLow = null, dipI = -1; for (let i = 0; i < B.length; i++) { hi = Math.max(hi, B[i][2]); if (dipI < 0 && B[i][3] <= hi * (1 - dipPct / 100)) { dipI = i; dipLow = B[i][3]; } else if (dipI >= 0) dipLow = Math.min(dipLow, B[i][3]); }
+  if (dipI < 0) return null; if (dipLow < setup.zoneHigh * (1 - failPct / 100)) return { act: 'drop', why: `the dip went ${failPct}%+ under the signal price: the move failed` };
+  const last = B[B.length - 1], prev = B[B.length - 2]; if (last[4] > prev[4] && last[4] > last[1] && price >= last[4] * 0.99) return { act: 'buy', price, stop: +(dipLow * 0.97).toPrecision(6), stopPct: +((1 - (dipLow * 0.97) / price) * 100).toFixed(1), kind: 'first pullback bought', why: [`bought the first ${dipPct}%+ dip after the signal, on the first 5-minute close back up`, `dip low ${dipLow}`] };
+  return null;
+}
 // ---------- Ignition (momentum ride): stop at the trigger candle's low; once up armPct, trail trailPct off the high and sell 90% when it
 // hits; a red hourly candle on under fadeX of the trigger volume while in profit also sells 90%; the 10% moonbag trails moonTrail for up to
 // maxHoldH; a trade that never moves is closed after flatH. bars1h: hourly candles (closed ones), newest last.
@@ -153,4 +179,27 @@ export function closeNow(pos0, q, nowSec, cfg = BOT, why = 'closed by hand from 
   const pos = { ...pos0, sells: [...(pos0.sells || [])] }, price = n(q && q.priceUsd), actions = []; if (!(price > 0) || !(pos.remUnits > 0)) return { pos, actions };
   const px = price * (1 - (pos.slipOut ?? cfg.slipPct) / 100), u = pos.remUnits, usd = u * px; pos.remUnits = 0; pos.bankedUsd += usd;
   const a = { why, units: u, usd: +usd.toFixed(2), px: +px.toPrecision(6), all: true, manual: true, at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z' }; pos.sells.push(a); actions.push(a); return { pos, actions };
+}
+
+// THE MINUTE BOT's entry and exit on 1-minute candles (bars1m: [[tSec, o, h, l, c, v], ...] oldest first; the last may still be forming).
+// Entry: after the minute-scan signal, buy on the first CLOSED green 1-minute candle whose close beats the previous close, as long as the
+// price is not more than chaseLimitPct above the signal; give up after waitMin minutes or if the price falls failPct under the signal.
+export function decideMinute(setup, bars1m, price, nowSec, cfg = BOT) {
+  const t0 = Date.parse(setup.at) / 1000, waitMin = cfg.minWaitMin ?? 15, failPct = cfg.minFailPct ?? 10, chase = cfg.chaseLimitPct ?? 10; if (!(price > 0)) return null;
+  if (price < setup.zoneHigh * (1 - failPct / 100)) return { act: 'drop', why: `fell ${failPct}%+ under the signal price before any entry` };
+  if (nowSec - t0 > waitMin * 60) return { act: 'drop', why: `no green minute within ${waitMin} minutes of the signal` };
+  const B = (bars1m || []).filter((b) => b[0] + 60 <= nowSec && b[0] + 60 > t0 - 60); if (B.length < 2) return null; const last = B[B.length - 1], prev = B[B.length - 2];
+  if (!(last[4] > last[1] && last[4] > prev[4])) return null; if (price > setup.zoneHigh * (1 + chase / 100)) return { act: 'drop', why: `already ${chase}%+ above the signal price: chased` };
+  const stop = +(price * (1 - (cfg.fixedStopPct || 15) / 100)).toPrecision(6);
+  return { act: 'buy', price, stop, stopPct: cfg.fixedStopPct || 15, kind: 'first green minute', why: [`first green 1-minute close above the previous close after the signal`, ...(setup.why || []).slice(0, 2)] };
+}
+// Exit: a 1-minute dump candle (down dumpBarPct or more on dumpVolX the median minute volume) is the exit, in profit or not; once up armPct the
+// stop ratchets to 2% under the lowest low of the last trailBars closed minutes (never down); then the ordinary ladder rules (stop, clips, cuts).
+export function manageMinute(pos0, q, bars1m, nowSec, cfg = BOT) {
+  const price = n(q && q.priceUsd); if (!(price > 0) || !(pos0.remUnits > 0)) return { pos: pos0, actions: [] }; const B = (bars1m || []).filter((b) => b[0] + 60 <= nowSec), pos = { ...pos0, sells: [...(pos0.sells || [])] };
+  const at = new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z', px = price * (1 - (pos.slipOut ?? cfg.slipPct) / 100);
+  if (B.length >= 6) { const last = B[B.length - 1], vols = B.slice(-21, -1).map((b) => b[5] || 0).sort((a, b) => a - b), med = vols[Math.floor(vols.length / 2)] || 0, drop = (last[4] / last[1] - 1) * 100;
+    if (drop <= -(cfg.dumpBarPct ?? 8) && (med <= 0 || last[5] >= (cfg.dumpVolX ?? 2) * med)) { const u = pos.remUnits, usd = u * px; pos.remUnits = 0; pos.bankedUsd += usd; const a = { why: `1-minute dump candle (${drop.toFixed(0)}% on ${med > 0 ? (last[5] / med).toFixed(1) + 'x' : 'heavy'} volume)`, units: u, usd: +usd.toFixed(2), px: +px.toPrecision(6), all: true, at }; pos.sells.push(a); return { pos, actions: [a] }; }
+    const peak = Math.max(pos.peak || price, price); if (!pos.free && peak >= pos.entry * (1 + (cfg.armPct ?? 0.2))) { const lo = Math.min(...B.slice(-(cfg.trailBars ?? 3)).map((b) => b[3])) * 0.98, t = +lo.toPrecision(6); if (t > pos.stop) { pos.stop = t; (pos.moves ||= []).push({ at, stop: t, why: `trail: 2% under the last ${cfg.trailBars ?? 3} minutes' low` }); } } }
+  return manageLadder(pos, q, nowSec, cfg);
 }
