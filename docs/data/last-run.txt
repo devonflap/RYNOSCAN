@@ -1,4 +1,8 @@
-Hourly refresh 13:10 Brisbane: 10 tracked coins refreshed, 10 scored, 2 above 65. On-chain volume Strong (2.75x 7-day avg).
-No longer bid-ready: CARDS (Solana).
+Full scan 14:11 Brisbane: 91 scanned, 69 scored, 7 above 65. On-chain volume Strong (2.27x 7-day avg).
+NEW watch: PILL (Solana) Breakout retest, opp 85, checks 6/6, stop null% away, upside null%.
+NEW watch: MEW (Solana) Breakout retest, opp 71, checks 4/6, stop 11.3% away, upside 33.9%; more sellers than buyers in the last hour; volume fading.
+NEW watch: GIGATENEV (Robinhood) Breakout retest, opp 69, checks 4/6, stop null% away, upside null%; thin liquidity; weak last 6h; paid DexScreener boost active (promotion, not organic demand).
+NEW watch: CLAUDIA (Solana) Bottom reversal, opp 67, checks 5/6, stop 21.4% away, upside 261.5%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: CRCLX (Mint Authority still enabled), DUCAT (owner can mint more).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
