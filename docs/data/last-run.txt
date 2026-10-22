@@ -1,8 +1,10 @@
-Hourly refresh 09:10 Brisbane: 10 tracked coins refreshed, 10 scored, 5 above 65. On-chain volume Strong (3.24x 7-day avg).
-No longer bid-ready: WOOD (Robinhood).
-No longer bid-ready: BONER (Robinhood).
-NEW watch: DELTA (Robinhood) Falling wedge, opp 68, checks 5/6, stop 32.5% away, upside 97.6%; volume fading.
-Signal STONK: open, open -0.38R.
-Signal INDEX: open (TP1 hit), open 0.8R.
+Full scan 10:11 Brisbane: 95 scanned, 73 scored, 8 above 65. On-chain volume Strong (2.75x 7-day avg).
+NEW bid-ready: CARDS (Solana) Bull flag, opp 85, checks 5/6, stop null% away, upside null%. Entry null-null, stop null, TP null / null / null.
+No longer bid-ready: STONK (Solana).
+NEW watch: DOPE (Robinhood) Bottom reversal, opp 71, checks 5/6, stop 22.6% away, upside 365.2%; more sellers than buyers in the last hour.
+NEW watch: PUMP (Solana) Bull flag, opp 71, checks 6/6, stop 26% away, upside 78%.
+NEW watch: HOOKR (Robinhood) Falling wedge, opp 71, checks 5/6, stop 25.2% away, upside 62.9%; weak last 6h.
+NEW watch: PILL (Solana) Breakout retest, opp 66, checks 3/6, stop null% away, upside null%; more sellers than buyers in the last hour; volume fading; weak last 6h.
 Market: SOL neutral, ETH neutral.
+Removed for token safety: CRCLX (Mint Authority still enabled), DJT (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
