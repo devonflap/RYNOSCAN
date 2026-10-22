@@ -1,4 +1,3 @@
-Hourly refresh 03:10 Brisbane: 7 tracked coins refreshed, 7 scored, 3 above 65. On-chain volume Strong (2.12x 7-day avg).
-Signal INDEX: stopped after TP1 (TP1 hit), result 0.22R.
+Hourly refresh 04:10 Brisbane: 6 tracked coins refreshed, 6 scored, 3 above 65. On-chain volume Strong (2.12x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
