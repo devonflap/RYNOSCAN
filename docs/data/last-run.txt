@@ -1,3 +1,8 @@
-Hourly refresh 16:10 Brisbane: 9 tracked coins refreshed, 9 scored, 2 above 65. On-chain volume Strong (2.27x 7-day avg).
+Full scan 17:11 Brisbane: 89 scanned, 74 scored, 6 above 65. On-chain volume Strong (2.43x 7-day avg).
+NEW watch: PILL (Solana) Breakout retest, opp 71, checks 4/6, stop null% away, upside null%; volume fading; weak last 6h.
+NEW watch: GIGATENEV (Robinhood) Breakout retest, opp 69, checks 4/6, stop null% away, upside null%; thin liquidity; weak last 6h; paid DexScreener boost active (promotion, not organic demand).
+NEW watch: WOOD (Robinhood) Bottom reversal, opp 68, checks 5/6, stop 11.5% away, upside 56.9%; volume fading.
+Signal CARDS: stopped out, result -1.13R.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: CRCLX (Mint Authority still enabled), DUCAT (owner can mint more).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
