@@ -1,6 +1,4 @@
-Full scan 00:13 Brisbane: 88 scanned, 66 scored, 6 above 65. On-chain volume Strong (2.29x 7-day avg).
-NEW watch: STONK (Solana) Breakout retest, opp 86, checks 6/6, stop 12.5% away, upside 37.6%.
-NEW watch: GIGATENEV (Robinhood) Breakout retest, opp 76, checks 5/6, stop null% away, upside null%; thin liquidity; paid DexScreener boost active (promotion, not organic demand).
+Hourly refresh 01:10 Brisbane: 10 tracked coins refreshed, 10 scored, 4 above 65. On-chain volume Strong (2.29x 7-day avg).
+Signal BONER: stopped out, result -1.06R.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: ZEREBRO (Top 10 holders high ownership), NOTE (owner can mint more), DJT (Mint Authority still enabled), CRCLX (Mint Authority still enabled), ANSEM (Single holder ownership), USELESS (top 10 wallets hold 36.5% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
