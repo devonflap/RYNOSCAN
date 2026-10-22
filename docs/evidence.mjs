@@ -11,6 +11,17 @@ export function bootstrap(xs, iters = 4000, seed = 7, tail = 0.05) {
   const a = Array.from(ms).sort((x, y) => x - y); return { lo: a[Math.floor(iters * 0.05)], hi: a[Math.floor(iters * 0.95)], loAdj: a[Math.max(0, Math.floor(iters * tail))], pPos: a.filter((m) => m > 0).length / iters };
 }
 const r2 = (x) => (x == null || !isFinite(x) ? null : +x.toFixed(2));
+// Size study: the same trades (as R multiples, which do not depend on size) replayed at several risk-per-trade levels with compounding.
+// For each level: the return, the deepest drop from a peak, return divided by drop, and the deepest drop in the unlucky 5% of 2,000
+// reshuffles of the same trades (the order they came in was luck). "best" is the level with the highest return-to-drop whose unlucky
+// drop stays under maxDD. Needs 30 trades; before that the answer is "collecting".
+export function sizeStudy(Rs, { levels = [0.5, 1, 1.5, 2, 3], maxDD = 30, iters = 2000, seed = 5 } = {}) {
+  const xs = (Rs || []).filter((x) => x != null && isFinite(x)); if (xs.length < 30) return { n: xs.length, rows: [], best: null };
+  const path = (seq, r) => { let eq = 1, peak = 1, dd = 0; for (const R of seq) { eq *= 1 + (r / 100) * R; if (eq <= 0) { eq = 0; dd = 1; break; } peak = Math.max(peak, eq); dd = Math.max(dd, (peak - eq) / peak); } return { ret: eq - 1, dd }; };
+  const rnd = rng(seed + xs.length), rows = levels.map((r) => { const p = path(xs, r), dds = []; for (let k = 0; k < iters; k++) { const s = xs.slice(); for (let i = s.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [s[i], s[j]] = [s[j], s[i]]; } dds.push(path(s, r).dd); } dds.sort((a, b) => a - b);
+    return { risk: r, retPct: r2(p.ret * 100), ddPct: r2(p.dd * 100), ratio: p.dd > 0 ? r2(p.ret / p.dd) : null, dd95Pct: r2(dds[Math.floor(iters * 0.95)] * 100) }; });
+  const ok = rows.filter((x) => x.dd95Pct != null && x.dd95Pct <= maxDD && x.ratio != null && x.ratio > 0).sort((a, b) => b.ratio - a.ratio); return { n: xs.length, rows, best: ok[0] || null, maxDD };
+}
 // p: a book() result. Returns the verdict and the numbers behind it.
 // tests: how many books are being compared at once. The edge verdict uses a stricter low end (5% / tests, a Bonferroni-style luck correction),
 // so the best of 15 books is not called an edge just for being the luckiest.

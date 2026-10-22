@@ -119,6 +119,13 @@ const bar = (t, o, h, l, c, v = 100) => [t, o, h, l, c, v];
   ok(/break-even/.test(r.status) && r.retPct > -1 && r.retPct < 1 && /stopped out/.test(r0.status) && r0.retPct < -35, 'protected study: a trade that showed +40% and then fell is out at break-even, where the plain study exits take the full -40%');
   ok(PROFILES.studyTrail.giveback === 0.35 && PROFILES.study.giveback === 0.5 && PROFILES.studyBE.flowCut, 'the two variants: 35% giveback; break-even after +30% plus the seller cut'); }
 
+// ---- the size study: the same trades at several risk levels, return against the deepest drop, with the order reshuffled
+{ const { sizeStudy } = await import('../docs/evidence.mjs'); const Rs = []; for (let i = 0; i < 40; i++) Rs.push(i % 3 === 0 ? 3 : -1);   // a third of trades win 3R
+  const ss = sizeStudy(Rs); ok(ss.n === 40 && ss.rows.length === 5 && ss.rows.every((r) => r.retPct > 0) && ss.rows[4].ddPct > ss.rows[0].ddPct, 'five risk levels, all profitable on a winning book, bigger size means deeper drops');
+  ok(ss.best && ss.best.dd95Pct <= 30, 'the best level is the highest return-to-drop whose unlucky-order drop stays under 30%');
+  const lose = sizeStudy(Rs.map((x) => -Math.abs(x))); ok(lose.rows.length === 5 && lose.best === null, 'a losing book: no level is recommended');
+  ok(sizeStudy(Rs.slice(0, 20)).rows.length === 0, 'under 30 trades: collecting'); }
+
 // ---- the four bots are what the services run, each with its own paper twin or none
 { ok(Object.keys(BOTS).join() === 'runner,breakout,range,ignition', 'four bots: runner, breakout, range, ignition');
   ok(BOTS.runner.realityBook === 'riskyClip' && BOTS.breakout.realityBook === 'brkBot' && BOTS.range.realityBook === null && BOTS.ignition.realityBook === null, 'runner and breakout have paper twins; range and ignition are new and judged on their own record');

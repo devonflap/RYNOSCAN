@@ -15,6 +15,8 @@ Also from the report, in the scanner: the **hard safety gate** now checks number
 
 Study-exit review (22 Oct, 20 degen signals over 4 days): the four runners (TORCH +272%, DACITY +224% and +185%, GTA6 +134% at their peaks) all gave back 45-55% of the peak before the study's 50% giveback line, and three of the six study losers showed +25% to +45% before stopping out at -40%. Two shadow books now run on the same signals: **Degen study 35%** (giveback tightened to 35%) and **Degen study BE** (stop to break-even once +30% has shown, plus the seller cut). The council's exits hat judges them against the plain study on the same coins. The study book itself is unchanged, and second and third degen signals on a coin that had already run did worse than the first, so the runner bots now wait 72 hours before taking the same coin again (`coolH`).
 
+Sizing is judged, not just risk: the council's risk hat runs a **size study** on every book with 30+ closed trades, replaying the same trades at 0.5%, 1%, 1.5%, 2% and 3% a trade with compounding, and reports the return, the deepest drop, return divided by drop, and the deepest drop in the unlucky 5% of 2,000 reshuffles of the same trades. It names the risk level with the best return-to-drop whose unlucky drop stays under 30%, and says "size down, not up" when none does. The bots' sizes are not changed by it; that stays a decision for the review.
+
 Retired on 22 Oct: the first **rules** bot (-0.51R a trade over 18 closed) and the **degen** study bot (its exits are still tested by the paper Degen · study exits book). Their files are kept.
 
 Every minute each bot checks its positions and its setups; the first rules bot worked like this and the runner bot keeps most of it:

@@ -5,7 +5,7 @@
 // switched on or off by the council; anything like that is listed under "needs your OK".
 import { book, statsBook, fromSignal, fromRun } from './exits.mjs';
 import { BOOKS } from './strategies.mjs';
-import { evidence, bootstrap, exitHint, pDiff, bhQ } from './evidence.mjs';
+import { evidence, bootstrap, exitHint, pDiff, bhQ, sizeStudy } from './evidence.mjs';
 import { botBook, BOT } from './botsim.mjs';
 
 export const HATS = [
@@ -98,10 +98,13 @@ function hatRisk(G, bots) {
     const dead = x.rows.filter((r) => r && r.dead).length, closedRows = x.rows.filter((r) => r && r.status && r.status !== 'open' && r.status !== 'waiting for entry' && !/^(expired|cancelled|no data)/.test(r.status)).length; if (closedRows >= 10 && dead / closedRows >= 0.15) f.push(`${pc(dead / closedRows)} of its closed trades were coins whose pool died (rug or delisting)`);
     notes[x.key] = `Deepest drop ${b.maxDD.toFixed(0)}%, worst trade ${R(worst)}, longest losing run ${b.losingRun}${gap > 0 ? `, ${pc(gap)} of trades lost more than planned` : ''}.${f.length ? ' Flag: ' + f.join('; ') + '.' : ''}`;
     if (f.length) flags.push({ key: x.key, text: `${x.B.short}: ${f.join('; ')}` }); }
-  const points = flags.map((f) => f.text);
+  const points = flags.map((f) => f.text), sizing = {};
+  // size study: is more (or less) risk per trade better, measured as return against the deepest drop, on each book with 30+ closed trades
+  for (const x of Object.values(G.books)) { if (x.key === 'randomCtl') continue; const done = x.b.trades.filter((t) => !t.open && t.R != null).map((t) => t.R), ss = sizeStudy(done); if (!ss.rows.length) continue; sizing[x.key] = ss;
+    const at1 = ss.rows.find((r) => r.risk === 1), b = ss.best; if (b && at1) points.push(`${x.B.short} size study (${ss.n} trades): at 1% a trade ${P(at1.retPct, 0)} with a ${at1.ddPct}% deepest drop; best return-to-drop is ${b.risk}% a trade (${P(b.retPct, 0)}, drop ${b.ddPct}%, unlucky-order drop ${b.dd95Pct}%)${b.risk > 1 ? ': more size would have paid, but only once the edge is proven' : b.risk < 1 ? ': less size would have paid' : ''}.`); else points.push(`${x.B.short} size study (${ss.n} trades): no risk level keeps the unlucky-order drop under ${ss.maxDD}%; size down, not up.`); }
   for (const [k, b] of Object.entries(bots)) if (b.closedN || b.openN) { const dl = b.skipWhy['daily loss limit hit'] || 0; points.push(`${BOT[k].short}: ${P(b.retPct, 1)}, deepest drop ${b.maxDD.toFixed(0)}%${dl ? `, daily loss limit stopped ${dl} trade${dl === 1 ? '' : 's'}` : ''}${b.stacked && b.stacked.length ? `, ${b.stacked.length} coin${b.stacked.length === 1 ? '' : 's'} held by 2+ books right now` : ''}.`); }
   const judged = Object.values(G.books).filter((x) => x.ev.n >= 5), worstDD = Math.max(0, ...judged.map((x) => x.b.maxDD));
-  return { stance: flags.length ? 'against' : judged.length ? 'for' : 'wait', headline: flags.length ? `Warning: ${flags[0].text}.` : judged.length ? 'No blow-up risk flagged so far: losses are staying close to plan.' : 'Too few closed trades to judge risk yet (a book needs 5).', points: points.length ? points : ['Not enough closed trades to judge risk yet.'], notes, flags, metric: worstDD ? worstDD.toFixed(0) + '%' : '—', metricLabel: 'deepest book drawdown' };
+  return { sizing, stance: flags.length ? 'against' : judged.length ? 'for' : 'wait', headline: flags.length ? `Warning: ${flags[0].text}.` : judged.length ? 'No blow-up risk flagged so far: losses are staying close to plan.' : 'Too few closed trades to judge risk yet (a book needs 5).', points: points.length ? points : ['Not enough closed trades to judge risk yet.'], notes, flags, metric: worstDD ? worstDD.toFixed(0) + '%' : '—', metricLabel: 'deepest book drawdown' };
 }
 
 function hatExits(G, learned) {
