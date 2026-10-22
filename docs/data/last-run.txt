@@ -1,3 +1,4 @@
-Hourly refresh 12:10 Brisbane: 11 tracked coins refreshed, 11 scored, 3 above 65. On-chain volume Strong (2.75x 7-day avg).
-Market: SOL neutral, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Hourly refresh 13:10 Brisbane: 10 tracked coins refreshed, 10 scored, 2 above 65. On-chain volume Strong (2.75x 7-day avg).
+No longer bid-ready: CARDS (Solana).
+Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
