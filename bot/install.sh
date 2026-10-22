@@ -56,7 +56,10 @@ if ! sudo grep -q '^DASH_CONTROL_B64=' /etc/rynobot-desk.env; then
   read -rsp "Control password (12+ characters, or blank for read only): " CP; echo
   if [ -n "$CP" ] && [ ${#CP} -ge 12 ]; then echo "DASH_CONTROL_B64=$(printf '%s' "$CP" | base64 -w0)" | sudo tee -a /etc/rynobot-desk.env >/dev/null; else echo "Desk stays read only (run the installer again to add a control password)."; fi
 fi
-BOTS="rules breakout degen"
+BOTS="runner breakout range ignition"
+# retired bots (rules, degen): stop their services and tell the GitHub watchdog so it does not report them as gone quiet
+TOPIC_HB="$(sudo grep '^NTFY_TOPIC=' /etc/rynobot.env 2>/dev/null | cut -d= -f2-)"
+for old in rules degen; do if systemctl list-unit-files "rynobot@$old.service" >/dev/null 2>&1 && systemctl is-enabled "rynobot@$old" >/dev/null 2>&1; then sudo systemctl disable --now "rynobot@$old" >/dev/null 2>&1 || true; echo "Retired the $old bot (its files are kept: bot/state-$old.json, bot/journal-$old.jsonl)."; [ -n "$TOPIC_HB" ] && curl -fsS -o /dev/null -X POST -H "Priority: min" -d "quiet-alerted:$old retired" "https://ntfy.sh/${TOPIC_HB}-hb" || true; fi; done
 sed "s#__DIR__#$PWD#; s#__USER__#$RUN_AS#" "bot/rynobot@.service" | sudo tee "/etc/systemd/system/rynobot@.service" >/dev/null
 sudo systemctl disable --now rynobot 2>/dev/null || true   # an older single-bot install, if there is one
 sudo systemctl daemon-reload
@@ -84,12 +87,12 @@ IP=$(hostname -I 2>/dev/null | awk '{print $1}')
 sleep 2
 for b in $BOTS; do node bot/run.mjs --bot "$b" --check || true; done   # checks the data feeds; the ntfy topic is only readable by the services
 echo
-echo "RynoBot is running in DRY-RUN mode: three bots (rules, breakout, degen), each with a \$10,000 paper account."
+echo "RynoBot is running in DRY-RUN mode: four bots (runner, breakout, range, ignition), each with a \$10,000 paper account."
 echo
 if [ -n "$DOMAIN" ]; then echo "  BOT DESK: open  https://$DOMAIN  (the certificate takes a minute the first time). Any user name, and the desk password."
 else echo "  BOT DESK: open  http://$IP:8080  on your computer. Any user name, and the desk password. Before sharing the address or going live:  bash bot/install.sh --https desk.yourdomain.com"; fi
 echo
 echo "  live log:            sudo journalctl -u 'rynobot@*' -f          desk log: sudo journalctl -u rynobot-dash -f"
-echo "  how a bot is doing:  node bot/run.mjs --bot breakout --status     (or --bot rules, --bot degen)"
+echo "  how a bot is doing:  node bot/run.mjs --bot breakout --status     (or --bot runner, --bot range, --bot ignition)"
 echo "  stop new entries:    touch bot/STOP   (all bots)   or   touch bot/STOP-breakout   (one bot); delete the file to allow them again"
 echo "  update:              git pull && bash bot/install.sh"

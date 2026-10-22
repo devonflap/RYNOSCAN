@@ -75,7 +75,7 @@ const q = (px, o = {}) => ({ priceUsd: String(px), txns: { h1: { buys: o.b1 ?? 5
   ok(c && Math.abs(c.R + 1) < 0.01 && c.exitAvg > 0 && st.eq.length === 3, 'a closed trade records its result in R (a stop-out is -1R) and its average exit'); }
 // execution realism: price impact in costs and sizing, pulled liquidity, the day's loss counting open positions
 { const { costPct } = await import('../bot/manage.mjs');
-  ok(costPct(2000, 100000).inPct === 5 && costPct(125, 500000).impactPct === 0.05, 'a $2,000 buy in a $100k pool costs about 5% each way; $125 in a $500k pool next to nothing');
+  ok(costPct(2000, 100000).inPct === 5.5 && costPct(2000, 100000).sandwichPct === 0.5 && costPct(125, 500000).impactPct === 0.05 && costPct(125, 500000).sandwichPct === 0, 'a $2,000 buy in a $100k pool costs about 5% each way plus a 0.5% sandwich haircut on a pool under $200k; $125 in a $500k pool next to nothing');
   const cfg = { ...DEFAULTS, setupsEveryMin: 0 }, st = newState(cfg), jr = [], log0 = console.log; console.log = () => {};
   const setupsJson = [{ id: 'SOL:AAA', coin: 'AAA', chain: 'Solana', pool: 'P1', signal: 'Watch', opp: 80, setupType: 'Falling wedge', entryLow: 1.0, entryHigh: 1.04, stop: 0.9, tp1: 1.2, liquidity: 500000 }];
   let liq = 500000; const deps = (ms, price) => ({ now: ms * 1000, getJson: async (u) => (u.endsWith('setups.json') ? setupsJson : []), quotes: async () => ({ p1: { ...q(price), liquidity: { usd: liq } } }), candles5: async () => flush, notify: async () => {}, journal: (o) => jr.push(o), heartbeat: async () => {} });

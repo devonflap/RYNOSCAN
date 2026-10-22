@@ -9,10 +9,10 @@ export function parseTrades(j) {
 }
 // Net buyers / net sellers in the trades on hand: wallet, net dollars. Used by the wallet scorecard (src/scorecard.mjs).
 export function netFlows(trades, min = 150, cap = 30) {
-  const m = new Map(); for (const t of trades || []) { if (!t || !t.wallet || !isFinite(t.usd)) continue; const x = m.get(t.wallet) || { b: 0, s: 0 }; if (t.kind === 'buy') x.b += t.usd; else if (t.kind === 'sell') x.s += t.usd; m.set(t.wallet, x); }
+  const m = new Map(); for (const t of trades || []) { if (!t || !t.wallet || !isFinite(t.usd)) continue; const x = m.get(t.wallet) || { b: 0, s: 0, k: 0 }; x.k++; if (t.kind === 'buy') x.b += t.usd; else if (t.kind === 'sell') x.s += t.usd; m.set(t.wallet, x); }
   const all = [...m].map(([w, x]) => [w, x.b - x.s, x]);
-  return { buyers: all.filter(([, n, x]) => n >= min && x.b >= 2 * x.s).sort((a, b) => b[1] - a[1]).slice(0, cap).map(([w, n]) => [w, Math.round(n)]),
-    sellers: all.filter(([, n, x]) => -n >= min && x.s >= 2 * x.b).sort((a, b) => a[1] - b[1]).slice(0, cap).map(([w, n]) => [w, Math.round(-n)]) };
+  return { buyers: all.filter(([, n, x]) => n >= min && x.b >= 2 * x.s).sort((a, b) => b[1] - a[1]).slice(0, cap).map(([w, n, x]) => [w, Math.round(n), x.k]),
+    sellers: all.filter(([, n, x]) => -n >= min && x.s >= 2 * x.b).sort((a, b) => a[1] - b[1]).slice(0, cap).map(([w, n, x]) => [w, Math.round(-n), x.k]) };
 }
 export async function fetchWallets(get, net, pool, smart = []) {
   try { const j = await get(`/networks/${net}/pools/${pool}/trades`), tr = parseTrades(j), st = walletStats(tr, smart); if (st && typeof st === 'object') { const f = netFlows(tr);

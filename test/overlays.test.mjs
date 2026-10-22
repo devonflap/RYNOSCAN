@@ -13,7 +13,8 @@ for (let i = 0; i < 40; i++) res.push(await checkToken({ net: 'solana', token: '
 ok(res.some(r => r.level === 'danger') && res.some(r => r.level === 'warn') && res.some(r => r.level === 'ok'), 'solana safety yields danger, warn and ok');
 const ev = []; for (let i = 0; i < 40; i++) ev.push(await checkToken({ net: 'eth', token: '0xabc' + i }, gj));
 ok(ev.some(r => r.level === 'danger') && ev.some(r => r.level === 'ok'), 'EVM safety yields danger and ok');
-ok((await checkToken({ net: 'robinhood', token: '0xabc' }, gj)).level === 'unchecked', 'robinhood is reported as unchecked, not as safe');
+const rh = []; for (let i = 0; i < 12; i++) rh.push(await checkToken({ net: 'robinhood', token: '0xabc' + i }, gj)); ok(rh.every(r => r.level !== 'unchecked' && r.level !== 'ok') && rh.some(r => r.level === 'danger' && /top 10 wallets hold 50%/.test(r.flags[0])) && rh.some(r => r.level === 'warn'), 'robinhood with no GoPlus data: Blockscout holders decide the gate (top-10 over 30% is danger), and it is never called plain ok');
+  ok(res.some(r => r.level === 'danger' && r.flags.some(f => /top 10 wallets hold 35%/.test(f))) && res.some(r => r.level === 'danger' && r.flags.some(f => /insider wallets/.test(f)) === false), 'solana: the full report\'s holder table trips the 30% top-10 gate (pools excluded from the count)');
 ok((await checkToken({ net: 'solana', token: 'x' }, async () => { throw new Error('x'); })).level === 'unchecked', 'feed failure is unchecked, not safe');
 // overlay behaviour
 const mk = (o) => ({ sym: 'AAA', net: 'solana', token: 'T1', opp: 80, signal: 'Entry signal', ready: true, flags: [], pat: { ready: true }, ...o });

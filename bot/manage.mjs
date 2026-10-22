@@ -26,7 +26,8 @@ export function decideEntry(setup, bars5, price, nowSec, cfg = BOT) {
 // what a trade of `usd` costs to get in and out of a pool with `liq` of liquidity: the fixed slippage plus price impact. On a constant-
 // product pool a buy moves the price by about twice its share of the pool, and the sell moves it back the same way, so the round trip
 // costs roughly 4x (size / liquidity). This is why a $2,000 buy in a $100k pool is a losing trade before it starts.
-export function costPct(usd, liq, cfg = BOT) { const imp = liq > 0 ? (usd / liq) * 100 * 2 : 0; return { inPct: cfg.slipPct + imp, outPct: cfg.slipPct + imp, impactPct: +imp.toFixed(2) }; }
+// plus a sandwich haircut on small pools (edge report: trades on thin pools get sandwiched; assume some loss on every fill there)
+export function costPct(usd, liq, cfg = BOT) { const imp = liq > 0 ? (usd / liq) * 100 * 2 : 0, sw = liq > 0 && liq < (cfg.sandwichLiq ?? 200000) ? (cfg.sandwichPct ?? 0.5) : 0; return { inPct: cfg.slipPct + imp + sw, outPct: cfg.slipPct + imp + sw, impactPct: +imp.toFixed(2), sandwichPct: sw }; }
 // position size: risk a fixed share of the account at the stop, capped by account share, price impact, pool liquidity and open risk
 export function sizeFor(acct, buy, liq, openRiskUsd, cfg = BOT) {
   const riskUsd = acct.equity * cfg.riskPct / 100, want = riskUsd / (buy.stopPct / 100);
@@ -88,9 +89,9 @@ export function decideLimit(setup, price, nowSec, cfg = BOT) {
   return { act: 'buy', price: fillPx, stop: setup.stop, stopPct: +stopPct.toFixed(1), kind: 'limit at the top of the retest zone', why: [price < setup.zoneLow ? 'price fell through the zone: the limit filled at the top of it' : 'price came back into the retest zone'] };
 }
 export function openLadder(setup, buy, usd, nowIso, cfg = BOT, liq = 0) {
-  const c = costPct(usd, liq, cfg), fill = buy.price * (1 + c.inPct / 100), tg = [setup.tp1, setup.tp2, setup.tp3].map(Number).filter((x) => x > fill);
+  const c = costPct(usd, liq, cfg), fill = buy.price * (1 + c.inPct / 100), tg = (setup.mults ? setup.mults.map((m) => fill * m) : [setup.tp1, setup.tp2, setup.tp3].map(Number)).filter((x) => x > fill);
   return { id: setup.pool + '@' + nowIso, mode: 'ladder', coin: setup.coin, chain: setup.chain, pool: setup.pool, url: setup.url || null, openedAt: nowIso, entry: +fill.toPrecision(6), stop0: buy.stop, stop: buy.stop, R: +(fill - buy.stop).toPrecision(6),
-    targets: tg.map((x) => +x.toPrecision(6)), hits: 0, tp1: tg[0] || null, costUsd: usd, units: usd / fill, remUnits: usd / fill, bankedUsd: 0, tp1Done: false, free: false, peak: fill, peakClose: fill, sells: [], liq: liq || null, slipOut: +c.outPct.toFixed(3) };
+    targets: tg.map((x) => +x.toPrecision(6)), shares: setup.shares || null, hits: 0, tp1: tg[0] || null, costUsd: usd, units: usd / fill, remUnits: usd / fill, bankedUsd: 0, tp1Done: false, free: false, peak: fill, peakClose: fill, sells: [], liq: liq || null, slipOut: +c.outPct.toFixed(3) };
 }
 export function manageLadder(pos0, q, nowSec, cfg = BOT) {
   const pos = { ...pos0, sells: [...(pos0.sells || [])] }, price = n(q && q.priceUsd), actions = [];
@@ -98,10 +99,52 @@ export function manageLadder(pos0, q, nowSec, cfg = BOT) {
   const sell = (units, why, all = false) => { const u = Math.min(units, pos.remUnits); if (!(u > 0)) return; const px = price * (1 - (pos.slipOut ?? cfg.slipPct) / 100), usd = u * px; pos.remUnits -= u; pos.bankedUsd += usd; const a = { why, units: u, usd: +usd.toFixed(2), px: +px.toPrecision(6), all: all || pos.remUnits <= 1e-12, at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z' }; pos.sells.push(a); actions.push(a); };
   pos.peak = Math.max(pos.peak, price); pos.trough = Math.min(pos.trough ?? price, price);
   if (price <= pos.stop) { sell(pos.remUnits, pos.hits ? 'break-even stop' : 'stop', true); return { pos, actions }; }
-  while (pos.hits < pos.targets.length && price >= pos.targets[pos.hits] && pos.remUnits > 0) {
-    const last = pos.hits === pos.targets.length - 1 && pos.targets.length === 3; sell(last ? pos.remUnits : pos.units / 3, `TP${pos.hits + 1}: ${last ? 'the rest' : 'a third'}`, last);
-    pos.hits++; if (pos.hits === 1) { pos.tp1Done = true; pos.stop = Math.max(pos.stop, pos.entry); (pos.moves ||= []).push({ at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z', stop: pos.stop, why: 'break-even after TP1' }); } }
-  if (pos.remUnits > 0 && (nowSec - Date.parse(pos.openedAt) / 1000) / 3600 >= (cfg.maxHoldH || 168)) sell(pos.remUnits, `time limit (${Math.round((cfg.maxHoldH || 168) / 24)} days)`, true);
+  // the seller cut (from the Degen cut-on-sellers book): underwater by sellersLoss and sellers lead the hour and the last 5 minutes: out
+  if (cfg.flowCut && !pos.hits && price <= pos.entry * (1 - cfg.sellersLoss)) { const t1 = (q.txns && q.txns.h1) || {}, t5 = (q.txns && q.txns.m5) || {}, b1 = +t1.buys || 0, s1 = +t1.sells || 0;
+    if (s1 > 0 && s1 >= cfg.sellersX * b1 && (+t5.sells || 0) > (+t5.buys || 0)) { sell(pos.remUnits, `sellers took over (${s1} sells vs ${b1} buys in the hour)`, true); return { pos, actions }; } }
+  // clips on the way up: each target sells its share; with shares that add up to under 1 the remainder is a moonbag that trails moonTrail off its high
+  const heldH = (nowSec - Date.parse(pos.openedAt) / 1000) / 3600;
+  // no follow-through (edge report: a runner that has not made a new high in a day is usually the start of the retrace, not a pause)
+  if (cfg.noFollowH > 0 && !pos.hits && heldH >= cfg.noFollowH && price < pos.entry) { sell(pos.remUnits, `no follow-through after ${cfg.noFollowH} hours`, true); return { pos, actions }; }
+  // a paid DexScreener boost on a held coin is promotion, and promotion is followed by collapse more often than not: tighten, never enter on it
+  if (cfg.boostTighten && q.boosts && +q.boosts.active > 0 && !pos.free && price > pos.entry) { const t = +(price * (1 - cfg.boostTighten)).toPrecision(6); if (t > pos.stop) { pos.stop = t; (pos.moves ||= []).push({ at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z', stop: t, why: `paid boost seen: stop tightened to ${Math.round(cfg.boostTighten * 100)}% under the price` }); } }
+  const N = pos.targets.length, share = (i) => (pos.shares && pos.shares[i] != null ? pos.shares[i] : 1 / N), moon = pos.shares ? +(1 - pos.shares.reduce((a, x) => a + x, 0)).toFixed(4) : 0, hasMoon = moon > 0.001;
+  while (pos.hits < N && price >= pos.targets[pos.hits] && pos.remUnits > 0) {
+    const last = pos.hits === N - 1 && !hasMoon; sell(last ? pos.remUnits : pos.units * share(pos.hits), `TP${pos.hits + 1}: ${last ? 'the rest' : N === 3 && !pos.shares ? 'a third' : Math.round(share(pos.hits) * 100) + '%'}`, last);
+    pos.hits++; if (pos.hits === 1 && cfg.beAfterFirst !== false) { pos.tp1Done = true; pos.stop = Math.max(pos.stop, pos.entry); (pos.moves ||= []).push({ at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z', stop: pos.stop, why: 'break-even after TP1' }); }
+    if (pos.hits === N && hasMoon && pos.remUnits > 0) { pos.free = true; pos.stop = 0; pos.moonPeak = price; (pos.moves ||= []).push({ at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z', stop: 0, why: `${Math.round(moon * 100)}% moonbag: no stop, trails ${Math.round((cfg.moonTrail || 0.45) * 100)}% off its high` }); } }
+  if (pos.free && hasMoon && pos.remUnits > 0) { pos.moonPeak = Math.max(pos.moonPeak || price, price); if (price <= pos.moonPeak * (1 - (cfg.moonTrail || 0.45))) { sell(pos.remUnits, `moonbag trail: ${Math.round((cfg.moonTrail || 0.45) * 100)}% off the high`, true); return { pos, actions }; } }
+  if (pos.remUnits > 0 && heldH >= (cfg.maxHoldH || 168)) sell(pos.remUnits, `time limit (${Math.round((cfg.maxHoldH || 168) / 24)} days)`, true);
+  return { pos, actions };
+}
+
+// ---------- Ignition (momentum ride): stop at the trigger candle's low; once up armPct, trail trailPct off the high and sell 90% when it
+// hits; a red hourly candle on under fadeX of the trigger volume while in profit also sells 90%; the 10% moonbag trails moonTrail for up to
+// maxHoldH; a trade that never moves is closed after flatH. bars1h: hourly candles (closed ones), newest last.
+export const MOM = { armPct: 0.3, trailPct: 0.25, cashShare: 0.9, fadeX: 0.35, moonTrail: 0.45, flatH: 48, maxHoldH: 168 };
+export function openMomentum(setup, buy, usd, nowIso, cfg = BOT, liq = 0) {
+  const c = costPct(usd, liq, cfg), fill = buy.price * (1 + c.inPct / 100);
+  return { id: setup.pool + '@' + nowIso, mode: 'momentum', coin: setup.coin, chain: setup.chain, pool: setup.pool, url: setup.url || null, openedAt: nowIso, entry: +fill.toPrecision(6), stop0: buy.stop, stop: buy.stop, R: +(fill - buy.stop).toPrecision(6), tp1: +(fill * (1 + (cfg.armPct ?? MOM.armPct))).toPrecision(6), targets: [], trigVol: setup.trigVol || null,
+    costUsd: usd, units: usd / fill, remUnits: usd / fill, bankedUsd: 0, tp1Done: false, free: false, cashed: false, peak: fill, peakClose: fill, sells: [], liq: liq || null, slipOut: +c.outPct.toFixed(3) };
+}
+export function manageMomentum(pos0, q, bars1h, nowSec, cfg = BOT) {
+  const M = { ...MOM, ...cfg }, pos = { ...pos0, sells: [...(pos0.sells || [])] }, price = n(q && q.priceUsd), actions = [];
+  if (!(price > 0) || !(pos.remUnits > 0)) return { pos, actions };
+  const sell = (units, why, all = false) => { const u = Math.min(units, pos.remUnits); if (!(u > 0)) return; const px = price * (1 - (pos.slipOut ?? cfg.slipPct) / 100), usd = u * px; pos.remUnits -= u; pos.bankedUsd += usd; const a = { why, units: u, usd: +usd.toFixed(2), px: +px.toPrecision(6), all: all || pos.remUnits <= 1e-12, at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z' }; pos.sells.push(a); actions.push(a); };
+  pos.peak = Math.max(pos.peak, price); pos.trough = Math.min(pos.trough ?? price, price); const heldH = (nowSec - Date.parse(pos.openedAt) / 1000) / 3600;
+  if (!pos.cashed) {
+    const armed = pos.peak >= pos.entry * (1 + M.armPct); if (armed) { const t = +(pos.peak * (1 - M.trailPct)).toPrecision(6); if (t > pos.stop) { pos.stop = t; (pos.moves ||= []).push({ at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z', stop: t, why: `trail ${Math.round(M.trailPct * 100)}% under the high` }); } }
+    const cash = (why) => { sell(pos.units * M.cashShare, why); pos.cashed = true; pos.tp1Done = true; pos.free = true; pos.stop = 0; pos.moonPeak = price; };
+    if (armed && price <= pos.stop) { cash(`momentum trail: ${Math.round(M.trailPct * 100)}% off the high, 90% out`); return { pos, actions }; }
+    if (price <= pos.stop) { sell(pos.remUnits, 'stop at the trigger candle\'s low', true); return { pos, actions }; }
+    const last = Array.isArray(bars1h) && bars1h.length ? bars1h.filter((b) => b[0] + 3600 <= nowSec).slice(-1)[0] : null;
+    if (last && price > pos.entry && last[4] < last[1] && pos.trigVol > 0 && (last[5] || 0) < pos.trigVol * M.fadeX) { cash(`volume faded (red hour on ${Math.round(((last[5] || 0) / pos.trigVol) * 100)}% of the ignition volume), 90% out`); return { pos, actions }; }
+    if (heldH >= M.flatH) { sell(pos.remUnits, `no run in ${M.flatH} hours`, true); return { pos, actions }; }
+    return { pos, actions };
+  }
+  pos.moonPeak = Math.max(pos.moonPeak || price, price);
+  if (price <= pos.moonPeak * (1 - M.moonTrail)) { sell(pos.remUnits, `moonbag trail: ${Math.round(M.moonTrail * 100)}% off the high`, true); return { pos, actions }; }
+  if (heldH >= M.maxHoldH) sell(pos.remUnits, `moonbag time limit (${Math.round(M.maxHoldH / 24)} days)`, true);
   return { pos, actions };
 }
 

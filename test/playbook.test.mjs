@@ -50,11 +50,15 @@ ok(lifecycle({ ageD: 1 }) === 'new (under 3 days)' && lifecycle({ ageD: 9, dv: [
   const eps = []; const day = (d) => new Date(Date.parse('2026-09-01T06:00:00Z') + (d - 1) * 864e5).toISOString().slice(0, 19) + 'Z';
   for (let d = 1; d <= 60; d++) SCO.record(eps, { pool: 'p' + d, coin: 'C' + d, px: 1, t: day(d), buyers: [['bot', 1], ['w' + (d % 7), 1], ...(d % 5 === 0 ? [['smart', 1]] : [])] });
   SCO.record(eps, { pool: 'p3', coin: 'C3', px: 1, t: day(3), buyers: [['extra', 1]] }); ok(eps.length === 60 && eps.find((e) => e.id === 'p3@2026-09-03').b.includes('extra'), 'one episode per coin per day, buyers merged');
-  const barsRun = (t) => { const s = Date.parse(t) / 1000; return Array.from({ length: 80 }, (_, i) => [s + i * 3600, 1, i === 10 ? 1.8 : 1.05, 0.95, 1]); }, barsFlat = (t) => { const s = Date.parse(t) / 1000; return Array.from({ length: 80 }, (_, i) => [s + i * 3600, 1, 1.05, 0.9, 1]); };
+  const barsRun = (t) => { const s = Date.parse(t) / 1000; return Array.from({ length: 80 }, (_, i) => [s + i * 3600, i >= 10 ? 1.3 : 1, i === 10 ? 1.8 : i >= 10 ? 1.35 : 1.05, 0.95, i >= 10 ? 1.3 : 1]); }, barsFlat = (t) => { const s = Date.parse(t) / 1000; return Array.from({ length: 80 }, (_, i) => [s + i * 3600, 1, 1.05, 0.9, 1]); };
   for (const e of eps) e.out = SCO.resolve(e, e.b.includes('smart') ? barsRun(e.t) : barsFlat(e.t));
   ok(eps.every((e) => e.out) && eps.filter((e) => e.out.ran).length === 12, 'outcome: +50% within 72 hours counts as a run');
   ok(SCO.resolve({ t: day(1), px: 1 }, barsFlat(day(1)).slice(0, 20)) === null, 'no outcome before 72 hours have passed');
   const sc = SCO.score(eps); ok(sc.provenSet.has('smart') && !sc.provenSet.has('bot') && sc.botSet.has('bot') && Math.abs(sc.base - 0.2) < 1e-9, 'the wallet in every winner is proven; the wallet in every coin is treated as a bot');
+  ok(sc.proven[0].copyPct > 20 && eps.find((e) => e.b.includes('smart')).out.copy > 20, 'copyable return: in at the next hourly open plus 3%, out at the 24-hour close less 1%');
+  { const e2 = eps.map((e) => ({ ...e, ageH: e.b.includes('smart') ? 0.5 : 48 })); ok(!SCO.score(e2).provenSet.has('smart') && SCO.score(e2).snipers >= 1, 'a wallet first seen buying pools under an hour old is a sniper: purged'); }
+  { const e3 = eps.map((e) => ({ ...e, bots: e.b.includes('smart') ? ['smart'] : [] })); ok(!SCO.score(e3).provenSet.has('smart'), 'over 100 swaps in one read: a bot, purged'); }
+  { const e4 = eps.map((e) => ({ ...e, out: e.out && e.b.includes('smart') ? { ...e.out, copy: e.id === 'p5@2026-09-05' ? 500 : 1 } : e.out })); ok(SCO.score(e4).proven.every((r) => r.w !== 'smart') && SCO.score(e4).candidates.find((r) => r.w === 'smart').cherry, 'profit from one trade: cherry-picked, not proven'); }
   ok(!sc.proven.some((r) => /^w/.test(r.w)), 'ordinary wallets with average luck are not proven');
   const pi = SCO.provenIn({ netBuyers: [['smart', 900], ['x', 10]], netSellers: [['smart', 5]] }, sc); ok(pi.in === 1 && pi.out === 1, 'counts proven wallets buying and selling');
   ok(SCO.trim(eps, Date.parse('2027-03-30T00:00:00Z')).length === 0, 'old episodes are dropped');

@@ -17,7 +17,7 @@ const r2 = (x) => (x == null || !isFinite(x) ? null : +x.toFixed(2));
 export function evidence(p, { now = Date.now(), recentDays = 14, minN = 30, tests = 1 } = {}) {
   const done = (p && p.trades ? p.trades : []).filter((t) => !t.open && t.R != null && isFinite(t.R)), R = done.map((t) => t.R), n = R.length;
   const out = { n, open: p ? p.openN : 0, avgR: n ? r2(mean(R)) : null, medR: n ? r2(med(R)) : null, win: n ? +(R.filter((x) => x > 0).length / n).toFixed(2) : null };
-  const b = n >= 5 ? bootstrap(R, 4000, 7, 0.05 / Math.max(1, tests)) : null; if (b) { out.lo = r2(b.lo); out.hi = r2(b.hi); out.loAdj = r2(b.loAdj); out.pPos = +b.pPos.toFixed(2); } out.tests = tests;
+  const b = n >= 5 ? bootstrap(R, 4000, 7, 0.05 / Math.max(1, tests)) : null; if (b) { out.lo = r2(b.lo); out.hi = r2(b.hi); out.loAdj = r2(b.loAdj); out.pPos = +b.pPos.toFixed(2); } out.tests = tests; if (n >= 2) { const m = mean(R); out.sd = r2(Math.sqrt(R.reduce((a, x) => a + (x - m) ** 2, 0) / (n - 1))); }
   // consistency: the first and second half of the closed trades (in time order) should both be positive for a real edge
   { const byT = done.slice().sort((x, y) => Date.parse(x.closedAt || x.at) - Date.parse(y.closedAt || y.at)).map((t) => t.R), h = Math.floor(byT.length / 2); if (byT.length >= 10) { out.half1 = r2(mean(byT.slice(0, h))); out.half2 = r2(mean(byT.slice(h))); } }
   const recent = done.filter((t) => now - Date.parse(t.closedAt || t.at) < recentDays * 864e5).map((t) => t.R); out.recentN = recent.length; out.recentR = recent.length ? r2(mean(recent)) : null;

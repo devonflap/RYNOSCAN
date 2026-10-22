@@ -49,9 +49,11 @@ export function installMock(g = globalThis, opts = {}) {
     if (url.includes('ntfy.sh')) { (g.__ntfy = g.__ntfy || []).push({ url, body: init && init.body }); console.log('[mock ntfy] ' + String(init && init.body).split('\n')[0]); return json({}, 200); }
     if (url.includes('rugcheck.xyz')) {
       const t = url.match(/tokens\/([^/]+)\//)[1], h = hash(t) % 7;
-      return json({ risks: h === 0 ? [{ name: 'Freeze Authority still enabled', level: 'danger' }] : h === 1 ? [{ name: 'Top 10 holders high ownership', level: 'warn' }] : [] });
+      if (/\/report$/.test(url)) return json({ mintAuthority: null, freezeAuthority: null, topHolders: h === 2 ? [{ owner: 'w1', pct: 20 }, { owner: 'w2', pct: 15 }, { owner: 'pool', pct: 40 }] : [{ owner: 'w1', pct: 4, insider: h === 5 }, { owner: 'w2', pct: 3 }], markets: [{ pubkey: 'pool', lp: { lpLockedPct: h === 3 ? 5 : 100 } }] });
+      return json({ risks: h === 0 ? [{ name: 'Freeze Authority still enabled', level: 'danger' }] : h === 1 ? [{ name: 'Low amount of LP Providers', level: 'warn' }] : [] });
     }
-    if (url.includes('gopluslabs.io')) { const t = url.split('contract_addresses=')[1].toLowerCase(), h = hash(t) % 6; return json({ result: { [t]: { is_honeypot: h === 0 ? '1' : '0', sell_tax: '0.01', is_mintable: h === 1 ? '1' : '0' } } }); }
+    if (url.includes('gopluslabs.io')) { const t = url.split('contract_addresses=')[1].toLowerCase(), h = hash(t) % 6; if (url.includes('/4663?')) return json({ result: {} }); return json({ result: { [t]: { is_honeypot: h === 0 ? '1' : '0', sell_tax: '0.01', is_mintable: h === 1 ? '1' : '0' } } }); }
+    if (url.includes('blockscout.com/api/v2/tokens/')) { const t = url.split('/tokens/')[1].split('/')[0], h = hash(t) % 3; return json({ items: [{ address: { hash: '0x1', is_contract: false }, value: h === 0 ? '500' : '50', token: { total_supply: '1000' } }, { address: { hash: '0xpool', is_contract: true }, value: '300', token: { total_supply: '1000' } }] }); }
     if (url.includes('/coins/') && url.includes('market_chart')) {
       const down = url.includes('/solana/'), prices = [], T = Date.now(); for (let i = 0; i < 60 * 24; i++) { const f = i / (60 * 24); prices.push([T - (60 * 24 - i) * 3600e3, 100 * (down ? 1.3 - 0.5 * f : 0.8 + 0.5 * f) * (1 + 0.01 * Math.sin(i / 5))]); }
       return json({ prices });

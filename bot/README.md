@@ -1,12 +1,21 @@
 # RynoBot (dry run)
 
-Two always-on bots that do what a trading bot would do, except place orders. Each runs as its own service with its own $10,000 paper account, and the **bot desk** (below) shows both on one page:
+Four always-on bots that do what a trading bot would do, except place orders until you arm them. Each runs as its own service with its own $10,000 paper account and kitty, and the **bot desk** (below) shows all four on one page:
 
-- **rules** (`rynobot@rules`): the scanner's bid-ready and worth-watching setups, bought on the 5-minute trigger (below).
-- **breakout** (`rynobot@breakout`): Breakout retest, see **The Breakout bot** further down.
-- **degen** (`rynobot@degen`): the degen desk's runners bought on sight with the **study exits** (stop 40%, ride free at 2x, then out on a 5-minute close 50% under the best close, 7 days). Deliberately bare: no sellers, volume or follow-through exits, so it tests the study exits as they are. Its paper twin is the dashboard's **Degen → Study exits** book. Up to 8 positions, 1% risk each, 8% total.
+- **runner** (`rynobot@runner`): high risk, high reward. The scanner's runners that pass at least 3 of the 4 checks with no risk rule tripped (the Risky coins book's entry, the one in the green after week one), bought on sight. Exits are **Ryan's clips**, the way he has traded runners by hand: stop 20%; 20% out at +50%, +100%, +150% and +200%, 10% at +300%, and the last **10% is a moonbag** that trails 45% off its high for up to 7 days; no break-even move; plus the **seller cut** from the Degen cut-on-sellers book (8%+ under the entry with sellers in control: out). Paper twin: Risky · Ryan.
+- **breakout** (`rynobot@breakout`): Breakout retest, see **The Breakout bot** further down. The one rulebook with positive closed trades so far; unchanged.
+- **range** (`rynobot@range`): CSK's Monday-range trade, adapted to coins that trade all week: the range is the **previous UTC day**. Price sweeps yesterday's low, an hourly candle closes back inside, the 15-minute chart breaks structure (a close over the last swing high, 3-bar swings) and leaves a bullish order block; a limit rests at the top of that block for 24 hours; stop just under the block's body; everything out at the range high. Only 3R to 8R setups; long only (no shorts on a spot wallet). `"discount": true` adds the optional rule that the block must sit under the midpoint of the low-to-break range. It scans the scanner's universe (about 80 coins) from hourly candles, each coin about once an hour.
+- **ignition** (`rynobot@ignition`): the same runner strategy with an earlier trigger, Cashmore's Ignition Rider adapted to meme coins. An hourly candle closes up 5%+ on 12x the coin's median hourly volume (30 days, 48 hours of history at least), buyers leading the hour, the coin not already up 150% in a day (early, not last); bought at the next check after the close, **$100 a trade flat**; stop at the ignition candle's low; then the same clips and moonbag as the runner bot. `ignPct`, `ignVolX`, `ignMax24h` are in config; `"exit": "momentum"` switches it to a trail-and-90%-out exit instead of the clips.
 
-Every minute the rules bot:
+Risk per bot (22 Oct): breakout 1% a trade, up to 25% of the pot in one position (the one with a record). Runner 0.5% a trade, 10% of the pot at most, 3% open risk (new, risky coins). Range 0.75% a trade, 10% of the pot at most (tight stops would otherwise size big). Ignition **1% of the pot a trade, flat ($100)**, six at most: the entry is deliberately early and risky, so it is small money for a big upside; the 10% moonbag is what makes the occasional one pay. All of this is in `bot/run.mjs` under BOTS and can be overridden per bot in config (`riskPct`, `maxPosPct`, `maxOpen`, `maxOpenRiskPct`).
+
+From the edge report (22 Oct), applied to every bot where it fits: a **survivor gate** (pools under 24 hours old are not traded; 79% of launches never trade after day one), **liquidity-capped sizing** (each order at most 0.5% of the pool for the runner bots, 1% elsewhere, plus the price-impact cap), a **sandwich haircut** of 0.5% each way in the paper fills on pools under $200k (so paper looks like live), a **no-follow-through** time stop on the runner bots (under the entry with no clip hit after 24 hours: out), **promotion as an exit, never an entry** (a paid DexScreener boost on a held coin tightens the stop to 15% under the price), and the council's **kill rule** (30+ closed trades and even the lucky end of the range under zero: retire). The report's front-loaded ladder runs as a paper challenger (**Risky · front**) against Ryan's clips (**Risky · clips**, the runner bot's twin) on the same coins, so the weekly review can say which is better. The range bot already runs every day of the week, which is the report's placebo test for the Monday effect built in; the council slices bot trades by weekday to show whether Monday ranges differ.
+
+Also from the report, in the scanner: the **hard safety gate** now checks numbers, not just names. Solana: RugCheck's full holder table, top-10 wallets (pools excluded) at most 30% of supply, insider wallets at most 10%, mint and freeze authority revoked. Robinhood chain: GoPlus (chain 4663) for honeypot, tax at most 5%, mintable and blacklist, with a Blockscout holders fallback when GoPlus has nothing (and never "ok" without a sell test). A coin that fails is `danger` and no book or bot touches it. The breakout bot **halves size when SOL is under its 20-day average** (`smaHalve`). The **wallet scorecard** now scores what you would have made copying a wallet (in at the next hourly open plus 3%, out at the 24-hour close less 1%) and purges snipers (first seen buying a pool under an hour old), bots (over 100 swaps in a read), cherry-pickers (one trade making most of the profit) and decayed wallets (last 10 against the 20 before); only what survives counts as "proven" confluence. The council's skeptic adds the **variants bar** (the Deflated Sharpe idea): with N rules and exits tried, the best lucky one shows about sqrt(2 ln N) standard errors by chance, and a book must clear that, not just zero; bot records are judged with the same bootstrap as the paper books. What is still not possible without an indexer: block-0 bundle and Pons-exemption detection on Robinhood chain; the holder gate catches most of what those produce (a crew's wallets end up in the top 10).
+
+Retired on 22 Oct: the first **rules** bot (-0.51R a trade over 18 closed) and the **degen** study bot (its exits are still tested by the paper Degen · study exits book). Their files are kept.
+
+Every minute each bot checks its positions and its setups; the first rules bot worked like this and the runner bot keeps most of it:
 
 1. **Reads the scanner's setups** from the dashboard data: bid-ready and worth-watching coins scored over 65, with $100k+ liquidity and no rug danger, each with a buy zone and an invalidation level. These are exactly the setups the paper **Bot rules** book takes, and each coin gets one setup per 24 hours (so a stopped-out coin is never bought straight back).
 2. **Watches the ones near their zone on 5-minute candles** and waits for the trigger: a flush below the zone that closes back above it, or a bounce in the zone, on at least 1.5x (flush) or 2x (bounce) normal volume, closing in the upper half of its candle and no more than 3% above the zone (no chasing).
@@ -51,9 +60,9 @@ Fund a Solana wallet by sending SOL to the address from Phantom or an exchange, 
 
 On the desk each bot wears its chain's colour (Solana purple, Robinhood green, BNB yellow, Base blue, Ethereum blue-grey): once a wallet is set the bot trades only that chain, so the colour tells you at a glance which money each bot is on. Until then the colour follows the chain most of its paper trades are on.
 
-## Publishing to the scanner
+## Publishing to the scanner (lets the council argue over the bots)
 
-With `"publish": true` in config and a GitHub token in `/etc/rynobot.env` (`GITHUB_TOKEN=`; a fine-grained token on the RYNOSCAN repo only, Contents: read and write), each bot writes its record to `docs/data/bots/<bot>.json` once an hour: trades with their pre- and post-entry facts, passed-on setups, refused orders. The council's new **Bot desk** hat reads these every scan and compares the bots with their paper twins. Nothing private is published (no wallet, no balances).
+With `"publish": true` in config and a GitHub token in `/etc/rynobot.env` (`GITHUB_TOKEN=`; a fine-grained token on the RYNOSCAN repo only, Contents: read and write), each bot writes its record to `docs/data/bots/<bot>.json` once an hour: trades with their pre- and post-entry facts, passed-on setups, refused orders. The council's **Bot desk** hat reads these every scan: it compares each bot with its paper twin (runner with Risky · Ryan, breakout with Breakout bot filters), reports fills against the trigger price, refused orders and how often saying no was right, and once a bot has 10+ closed trades it slices them by the bot's own gates (stop distance, hour, chain, score, reward to risk, ignition volume, 24-hour change, liquidity, price impact) and argues for a filter wherever one bucket beats another by 0.5R or more. Nothing private is published (no wallet, no balances, no keys).
 
 The same trigger and exits are also replayed on the dashboard's **Bot rules** tab (5-minute entries, 15-minute exits), next to a plain zone limit and the study exits on the same setups, so the bot's rules are always measured against the alternatives.
 
@@ -98,7 +107,7 @@ Only what needs you. The bot trades; you don't, so would-be buys and sells stay 
   - 5 checks in a row failed (a bug or a full disk: send me `journalctl -u rynobot@rules -n 50`, or `@breakout`)
 - **"RynoBot Breakout: filters changed"** when the tuner switches a filter on or off (rare: it needs new trades on both sides).
 - **"RynoBot has gone quiet"**: the bot posts a heartbeat every 30 minutes to a silent second topic (`<your topic>-hb`, which your phone doesn't subscribe to). The GitHub watchdog checks it every 30 minutes and tells you once if it stops for 90 minutes (overnight it waits until 6am), and once when it's back.
-- **The reality check**, every 2 weeks.
+- **The reality check**, every week.
 
 To get the would-be trades on your phone again, set `"tradeAlerts": true` in `bot/config.json`; `"dailySummary": true` brings back the 8pm summary.
 
@@ -112,16 +121,16 @@ In dry run and rehearsal the kitty is a paper number. In live mode the same amou
 
 Every bot scales its risk per trade by the scanner's market regime (from the Grok/QuantGPT desk idea, and what the paper **Sized by market** bot sim tests): SOL risk-off x0.5, neutral x1, risk-on x1.25 (`"dial"` in config; `"regimeDial": false` turns it off). It changes the size only, never the entries, exits or stops, and each buy says which dial it used.
 
-## Reality check (every 2 weeks, automatic)
+## Reality check (weekly, automatic)
 
-The dashboard's **Bot rules** book replays the same rules on candles. A candle replay sees every high and low, so a target touched for ten seconds counts as sold; the bot only sees the price once a minute, the way you would. Every 14 days the bot compares the two on the coins both took and sends you the result:
+The dashboard's **Bot rules** book replays the same rules on candles. A candle replay sees every high and low, so a target touched for ten seconds counts as sold; the bot only sees the price once a minute, the way you would. Every 7 days the bot compares the two on the coins both took and sends you the result:
 
 - how each side did on the same trades, and the gap between them (with a 90% range)
 - where the gap comes from: worse entries, or targets the paper booked that the bot never reached
 - every paper trade the bot missed, and why (offline, all slots full, price ran first, the trigger didn't fire, never saw the setup)
 - what to do with it: the amount to knock off every paper book's average before trusting it (once there are 10 or more shared trades)
 
-The first one arrives 14 days after each bot starts. To see it any time: `node bot/run.mjs --reality` (add `--bot breakout` for that bot, which is compared with the **Breakout → Bot filters** paper book). Each result is also kept in `bot/reality.json` / `bot/reality-breakout.json`. Change the timing with `"realityEveryDays"` in `bot/config.json`.
+The first one arrives 7 days after each bot starts (it says "too few" until 10 shared trades exist; the gate for real money stays at a fortnight). To see it any time: `node bot/run.mjs --reality` (add `--bot breakout` for that bot, which is compared with the **Breakout → Bot filters** paper book). Each result is also kept in `bot/reality.json` / `bot/reality-breakout.json`. Change the timing with `"realityEveryDays"` in `bot/config.json`.
 
 ## Where to run it
 
@@ -141,7 +150,7 @@ The scanner itself stays on GitHub (free, and it runs the dashboard). The bot on
    ```
 3. It asks for your **ntfy topic** (the same one as the `NTFY_TOPIC` secret on GitHub), stored in `/etc/rynobot.env`, readable only by the server's admin; then a **desk password** (12+ characters) and an optional **control password** (blank keeps the desk read only), stored in `/etc/rynobot-desk.env` for the desk's own user.
    Before sharing the desk address or going live, give it HTTPS: point a domain's A record at the server and run `bash bot/install.sh --https desk.yourdomain.com` (Caddy, Let's Encrypt, fail2ban; port 8080 closes).
-4. You get "RynoBot started (dry run)" on your phone. From then on it stays quiet unless something breaks, plus the reality check every 2 weeks (see **What reaches your phone**).
+4. You get "RynoBot started (dry run)" on your phone. From then on it stays quiet unless something breaks, plus the reality check every week (see **What reaches your phone**).
 
 ## Everyday commands (on the server, inside the RYNOSCAN folder)
 
@@ -149,7 +158,7 @@ Add `--bot breakout` to any `node bot/run.mjs` command for the Breakout bot (wit
 
 | what | command |
 |---|---|
-| watch both bots work | `sudo journalctl -u 'rynobot@*' -f` |
+| watch the bots work | `sudo journalctl -u 'rynobot@*' -f` |
 | how a bot is doing: account, filters, open positions, last 10 trades | `node bot/run.mjs --bot breakout --status` |
 | stop new entries, every bot (open positions still managed) | `touch bot/STOP` (delete it to allow them again) |
 | stop new entries, one bot | `touch bot/STOP-breakout` or `touch bot/STOP-rules` |
@@ -166,6 +175,6 @@ Every decision is written to `bot/journal.jsonl` (rules) or `bot/journal-breakou
 
 ## Settings (`bot/config.json`)
 
-`accountUsd` paper account size (10,000; a bot that has not traded yet picks up a change on restart, otherwise use `--reset`) · `riskPct` % of the account risked per trade · `maxOpen` positions at once · `maxOpenRiskPct` total open risk · `dailyLossPct` no new entries after this losing day · `minOpp` lowest scanner score to watch · `signals` `["bid", "watch"]` or just `["bid"]` · `pollSec` seconds between checks · `tradeAlerts` would-be trades to the phone (default false) · `dailySummary` the 8pm summary (default false) · `summaryHourBrisbane` its time · `realityEveryDays` days between reality checks (14).
+`accountUsd` paper account size (10,000; a bot that has not traded yet picks up a change on restart, otherwise use `--reset`) · `riskPct` % of the account risked per trade · `maxOpen` positions at once · `maxOpenRiskPct` total open risk · `dailyLossPct` no new entries after this losing day · `minOpp` lowest scanner score to watch · `signals` `["bid", "watch"]` or just `["bid"]` · `pollSec` seconds between checks · `tradeAlerts` would-be trades to the phone (default false) · `dailySummary` the 8pm summary (default false) · `summaryHourBrisbane` its time · `realityEveryDays` days between reality checks (7).
 
-These apply to both bots. To change one bot only, put it under `"bots"`, for example `"bots": { "breakout": { "autoTune": false } }` keeps the Breakout bot on its starting filter. Breakout-only settings: `autoTune` (let the tuner switch filters, default true) · `maxStopPct` (35) · `minOpp` (50) · `maxHoldH` (168).
+These apply to every bot. To change one bot only, put it under `"bots"`, for example `"bots": { "breakout": { "autoTune": false } }` keeps the Breakout bot on its starting filter. Breakout-only settings: `autoTune` (let the tuner switch filters, default true) · `maxStopPct` (35) · `minOpp` (50) · `maxHoldH` (168).

@@ -28,7 +28,7 @@ ok(/knock about 5\.3% \(0\.\d\dR\) a trade off every paper book/.test(txt) && /M
 { const late = realityCheck({ ...bot, startedAt: iso(T0 + 200 * H) }, paper, { now: T0 + 400 * H }); ok(late.shared === 0 && late.paperTrades === 0, 'paper trades from before the bot started are not counted against it'); }
 
 // schedule inside the bot loop: first check 14 days after it starts, then every 14 days; offline spells and full slots are remembered
-{ const cfg = { ...DEFAULTS, setupsEveryMin: 1e9, maxOpen: 0 }, st = newState(cfg), msgs = [], saved = [];
+{ const cfg = { ...DEFAULTS, setupsEveryMin: 1e9, maxOpen: 0, realityEveryDays: 14 }, st = newState(cfg), msgs = [], saved = [];
   const deps = (ms) => ({ now: ms, getJson: async (u) => (u.endsWith('lab.json') ? paper : []), quotes: async () => ({}), candles5: async () => null, notify: async (t, b) => msgs.push(t + ' | ' + b), journal: () => {}, readJournal: () => journal, saveReality: (x) => saved.push(x) });
   st.setupsAt = T0; await cycle(st, cfg, deps(T0)); await cycle(st, cfg, deps(T0 + 60e3));
   ok(st.startedAt === iso(T0) && msgs.length === 0 && st.blocks.length === 1 && st.blocks[0][1] == null && /slots were full/.test(st.blocks[0][2]), 'starts the clock, no check on day one, and remembers that buying was blocked');

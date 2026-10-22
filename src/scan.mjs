@@ -212,7 +212,7 @@ try {
   // wallet scorecard: wallets that keep buying coins before they run become "proven" and count as smart wallets everywhere below
   const wsPath = path.join(OUT, 'wallets.json'); let wEps = SCO.trim(readJson(wsPath, []).filter(x => x && typeof x === 'object' && x.id)), sc = SCO.score(wEps), earlyItems = [], wsDirty = false;
   const smart = [...smartCfg, ...sc.proven.map(r => ({ address: r.w, label: `proven ${r.wins}/${r.n}` }))];
-  const noteEp = (p, w) => { if (w && w.netBuyers) { SCO.record(wEps, { pool: p.pool, net: p.net, coin: p.sym || p.coin, chain: p.chain, px: p.price, t: nowIso, buyers: w.netBuyers, sellers: w.netSellers }); wsDirty = true; } };
+  const noteEp = (p, w) => { if (w && w.netBuyers) { SCO.record(wEps, { pool: p.pool, net: p.net, coin: p.sym || p.coin, chain: p.chain, px: p.price, t: nowIso, buyers: w.netBuyers, sellers: w.netSellers, ageH: p.ageD != null ? +(p.ageD * 24).toFixed(1) : (p.pairCreatedAt ? (Date.now() - +p.pairCreatedAt) / 3600e3 : null) }); wsDirty = true; } };
   let dl = readJson(dpath, []).filter(x => x && typeof x === 'object'), usedD = 0, usedW = 0; const dout = [];
   const dueD = new Set(dl.map((s, i) => [s, i]).filter(([s]) => s.status === 'open' || s.status === 'waiting for entry').sort((a, b) => String(a[0].checkedAt).localeCompare(String(b[0].checkedAt))).slice(0, 12).map(([, i]) => i)); // least recently checked first, so a dead pool cannot hog the slots
   for (const [di, s] of dl.entries()) {
@@ -257,7 +257,7 @@ try {
     let lab = readJson(labPath, []).filter(x => x && typeof x === 'object' && x.lid && L.BOOKS[x.book]); const have = new Set(lab.map(x => x.lid)), nAdd = { copies: 0, risky: 0, scalp: 0 };
     const newRows = []; const add = (row) => { if (have.has(row.lid)) return false; newRows.push(row); if (!row.mkt && Date.now() - Date.parse(row.signalAt) < 3 * 3600e3) row.mkt = mktTag; lab.push(row); have.add(row.lid); return true; };
     for (const s of dout) { if (!(Date.parse(s.signalAt) >= sinceT)) continue; for (const b of L.DEGEN_COPIES) if (add(L.labRow(b, s, s.signalAt, { why: s.why, liq: s.liq, mkt: s.mkt || null }))) nAdd.copies++; }
-    for (const r of rl) { if (r.control || !r.listed || (r.passed ?? 0) < 3 || !(Date.parse(r.signalAt) >= sinceT)) continue; for (const bk of ['risky', 'riskyRyan', 'riskyPick']) if (add(L.labRow(bk, r, r.signalAt, { liq: r.liq ?? (r.f && r.f.liq), passed: r.passed }))) nAdd.risky++; }
+    for (const r of rl) { if (r.control || !r.listed || (r.passed ?? 0) < 3 || !(Date.parse(r.signalAt) >= sinceT)) continue; for (const bk of ['risky', 'riskyRyan', 'riskyPick', 'riskyClip', 'riskyFront']) if (add(L.labRow(bk, r, r.signalAt, { liq: r.liq ?? (r.f && r.f.liq), passed: r.passed }))) nAdd.risky++; }
     const limit = settings.cgMonthlyLimit ?? 100000, rowByPool = new Map(allRows.map(p => [p.pool, p])), chainName = (c) => C.CH[c] || c, nowS = Date.now() / 1000;
     const openOf = (bk) => lab.filter(x => x.book === bk && isOpenL(x)), recentCoin = (bk, pool, h) => lab.some(x => x.book === bk && x.pool === pool && (isOpenL(x) || Date.now() - Date.parse(x.signalAt) < h * 3600e3));
     const srcOf = (p) => ({ id: String(p.chain).slice(0, 3).toUpperCase() + ':' + p.sym, coin: p.sym, chain: chainName(p.chain), pool: p.pool, net: p.net, price: p.price, liq: p.liq });
@@ -343,7 +343,7 @@ try {
         if (isOpenL(y)) { if (freshBars(bars, m5 ? 300 : mf ? 900 : 3600)) y.miss = 0; else { y = onMiss(y, nowI); if (y.dead) deadN++; } } lab[i] = y; } }
     fs.writeFileSync(labPath, JSON.stringify([...lab.filter(x => !isOpenL(x)).slice(-3000), ...lab.filter(isOpenL)]));
     // books that have earned the edge verdict (luck-corrected, consistent, beating the random baseline): every new trade they open goes to the phone
-    try { const since = readJson(path.resolve('docs/paper-config.json'), {}).since || null, tests = Object.keys(L.BOOKS).length + 2, evOf = (k) => evidence(statsBook(lab.filter(x => x.book === k).map(x => fromRun(x)).filter(Boolean), { since }), { tests });
+    try { const since = readJson(path.resolve('docs/paper-config.json'), {}).since || null, tests = Object.keys(L.BOOKS).length + Object.keys(L.EXIT_VARIANTS || {}).length + 2, evOf = (k) => evidence(statsBook(lab.filter(x => x.book === k).map(x => fromRun(x)).filter(Boolean), { since }), { tests });
       const base = evOf('randomCtl'), edgeBooks = Object.keys(L.BOOKS).filter(k => k !== 'bid' && k !== 'degen' && k !== 'randomCtl').filter(k => { const e = evOf(k); return e.verdict === 'edge' && !(base.n >= 30 && e.avgR <= base.avgR + 0.1); });
       const fresh = newRows.filter(r => edgeBooks.includes(r.book));
       if (fresh.length) { say(`edge books: ${edgeBooks.join(', ')}; ${fresh.length} new trade(s)${tradeAlerts ? ' sent to the phone' : ' (trade alerts off)'}`);

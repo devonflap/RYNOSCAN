@@ -13,12 +13,13 @@
   "summaryHourBrisbane": 20,
   "tradeAlerts": false,
   "dailySummary": false,
-  "realityEveryDays": 14,
+  "realityEveryDays": 7,
   "kitty": true,
   "kittyMinUsd": 25,
   "bots": {
-    "rules": { "kittyWallet": "" },
+    "runner": { "kittyWallet": "" },
     "breakout": { "kittyWallet": "" },
-    "degen": { "kittyWallet": "" }
+    "range": { "kittyWallet": "", "discount": false },
+    "ignition": { "kittyWallet": "", "ignPct": 5, "ignVolX": 12, "ignMax24h": 150 }
   }
 }

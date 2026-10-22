@@ -9,7 +9,7 @@ const rd = (dir, f, d) => { try { const j = JSON.parse(fs.readFileSync(path.join
 // Books waiting to earn a spot in RynoBot. Each gets its own phone alert the first time the council calls it a bot candidate
 // (30+ closed paper trades, a luck-corrected edge, both halves positive, survives extra costs, beats random entries, no risk flag).
 // One alert per book; it re-arms only if the book later falls to "losing", so a wobble between calls cannot spam the phone.
-export const BOT_WATCH = { riskyRyan: "Ryan's setup on risky coins", riskyPick: "Claude's setup on risky coins" };
+export const BOT_WATCH = { riskyPick: "Claude's setup on risky coins" };   // Ryan's setup became the runner bot on 22 Oct
 const fR = (x) => (x == null || !isFinite(x) ? '—' : (x >= 0 ? '+' : '') + x.toFixed(2) + 'R');
 export function botSpotAlerts(c, prev = {}, watch = BOT_WATCH) {
   const spot = { ...((prev && prev.botSpot) || {}) }, alerts = [], books = (c && c.books) || [], base = books.find((b) => b.key === 'randomCtl');

@@ -62,12 +62,16 @@ function hatStats(G) {
   return { stance: edge.length ? 'for' : close.length ? 'wait' : losing.length ? 'against' : 'wait', headline, points: points.length ? points : ['Every book is still collecting trades.'], notes, metric: best != null ? pc(best) : `${total}`, metricLabel: best != null ? 'best book likely positive' : 'closed trades', total };
 }
 
+// Deflated-Sharpe idea (Bailey and Lopez de Prado): the more variants you try, the higher the best lucky one looks. With N variants the
+// expected best of N skill-free means is about sqrt(2 ln N) standard errors above zero; a book must beat that bar, not just zero.
+export function deflatedBar(e) { if (!e || !(e.n >= 10) || e.sd == null || e.tests == null) return null; const trials = Math.max(1, e.tests), z = Math.sqrt(2 * Math.log(trials)); return { trials, z: +z.toFixed(2), need: +((z * e.sd) / Math.sqrt(e.n)).toFixed(2) }; }
 function hatSkeptic(G) {
   const base = G.books.randomCtl ? G.books.randomCtl.ev : null, notes = {}, checks = {};
   for (const x of Object.values(G.books)) { const e = x.ev; if (x.key === 'randomCtl' || e.n < 10 || !(e.avgR > 0)) continue;
     const ck = [];
     ck.push(base && base.n >= 10 ? [e.avgR > base.avgR + 0.1, `beats random entries (${R(base.avgR)}) by 0.1R or more`] : [null, 'random baseline still collecting']);
     ck.push([e.exBestR > 0, 'still positive without its single best trade']);
+    { const bar = deflatedBar(e); ck.push(bar == null ? [null, 'too few trades for the variants bar'] : [e.avgR >= bar.need, `clears the variants bar: with ${bar.trials} rules and exits tried, the best loser would show about ${R(bar.need)} by luck`]); }
     ck.push(e.half1 != null ? [e.half1 > 0 && e.half2 > 0, 'first and second half both positive'] : [null, 'too few trades to split in halves']);
     ck.push(e.stressR != null ? [e.stressR > 0, 'survives 1% extra cost per round trip'] : [null, 'no cost check yet']);
     if (e.slipR != null) ck.push([e.slipR > 0, 'survives stops filling 5% worse (DEXes have no resting stop orders)']);
@@ -171,13 +175,25 @@ function hatExec(G) {
 
 // the server bots' own records (docs/data/bots/<bot>.json, published hourly by RynoBot when it has a GitHub token). What the bots really
 // filled, what they passed on and what happened next, and how their fills compare with the paper twins. Read only; it never changes a rule.
+// the bots' own gates, argued from their closed trades' pre-entry record: which buckets of each feature made or lost money
+const BOT_FEATS = [['stop distance', (m) => (m.stopPct == null ? null : m.stopPct < 10 ? 'under 10%' : m.stopPct < 20 ? '10-20%' : '20%+')], ['hour (UTC)', (m, t) => { const h = new Date(t.openedAt).getUTCHours(); return isNaN(h) ? null : h < 6 ? '00-06' : h < 12 ? '06-12' : h < 18 ? '12-18' : '18-24'; }], ['chain', (m, t) => t.chain || null], ['weekday (UTC)', (m, t) => { const d = new Date(t.openedAt).getUTCDay(); return isNaN(d) ? null : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]; }], ['token age', (m) => (m.ageH == null ? null : m.ageH < 48 ? 'under 2 days' : m.ageH < 168 ? '2-7 days' : '7 days+')], ['score', (m) => (m.opp == null ? null : m.opp < 65 ? 'under 65' : m.opp < 80 ? '65-80' : '80+')], ['reward to risk', (m) => (m.rr2 ?? m.rr) == null ? null : (m.rr2 ?? m.rr) < 3 ? 'under 3R' : (m.rr2 ?? m.rr) < 5 ? '3-5R' : '5R+'], ['ignition volume', (m) => (m.volX == null ? null : m.volX < 20 ? '12-20x' : m.volX < 40 ? '20-40x' : '40x+')], ['24h change at signal', (m) => (m.ch24 == null ? null : m.ch24 < 30 ? 'under 30%' : m.ch24 < 100 ? '30-100%' : '100%+')], ['liquidity', (m) => (m.liq == null ? null : m.liq < 200000 ? 'under $200k' : m.liq < 1e6 ? '$200k-1m' : '$1m+')], ['price impact', (m) => (m.impactPct == null ? null : m.impactPct < 0.5 ? 'under 0.5%' : m.impactPct < 1 ? '0.5-1%' : '1%+')]];
+export function botSlices(rec, minN = 5) {
+  const T = (rec && rec.closed || []).filter((t) => t.R != null && t.meta), out = []; if (T.length < 2 * minN) return out;
+  for (const [name, fn] of BOT_FEATS) { const by = {}; for (const t of T) { const v = fn(t.meta, t); if (v == null) continue; (by[v] ||= []).push(t.R); } const ks = Object.keys(by).filter((k) => by[k].length >= minN); if (ks.length < 2) continue;
+    const avg = (a) => a.reduce((x, y) => x + y, 0) / a.length, rows = ks.map((k) => ({ k, n: by[k].length, avgR: avg(by[k]) })).sort((a, b) => b.avgR - a.avgR), best = rows[0], worst = rows[rows.length - 1];
+    if (best.avgR - worst.avgR >= 0.5) out.push({ feat: name, best, worst, text: `${name}: ${best.k} averages ${(best.avgR >= 0 ? '+' : '') + best.avgR.toFixed(2)}R (${best.n}) against ${worst.k} at ${(worst.avgR >= 0 ? '+' : '') + worst.avgR.toFixed(2)}R (${worst.n})` }); }
+  return out.sort((a, b) => (b.best.avgR - b.worst.avgR) - (a.best.avgR - a.worst.avgR)).slice(0, 3);
+}
 function hatLive(botRecs, G) {
   const recs = Object.values(botRecs || {}).filter((r) => r && r.bot), pts = [], notes = {}; if (!recs.length) return { stance: 'wait', headline: 'No bot records yet (the server bots publish hourly once they have a GitHub token).', points: ['Nothing from the server bots yet.'], notes, metric: '0', metricLabel: 'bot records' };
-  const twin = { rules: 'exec', breakout: 'brkBot' }, R = (x) => (x == null ? '—' : (x >= 0 ? '+' : '') + (+x).toFixed(2) + 'R'), P = (x) => (x == null ? '—' : (x >= 0 ? '+' : '') + (+x).toFixed(1) + '%');
+  const twin = { rules: 'exec', breakout: 'brkBot', runner: 'riskyClip', degen: 'degenStudy' }, R = (x) => (x == null ? '—' : (x >= 0 ? '+' : '') + (+x).toFixed(2) + 'R'), P = (x) => (x == null ? '—' : (x >= 0 ? '+' : '') + (+x).toFixed(1) + '%');
   for (const r of recs) { const s = r.stats || {}, lab = G.books[twin[r.bot]], mode = r.execMode === 'live' ? 'LIVE' : r.execMode === 'quote' ? 'rehearsal quotes' : 'paper';
     const line = `${r.bot} bot (${mode}): ${s.closed || 0} closed, ${R(s.avgR)} a trade, ${P(r.account && r.account.pnlPct)} on the account${s.latencyN ? `; fills ${P(s.latencyPct)} off the trigger price over ${s.latencyN}` : ''}.`; pts.push(line); if (lab) notes[twin[r.bot]] = line;
     if (lab && lab.ev.n >= 5 && s.closed >= 5 && s.avgR != null && lab.ev.avgR != null) { const gap = lab.ev.avgR - s.avgR; pts.push(`${r.bot}: the paper twin averages ${R(lab.ev.avgR)} against the bot's ${R(s.avgR)} (${gap >= 0.3 ? 'the paper flatters by ' + gap.toFixed(2) + 'R a trade' : 'close enough to trust the paper'}).`); }
     const ps = r.passedSummary; if (ps && ps.n >= 5) pts.push(`${r.bot}: passed on ${ps.n} setups; ${Math.round((ps.avoided / ps.n) * 100)}% went on to stop out or fall (${P(ps.avgSince)} a day later on average)${ps.avoided / ps.n < 0.4 ? ': it is leaving good setups behind, look at the gates' : ': saying no has been right'}.`);
+    const Rs = (r.closed || []).map((t) => t.R).filter((x) => x != null); if (Rs.length >= 30) { const mu = Rs.reduce((a, b) => a + b, 0) / Rs.length, bs = bootstrap(Rs, 4000, 11), hi = bs.hi, lo = bs.lo;
+      pts.push(hi < 0 ? `${r.bot}: KILL RULE. ${Rs.length} closed, ${R(mu)} a trade and even the lucky end of its range (${R(hi)}) is under zero: retire this rulebook or change it.` : lo > 0 ? `${r.bot}: ${Rs.length} closed, ${R(mu)} a trade with the unlucky end of its range (${R(lo)}) above zero: a real edge so far.` : `${r.bot}: ${Rs.length} closed, ${R(mu)} a trade, range ${R(lo)} to ${R(hi)}: not decided yet.`); }
+    for (const sl of botSlices(r)) pts.push(`${r.bot}: ${sl.text}; worth a filter once it holds on new trades.`);
     const refused = (r.events || []).filter((e) => e.type === 'refused').length; if (refused) pts.push(`${r.bot}: ${refused} order${refused === 1 ? '' : 's'} refused by the market checks (slippage, safety, honeypot) in the last stretch.`); }
   const liveN = recs.filter((r) => r.execMode === 'live').length;
   return { stance: recs.some((r) => (r.stats || {}).closed >= 10 && r.stats.avgR > 0) ? 'for' : recs.some((r) => (r.stats || {}).closed >= 10 && r.stats.avgR < 0) ? 'against' : 'wait', headline: pts[0], points: pts, notes, metric: String(liveN), metricLabel: 'bots trading live' };

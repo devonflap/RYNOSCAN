@@ -6,7 +6,7 @@ import { statsBook, fromRun } from '../docs/exits.mjs';
 import { bootstrap } from '../docs/evidence.mjs';
 import { BOOKS } from '../docs/strategies.mjs';
 
-export const REALITY = { book: 'exec', everyDays: 14, matchH: 3, minN: 10 };
+export const REALITY = { book: 'exec', everyDays: 7, matchH: 3, minN: 10 };
 const T = (x) => { const t = Date.parse(x || ''); return isFinite(t) ? t : null; }, mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
 const r2 = (x) => (x == null || !isFinite(x) ? null : +x.toFixed(2)), pc = (x) => (x == null ? '—' : (x >= 0 ? '+' : '') + x.toFixed(1) + '%'), rr = (x) => (x == null ? '—' : (x >= 0 ? '+' : '') + x.toFixed(2) + 'R');
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'], day = (ms) => { const d = new Date(ms + 10 * 3600e3); return `${d.getUTCDate()} ${MON[d.getUTCMonth()]} ${d.getUTCFullYear()}`; }, within = (t, spans) => (spans || []).find(([a, b]) => t >= T(a) && t <= (T(b) ?? Infinity));
