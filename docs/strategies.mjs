@@ -18,6 +18,8 @@ export const BOOKS = {
   degenLadder: { group: 'degen', same: 'degen', label: 'Degen · ladder (bank on the way up)', short: 'Degen ladder', profile: 'ladder', entry: 'Same coins and times as the degen desk.', pct: 10, slots: 8 },
   degenMoon: { group: 'degen', same: 'degen', label: 'Degen · moonbag', short: 'Degen moonbag', profile: 'moon', entry: 'Same coins and times as the degen desk.', pct: 10, slots: 8 },
   degenStudy: { group: 'degen', same: 'degen', label: 'Degen · study exits', short: 'Degen study', profile: 'study', entry: 'Same coins and times as the degen desk, run with the study exits (40% floor, ride free at 2x, 50% giveback on 15-minute closes). Started 20 Oct.', pct: 10, slots: 8 },
+  degenStudyTrail: { group: 'degen', same: 'degen', label: 'Degen · study exits, 35% giveback', short: 'Degen study 35%', profile: 'studyTrail', entry: 'Same coins and times as the degen desk. Started 22 Oct: the study exits with the giveback tightened from 50% to 35%, after the first four runners all gave back 45-55% of their peak before the 50% line.', pct: 10, slots: 8 },
+  degenStudyBE: { group: 'degen', same: 'degen', label: 'Degen · study exits, protected', short: 'Degen study BE', profile: 'studyBE', entry: 'Same coins and times as the degen desk. Started 22 Oct: the study exits plus a stop to break-even once the trade has shown +30% and the seller cut, after three study losers peaked +25% to +45% before stopping out at -40%.', pct: 10, slots: 8 },
   degenFlow: { group: 'degen', same: 'degen', label: 'Degen · cut on sellers', short: 'Degen cut-on-sellers', profile: 'degenFlow', entry: 'Same coins and times as the degen desk. Started 19 Oct: tests whether getting out early when sellers take over cuts losses without cutting the runners.', pct: 10, slots: 8 },
   fibPull: { group: 'play', label: 'First Fib pullback (playbook)', short: 'Fib pullback', profile: 'fibPull', entry: 'A coin that ran 50% or more to a new high in the last 2 days (1-hour candles, wick to wick). Limit buy at the 0.5 retracement of that run, or 0.618 if price is already below 0.5; cancelled if it makes a new high first or after 48 hours.', pct: 6, slots: 6, maxNew: 3 },
   patInside: { group: 'play', label: 'Inside the pattern (playbook)', short: 'Inside pattern', profile: 'patInside', entry: 'A forming falling wedge, bull flag, double bottom, inverse H&S or cup & handle on the 4h chart. Limit buy in the lower third of the pattern (third touch, right shoulder, handle, second bottom); cancelled if it breaks out first or after 72 hours.', pct: 5, slots: 6, maxNew: 3 },
@@ -35,7 +37,7 @@ export const BOOKS = {
   scalpBreak: { group: 'scalp', label: 'Scalper · breakout', short: 'Scalp breakout', profile: 'scalpBreak', entry: '5-minute candle closes above the last hour\'s high on at least 2x normal volume, near the top of its range, uptrend on the 20-candle average, not already stretched.', pct: 5, slots: 4, maxNew: 3 },
 };
 for (const k of Object.keys(BOOKS)) if (BOOKS[k].profile) BOOKS[k].exits = PROFILES[BOOKS[k].profile].label;
-export const DEGEN_COPIES = ['degenLadder', 'degenMoon', 'degenFlow', 'degenStudy']; // Degen tight and Scalper dip-buy removed 19 Oct (they duplicated other books)
+export const DEGEN_COPIES = ['degenLadder', 'degenMoon', 'degenFlow', 'degenStudy', 'degenStudyTrail', 'degenStudyBE']; // Degen tight and Scalper dip-buy removed 19 Oct (they duplicated other books)
 
 // Exit rules compared on every logged runner (Learn tab, runner study). Same entries, only the exit differs.
 const DP = PROFILES.degen;

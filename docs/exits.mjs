@@ -31,6 +31,8 @@ export const PROFILES = {
   exec: { label: 'Execution stack: stop under the flush low (at least 5%), sell a third at +1R and move the stop to break-even, ride free at 2x (sell enough to get the stake back), trail the rest 25% under the high until free, then 50% under the best close; out after 6 hours without +1R, or when volume dies; 3 days max', stopPct: 0.08, ladderR: [[1, 1 / 3]], rideFree: { at: 2 }, giveback: 0.5, trailPct: 0.25, trailFrom: 'first', beAfterFirst: true, noFollow: { h: 6, upR: 1 }, volDeath: { ratio: 0.2 }, maxHours: 72, slipPct: 2, exitSlipPct: 0.5, sizeUsd: 1000, barSec: 900 },
   // study exits: a wide floor 40% under the entry, ride free at 2x, then out when a 15-minute candle closes 50% under the best close
   brk: { label: 'As backtested: the pattern plan stop, a third at TP1 (stop to break-even), a third at TP2, the rest at TP3, 7 days; 1.5% round-trip costs', stopPct: 0.2, ladder: [], trailPct: null, trailFrom: null, beAfterFirst: true, maxHours: 168, slipPct: 0.75, exitSlipPct: 0.75, sizeUsd: 500, barSec: 3600 },
+  studyTrail: { label: 'Study exits, tighter giveback: stop 40% under the entry, ride free at 2x, the rest rides until a 15-minute candle closes 35% under its best close, 7 days max', stopPct: 0.40, ladder: [], rideFree: { at: 2 }, giveback: 0.35, trailPct: null, trailFrom: null, beAfterFirst: false, maxHours: 168, slipPct: 3, exitSlipPct: 0, sizeUsd: 1000, barSec: 900 },
+  studyBE: { label: 'Study exits, protected: stop 40% under the entry, stop to break-even once the trade has shown +30%, the seller cut, ride free at 2x, 50% giveback, 7 days max', stopPct: 0.40, ladder: [], rideFree: { at: 2 }, giveback: 0.5, bePeak: 0.30, flowCut: { lossPct: 0.08, sellX: 1.2 }, trailPct: null, trailFrom: null, beAfterFirst: false, maxHours: 168, slipPct: 3, exitSlipPct: 0, sizeUsd: 1000, barSec: 900 },
   study: { label: 'Study exits: stop 40% under the entry, ride free at 2x (sell enough to get the stake back), the rest rides until a 15-minute candle closes 50% under its best close, 7 days max', stopPct: 0.40, ladder: [], rideFree: { at: 2 }, giveback: 0.5, trailPct: null, trailFrom: null, beAfterFirst: false, maxHours: 168, slipPct: 3, exitSlipPct: 0, sizeUsd: 1000, barSec: 900 },
   proven: { label: 'Proven wallets: stop 20%, half out at 2x (initial back), 25% at 3x, last 25% trails 35%, 5 days', stopPct: 0.20, ladder: [[2, 0.5], [3, 0.25]], trailPct: 0.35, trailFrom: 'first', beAfterFirst: true, maxHours: 120, slipPct: 3, exitSlipPct: 0, sizeUsd: 1000, barSec: 3600 },
   pulse: { label: 'Early pulse: stop 10%, 30% at +20% then stop to break-even, 30% at +50%, last 40% trails 20%, 12 hours', stopPct: 0.10, ladder: [[1.2, 0.3], [1.5, 0.3]], trailPct: 0.20, trailFrom: 'first', beAfterFirst: true, maxHours: 12, slipPct: 1.5, exitSlipPct: 0.5, sizeUsd: 500, barSec: 300 },
@@ -97,13 +99,14 @@ export function runExit(s, bars, nowIso, prof) {
     if (pend) { sell(t, o, rem, pend.why); status = pend.status; closedAt = t; pend = null; break; }
     if (cutT != null && cutPx == null && cutT >= E0 && t >= cutT) { sell(t, o, rem, 'cut'); status = 'cut early: sellers took over'; closedAt = t; break; }
     if (trailOn) stopNow = Math.max(stopNow, hiT * (1 - P.trailPct));
-    if (l <= stopNow) { lo = Math.min(lo, l); const px = Math.min(stopNow, fillBar ? F : o); sell(t, px, rem, hits ? (trailOn ? 'trail' : 'breakeven') : 'stop');
-      status = !hits ? 'stopped out' : trailOn ? `trailed out after ${lbl(hits)}` : `stopped at break-even after ${lbl(hits)}`; closedAt = t; break; }
+    if (l <= stopNow) { lo = Math.min(lo, l); const px = Math.min(stopNow, fillBar ? F : o); sell(t, px, rem, hits || stopNow >= F ? (trailOn ? 'trail' : 'breakeven') : 'stop');
+      status = !hits ? (stopNow >= F ? 'stopped at break-even (after showing a profit)' : 'stopped out') : trailOn ? `trailed out after ${lbl(hits)}` : `stopped at break-even after ${lbl(hits)}`; closedAt = t; break; }
     if (cutPx != null && cutT >= E0 && cutT < t + bs) { sell(t, cutT >= t ? cutPx : Math.min(cutPx, o), rem, 'cut'); status = 'cut early: sellers took over'; closedAt = t; break; }
     if (!fillBar) while (hits < ladder.length && h >= F * ladder[hits][0]) {
       sell(t, F * ladder[hits][0], ladder[hits][1], 'tp' + (hits + 1)); hits++;
       if (hits === 1) { if (P.beAfterFirst) stopNow = Math.max(stopNow, F); if (P.trailFrom === 'first' && P.trailPct > 0) { trailOn = true; hiT = Math.max(F, F * ladder[0][0]); } }
     }
+    if (P.bePeak > 0 && !free && h >= F * (1 + P.bePeak) && stopNow < F) { stopNow = F; }   // once the trade has shown +bePeak, it is not allowed to turn into a loss
     if (P.rideFree && !free && !fillBar && rem > 1e-9 && h >= F * P.rideFree.at) { const need = Math.max(0, 1 - gotRaw / F) / (P.rideFree.at * (1 - cut)); sell(t, F * P.rideFree.at, need, 'ridefree'); free = true; stopNow = 0; trailOn = false; }
     if (rem <= 1e-9) { status = free ? 'all sold at the ride-free level' : 'all targets hit'; closedAt = t; break; }
     hi = Math.max(hi, h); lo = Math.min(lo, l); if (trailOn) hiT = Math.max(hiT, h);

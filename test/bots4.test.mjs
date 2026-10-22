@@ -112,6 +112,13 @@ const bar = (t, o, h, l, c, v = 100) => [t, o, h, l, c, v];
   ok(b1 && b1.need === 0 && b20 && b20.trials === 20 && b20.need > 0.4 && b20.need < 0.5, 'one variant: no bar; twenty variants tried: the bar is about 0.45R on 30 trades with 1R spread');
   ok(deflatedBar({ n: 5, sd: 1, tests: 20 }) === null, 'too few trades: no bar'); }
 
+// ---- study-exit variants on the paper engine: break-even once +30% has shown; the 35% giveback
+{ const { runExit, PROFILES } = await import('../docs/exits.mjs'); const T0 = DAY * 1000, hb = (i, o, h, l, c) => [DAY + i * 900, o, h, l, c, 100], P = { ...PROFILES.studyBE, slipPct: 0, exitSlipPct: 0 }, s = { signalAt: iso(DAY - 60), fill: { px: 1.0, at: iso(DAY + 900) } };
+  const bars = [hb(0, 1, 1.01, 0.99, 1), hb(1, 1, 1.02, 0.99, 1.0), hb(2, 1.0, 1.4, 0.99, 1.35), hb(3, 1.35, 1.36, 1.1, 1.12), hb(4, 1.12, 1.13, 0.95, 0.96), hb(5, 0.96, 0.97, 0.7, 0.72), hb(6, 0.72, 0.73, 0.55, 0.58)];
+  const r = runExit(s, bars, iso(DAY + 40 * 3600), P), r0 = runExit(s, bars, iso(DAY + 40 * 3600), { ...PROFILES.study, slipPct: 0, exitSlipPct: 0 });
+  ok(/break-even/.test(r.status) && r.retPct > -1 && r.retPct < 1 && /stopped out/.test(r0.status) && r0.retPct < -35, 'protected study: a trade that showed +40% and then fell is out at break-even, where the plain study exits take the full -40%');
+  ok(PROFILES.studyTrail.giveback === 0.35 && PROFILES.study.giveback === 0.5 && PROFILES.studyBE.flowCut, 'the two variants: 35% giveback; break-even after +30% plus the seller cut'); }
+
 // ---- the four bots are what the services run, each with its own paper twin or none
 { ok(Object.keys(BOTS).join() === 'runner,breakout,range,ignition', 'four bots: runner, breakout, range, ignition');
   ok(BOTS.runner.realityBook === 'riskyClip' && BOTS.breakout.realityBook === 'brkBot' && BOTS.range.realityBook === null && BOTS.ignition.realityBook === null, 'runner and breakout have paper twins; range and ignition are new and judged on their own record');
