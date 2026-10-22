@@ -1,0 +1,27 @@
+# Tidies the repo after a flat web upload put bot files at the top level. Run it by hand: Actions tab -> "Tidy repo" -> Run workflow.
+# It deletes the stray copies at the root (the real ones live in bot/ and test/) and nothing else. Safe to run again any time.
+name: Tidy repo
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  tidy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Remove stray copies at the top level
+        run: |
+          set -e
+          removed=""
+          for f in SECURITY.md dash.html desk.mjs install.sh live.test.mjs run.mjs rynobot-dash.service rynobot@.service manage.mjs live.mjs evm.mjs wallet.mjs publish.mjs reality.mjs kitty.mjs setups.mjs config.example.json Caddyfile; do
+            if [ -f "$f" ]; then git rm -q "$f"; removed="$removed $f"; fi
+          done
+          # a stray bot README at the root: restore the scanner's own README from the last commit before it was overwritten
+          if head -1 README.md | grep -q "RynoBot"; then
+            last=$(git log --format=%H -S'# RynoScan' -- README.md | head -1)
+            git show "${last}:README.md" > README.md && git add README.md && removed="$removed README.md(restored)"
+          fi
+          git config user.name "rynoscan-bot"
+          git config user.email "rynoscan-bot@users.noreply.github.com"
+          if git diff --cached --quiet; then echo "nothing to tidy"; else git commit -m "tidy: remove stray top-level copies ($removed)" && git push; fi
