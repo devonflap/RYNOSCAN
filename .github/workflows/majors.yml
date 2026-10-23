@@ -1,0 +1,27 @@
+name: RynoScan BTC and ETH range backtest
+on:
+  schedule:
+    - cron: "45 14 * * 0"   # Sundays, after the giants study (Brisbane Monday 12:45am)
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: rynoscan-majors
+  cancel-in-progress: false
+jobs:
+  majors:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Backtest the Monday range on BTC and ETH (a year of Coinbase candles)
+        run: node src/majorsbt.mjs
+      - name: Save results
+        run: |
+          git config user.name "rynoscan-bot"
+          git config user.email "rynoscan-bot@users.noreply.github.com"
+          git add docs/data/majors-bt.json
+          git diff --cached --quiet && echo "no changes" || (git commit -m "majors backtest $(date -u +%Y-%m-%d)" && git pull --rebase -q && git push)
