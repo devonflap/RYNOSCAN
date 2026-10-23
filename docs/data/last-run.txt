@@ -1,4 +1,4 @@
-Full scan 04:12 Brisbane: 88 scanned, 69 scored, 4 above 65. On-chain volume Normal (1.09x 7-day avg).
+Hourly refresh 05:10 Brisbane: 5 tracked coins refreshed, 5 scored, 1 above 65. On-chain volume Normal (1.09x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: SPCX (Mint Authority still enabled), PUMP (top 10 wallets hold 60.3% (gate 30%)), SKHY (Mint Authority still enabled), ZEREBRO (Top 10 holders high ownership), DUCAT (owner can mint more), CASHCAT (top 10 wallets hold 36.3% (gate 30%)).
+Removed for token safety: FARTCOIN  (top 10 wallets hold 36.9% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
