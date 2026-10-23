@@ -53,7 +53,9 @@ export function rangeSetup(bars1h, bars15, nowSec, cfg = RANGE) {
   swingHi = since[lastHi][2]; for (let i = lowI + 1; i < since.length; i++) if (since[i][4] > swingHi) { msbI = i; break; } if (msbI < 0) return null;
   // order block: the last down candle between the swing low and the break
   let ob = null; for (let i = msbI; i >= lowI; i--) if (since[i][4] < since[i][1]) { ob = since[i]; break; } if (!ob) return { dead: 'the break left no order block (market noise)' };
-  const entry = ob[2], bodyLow = Math.min(ob[1], ob[4]), stop = +(bodyLow * 0.995).toPrecision(6), target = rHi, rr = (target - entry) / (entry - stop);
+  // entryAt 'top' (the rules as coded: the top of the order block) or 'mid' (its midpoint); stopAt 'ob' (just under the block's body) or
+  // 'sweep' (under the lowest low after the sweep: the level that actually proves the idea wrong, wider and outside the 15-minute noise)
+  const bodyLow = Math.min(ob[1], ob[4]), entry = cfg.entryAt === 'mid' ? (ob[2] + bodyLow) / 2 : ob[2], sweepLow = since[lowI][3], stop = +(cfg.stopAt === 'sweep' ? sweepLow * 0.998 : bodyLow * 0.995).toPrecision(6), target = rHi, rr = (target - entry) / (entry - stop);
   if (!(entry > stop) || !(rr > 0)) return null; if (rr < cfg.rrMin) return { dead: `only ${rr.toFixed(1)}R to the range high: under ${cfg.rrMin}R` }; if (rr > cfg.rrMax) return { dead: `${rr.toFixed(1)}R to the range high: over ${cfg.rrMax}R, too far to be real` };
   const mid = (since[lowI][3] + since[msbI][2]) / 2; if (cfg.discount && entry > mid) return { dead: 'order block is above the midpoint: not in discount' };
   return { zoneLow: +bodyLow.toPrecision(6), zoneHigh: +entry.toPrecision(6), stop, tp1: +target.toPrecision(6), rr: +rr.toFixed(2), rangeHi: rHi, rangeLo: rLo, sweepAt: sweepT, msbAt: since[msbI][0], discount: entry <= mid, expireH: cfg.expireH,

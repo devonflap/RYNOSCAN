@@ -19,6 +19,9 @@ export const VARIANTS = [
   { key: 'discount', label: 'plus the discount rule (order block under the midpoint)', cfg: { discount: true } },
   { key: 'rr2', label: '2R minimum instead of 3R', cfg: { rrMin: 2 } },
   { key: 'daily', label: 'previous-day range instead of Monday', cfg: { rangeMode: 'day', lastSweep: false } },
+  { key: 'sweepStop', label: 'stop under the sweep low (outside the 15-minute noise), 1.5R-8R', cfg: { stopAt: 'sweep', rrMin: 1.5 } },
+  { key: 'midEntry', label: 'entry at the middle of the order block (3R-12R: a lower entry is further from the target)', cfg: { entryAt: 'mid', rrMax: 12 } },
+  { key: 'sweepMid', label: 'both: entry at the middle, stop under the sweep low, 1.5R-8R', cfg: { stopAt: 'sweep', entryAt: 'mid', rrMin: 1.5 } },
 ];
 const r2 = (x) => (x == null || !isFinite(x) ? null : Math.round(x * 100) / 100);
 // first index with b[0] >= t (bars sorted by time)

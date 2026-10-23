@@ -151,6 +151,8 @@ export function manageLadder(pos0, q, nowSec, cfg = BOT) {
   if (cfg.peakGiveback && !pos.free && pos.remUnits > 0) { const G = cfg.peakGiveback, gain = pos.peak / pos.entry - 1; if (gain >= (G.armPct ?? 0.3) && price <= pos.entry * (1 + gain * (1 - (G.keep ?? 0.5)))) { sell(pos.remUnits, `gave back ${Math.round((G.keep ?? 0.5) * 100)}% of a +${Math.round(gain * 100)}% gain`, true); return { pos, actions }; } }
   // a dead chart (the trencher): no trade at all for deadMin minutes means the buyers are gone; out at whatever the curve pays
   if (cfg.deadMin > 0 && q.lastTradeSec > 0 && nowSec - q.lastTradeSec >= cfg.deadMin * 60) { sell(pos.remUnits, `dead chart: no trades for ${Math.round((nowSec - q.lastTradeSec) / 60)} minutes`, true); return { pos, actions }; }
+  // the same on DexScreener's numbers (the trencher's DexScreener lanes): not one trade in the last 5 minutes, after deadMin minutes held
+  if (cfg.deadMin > 0 && !(q.lastTradeSec > 0) && q.txns && q.txns.m5 && (+q.txns.m5.buys || 0) + (+q.txns.m5.sells || 0) === 0 && (nowSec - Date.parse(pos.openedAt) / 1000) >= cfg.deadMin * 60) { sell(pos.remUnits, 'dead chart: no trades in the last 5 minutes', true); return { pos, actions }; }
   // the seller cut (from the Degen cut-on-sellers book): underwater by sellersLoss and sellers lead the hour and the last 5 minutes: out
   if (cfg.flowCut && !pos.hits && price <= pos.entry * (1 - cfg.sellersLoss)) { const t1 = (q.txns && q.txns.h1) || {}, t5 = (q.txns && q.txns.m5) || {}, b1 = +t1.buys || 0, s1 = +t1.sells || 0;
     if (s1 > 0 && s1 >= cfg.sellersX * b1 && (+t5.sells || 0) > (+t5.buys || 0)) { sell(pos.remUnits, `sellers took over (${s1} sells vs ${b1} buys in the hour)`, true); return { pos, actions }; } }

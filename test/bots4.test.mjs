@@ -3,7 +3,7 @@
 import fs0 from 'node:fs'; process.env.RYNOBOT_DIR = fs0.mkdtempSync('/tmp/rynobots4-');
 import { rangeSetup, rangeSetupShort, ignitionSetup, runnerSetups, swings, runnerWhyNot, riderSetup, mondayStart, mondayStartTz, tzOffset, RANGE, RUN, RIDER } from '../bot/setups.mjs';
 import { simulate, simulateShort, stats, verdict } from '../src/majorsbt.mjs';
-import { trenchFeed, trenchSetup, quoteFor, trenchSetupsIn, TRENCH } from '../bot/trench.mjs';
+import { trenchFeed, trenchSetup, quoteFor, trenchSetupsIn, TRENCH, DSLAUNCH, TREND, dsLaunchSetup, trendSetup, fixLiq } from '../bot/trench.mjs';
 import { missedSummary } from '../bot/desk.mjs';
 import { missedReview, labVariants, council } from '../docs/council.mjs';
 import { studyChart, summarise } from '../src/giants.mjs';
@@ -214,6 +214,8 @@ const bar = (t, o, h, l, c, v = 100) => [t, o, h, l, c, v];
   ok(rangeSetup(h1, null, MON + 12 * 3600, cfgM) === null, 'on Monday itself: the range is still forming, no setup');
   const pre = rangeSetup(upTo(h1, now, 3600), null, now, cfgM); ok(pre && pre.need15 && pre.rangeLo === 100 && pre.rangeHi === 115, "Tuesday: Monday's range 100-115, swept to 97 and closed back inside in the same hour: asks for the 15-minute chart");
   const r = rangeSetup(upTo(h1, now, 3600), upTo(m15, now, 900), now, cfgM); ok(r && !r.dead && r.zoneHigh === 99.2 && r.zoneLow === 97.2 && r.tp1 === 115 && r.rr > 6 && r.rr < 6.5 && /Monday \(New York\)'s low/.test(r.why[0]), `structure break over 104, order block 97.2-99.2, stop ${r && r.stop}, target Monday's high, ${r && r.rr}R`);
+  const rS = rangeSetup(upTo(h1, now, 3600), upTo(m15, now, 900), now, { ...cfgM, stopAt: 'sweep', rrMin: 1.5 }), rM = rangeSetup(upTo(h1, now, 3600), upTo(m15, now, 900), now, { ...cfgM, entryAt: 'mid', rrMax: 12 });
+  ok(rS && !rS.dead && Math.abs(rS.stop - 96 * 0.998) < 0.01 && rS.zoneHigh === 99.2 && rM && !rM.dead && Math.abs(rM.zoneHigh - 98.2) < 1e-6 && rM.stop === r.stop, 'variants: the stop under the sweep low (95.8), or the entry at the middle of the order block (98.2)');
   const thu = TUE + 2 * 86400; ok(rangeSetup(upTo(h1, thu, 3600), upTo(m15, thu, 900), thu, cfgM) && rangeSetup(upTo(h1, thu, 3600), upTo(m15, thu, 900), thu, cfgM).sweepAt === TUE, 'on Thursday the same week, the latest sweep (Tuesday) is still the one it reads');
   // the backtest plays it out: fills at 99.2 on the next 15 minutes, out at 115
   const tr = simulate(h1, m15, cfgM, { from: MON + 86400, costPct: 0.1 }); const f = tr.filter((x) => x.filled);
@@ -269,6 +271,34 @@ const bar = (t, o, h, l, c, v = 100) => [t, o, h, l, c, v];
   const st = { positions: [], setups: {}, seen: {} }, jr = []; trenchSetupsIn(st, loadConfig('trench'), f, { J: (o) => jr.push(o), now: (t0 + 100) * 1000, nowIso: '2026-10-22T00:01:40Z', solUsd: 200 });
   ok(st.setups.M1 && st.setups.M1.kind === 'trench' && st.setups.M1.chain === 'solana' && Math.abs(st.setups.M1.stop / st.setups.M1.zoneHigh - 0.65) < 0.01 && !st.setups.M2 && jr.some((j) => j.type === 'skip' && j.pool === 'M2'), 'setups from the feed: PEPE10 in with a 35% stop, RUG skipped with the reason in the journal');
   ok(loadConfig('trench').maxPosPct === 1 && loadConfig('trench').maxHoldH === 1 && loadConfig('trench').deadMin === 4, 'trencher: $100 flat, an hour at most, dead after 4 quiet minutes'); }
+
+// ---- the trencher, rebuilt 23 Oct: it never fired because the per-coin trades never arrived. Launches with no feed trades are judged on
+// DexScreener; a trending lane watches pump.fun and PumpSwap; the feed reports what it received every hour
+{ const T0 = 1800000000, cfg = loadConfig('trench'), f = trenchFeed({ WS: null }); f.testing = true;
+  for (let i = 0; i < 3; i++) f.push({ txType: 'create', mint: 'L' + i, symbol: 'LAUNCH' + i, traderPublicKey: 'dev', initialBuy: 1e7, vSolInBondingCurve: 30, vTokensInBondingCurve: 1.07e9, marketCapSol: 28 }, T0 - 5 * 60);
+  ok(f.stats(T0).creates1h === 3 && f.stats(T0).trades1h === 0, 'the feed counts what it receives: 3 launches, no trades');
+  const dsPair = (mint, o = {}) => ({ chainId: 'solana', dexId: 'pumpfun', pairAddress: 'PAIR_' + mint, baseToken: { address: mint, symbol: 'X' + mint }, priceUsd: '0.00002', marketCap: 22000, txns: { m5: { buys: 40, sells: 20 }, h1: { buys: 60, sells: 25 } }, volume: { m5: 6000, h1: 9000 }, priceChange: { m5: 12, h1: 30 }, pairCreatedAt: (T0 - 300) * 1000, url: 'https://dexscreener.com/solana/PAIR_' + mint, ...o });
+  ok(dsLaunchSetup(dsPair('L0'), 5) && !dsLaunchSetup(dsPair('L0', { txns: { m5: { buys: 40, sells: 35 } } }), 5) && !dsLaunchSetup(dsPair('L0'), 1) && /no longer early/.test(dsLaunchSetup(dsPair('L0', { marketCap: 200000 }), 5).dead), 'DexScreener launch judge: 40 buys vs 20 sells, $6k in 5 minutes, $22k cap passes; sellers close behind, under 2 minutes old or already $200k does not');
+  const G = async (u) => (u.includes('/dex/tokens/') ? { pairs: u.split('/').pop().split(',').map((m) => (m === 'L1' ? dsPair(m) : dsPair(m, { txns: { m5: { buys: 5, sells: 9 } } }))) } : u.includes('geckoterminal') ? { data: u.includes('duration=5m&page=1') ? [{ id: 'solana_TRENDPOOL', attributes: { name: 'HOT / SOL' }, relationships: { dex: { data: { id: 'pumpswap' } } } }, { id: 'solana_RAYPOOL', attributes: { name: 'RAY / SOL' }, relationships: { dex: { data: { id: 'raydium' } } } }] : [] } : {});
+  const trendQ = { chainId: 'solana', dexId: 'pumpswap', pairAddress: 'TRENDPOOL', baseToken: { address: 'HOTMINT', symbol: 'HOT' }, priceUsd: '0.004', marketCap: 3.2e6, liquidity: { usd: 250000 }, txns: { m5: { buys: 90, sells: 40 } }, volume: { h1: 400000 }, priceChange: { m5: 4, h1: 45 }, pairCreatedAt: (T0 - 20 * 3600) * 1000 };
+  const asked = []; const Q = async (items) => { asked.push(...items.map((i) => i.pool)); return Object.fromEntries(items.filter((i) => i.pool === 'TRENDPOOL' || i.pool === 'RAYPOOL').map((i) => [i.pool.toLowerCase(), i.pool === 'TRENDPOOL' ? { ...trendQ } : { ...trendQ, dexId: 'raydium', pairAddress: 'RAYPOOL' }])); };
+  ok(trendSetup(trendQ, T0 * 1000) && /vertical/.test(trendSetup({ ...trendQ, priceChange: { m5: 4, h1: 450 } }, T0 * 1000).dead) && !trendSetup({ ...trendQ, pairCreatedAt: (T0 - 100 * 3600) * 1000 }, T0 * 1000), 'trending judge: 90 buys vs 40, $400k an hour, +45%: in; +450% in the hour is vertical; over 3 days old is not the trencher\'s');
+  const st = newState(cfg), jr = []; await trenchSetupsIn(st, cfg, f, { J: (o) => jr.push(o), now: T0 * 1000, nowIso: new Date(T0 * 1000).toISOString(), solUsd: 200, G, Q });
+  const ss = Object.values(st.setups); ok(ss.some((x) => x.src === 'ds' && x.pool === 'PAIR_L1' && x.kind === 'trench') && !ss.some((x) => x.pool === 'PAIR_L0') && ss.some((x) => x.src === 'trend' && x.pool === 'TRENDPOOL' && x.kind === 'trend' && Math.abs(x.stop / x.zoneHigh - 0.75) < 0.001) && !asked.includes('RAYPOOL'), 'one launch passes on DexScreener (the one with buyers), the pump.fun trending pool becomes a trend setup with a 25% stop, the Raydium pool is never even quoted');
+  // the bot end to end: it buys both, prices them on DexScreener (not the silent feed), and the trend position keeps the trend exits
+  const log0 = console.log; console.log = () => {}; let px = { PAIR_L1: 0.00002, TRENDPOOL: 0.004 };
+  const deps = (sec) => ({ now: sec * 1000, feed: f, getJson: async (u) => (u.includes('So1111') ? { pairs: [{ priceUsd: '200' }] } : G(u)), dsQuotes: async (items) => Object.fromEntries(items.map((i) => [i.pool.toLowerCase(), i.pool === 'TRENDPOOL' ? { ...trendQ, priceUsd: String(px.TRENDPOOL) } : { ...dsPair('L1'), priceUsd: String(px[i.pool] || 0.00002) }])), candles5: async () => null, notify: async () => {}, journal: (o) => jr.push(o), heartbeat: async () => {} });
+  const stB = newState(cfg); await cycle(stB, { ...cfg, setupsEveryMin: 0, slipPct: 0 }, deps(T0)); await cycle(stB, { ...cfg, setupsEveryMin: 0, slipPct: 0 }, deps(T0 + 60));
+  const pl = stB.positions.find((x) => x.pool === 'PAIR_L1'), pt = stB.positions.find((x) => x.pool === 'TRENDPOOL');
+  ok(pl && pt && pt.meta.signal === 'trend' && pt.meta.lane === 'trend' && pl.meta.lane === 'ds' && Math.abs(pt.stop / pt.entry - 0.75) < 0.02, 'the trencher bought the DexScreener launch and the trending coin ($100 each), the trending one with its 25% stop');
+  px = { PAIR_L1: 0.00002 * 1.6, TRENDPOOL: 0.004 }; await cycle(stB, { ...cfg, setupsEveryMin: 0, slipPct: 0 }, deps(T0 + 120)); console.log = log0;
+  const pl2 = stB.positions.find((x) => x.pool === 'PAIR_L1') || stB.closed.find((x) => x.pool === 'PAIR_L1'); ok(pl2 && pl2.hits >= 1, 'the launch ran 1.6x on DexScreener\'s price: the first clip was sold into the buyers');
+  // the dead chart on DexScreener's numbers, and the hourly report
+  const dq = { priceUsd: '1', txns: { m5: { buys: 0, sells: 0 }, h1: { buys: 3, sells: 1 } } }; const pd = openLadder({ pool: 'D', coin: 'D', chain: 'solana', mults: [1.5], shares: [0.5] }, { price: 1, stop: 0.6 }, 100, new Date(T0 * 1000).toISOString(), { ...cfg, slipPct: 0 }, 1e5);
+  ok(/no trades in the last 5 minutes/.test((manageLadder(pd, dq, T0 + 7 * 60, { ...cfg, deadMin: 6, slipPct: 0 }).actions[0] || {}).why || ''), 'dead chart on DexScreener: not one trade in 5 minutes, after 6 minutes held: out');
+  const stH = newState(cfg); stH.trench = { expired: 4, feedSetups: 0, dsSetups: 1, trendSetups: 2, hourAt: T0 * 1000 - 3601e3 }; const jh = []; await trenchSetupsIn(stH, cfg, f, { J: (o) => jh.push(o), now: T0 * 1000, nowIso: 'x', solUsd: 200 });
+  ok(jh.some((e) => e.type === 'feed' && /3 launches and 0 trades/.test(e.why) && /1 from DexScreener launches, 2 trending/.test(e.why)), 'once an hour the trencher says what it saw: ' + (jh.find((e) => e.type === 'feed') || {}).why);
+  ok(fixLiq({ marketCap: 50000 }).liquidity.usd === 10000 && fixLiq({ marketCap: 50000 }).liquidity.estimated && fixLiq({ liquidity: { usd: 7 } }).liquidity.usd === 7, 'a bonding-curve pair with no liquidity figure gets an estimate (a fifth of its market cap), marked as one'); }
 
 // ---- the missed-runner review: which gate stood in the way of the coin that ran
 { const q = (o) => ({ priceUsd: '1', volume: { h1: 30000, h24: 240000 }, txns: { h1: { buys: 120, sells: 90 } }, priceChange: { h1: 10, m5: 1, h24: 50 }, ...o });
