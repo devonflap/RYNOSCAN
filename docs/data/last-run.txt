@@ -1,5 +1,4 @@
-Hourly refresh 02:10 Brisbane: 6 tracked coins refreshed, 6 scored, 3 above 65. On-chain volume Normal (1.03x 7-day avg).
-NEW watch: TORCH (Robinhood) Trend pullback, opp 72, checks 5/6, stop 47% away, upside 141%; volume fading.
-NEW watch: CATE (Solana) Bottom reversal, opp 68, checks 5/6, stop 7.6% away, upside 63.6%; volume fading.
+Hourly refresh 03:10 Brisbane: 4 tracked coins refreshed, 4 scored, 1 above 65. On-chain volume Normal (1.03x 7-day avg).
 Market: SOL neutral, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: CASHCAT (top 10 wallets hold 36.3% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
