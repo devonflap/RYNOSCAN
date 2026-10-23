@@ -1,3 +1,8 @@
-Hourly refresh 09:10 Brisbane: 8 tracked coins refreshed, 8 scored, 5 above 65. On-chain volume Normal (0.94x 7-day avg).
+Full scan 10:11 Brisbane: 74 scanned, 62 scored, 8 above 65. On-chain volume Normal (0.87x 7-day avg).
+NEW watch: TORCH (Robinhood) Liquidity sweep reclaim, opp 77, checks 5/6, stop 39.8% away, upside 96.2%; volume fading.
+NEW watch: DACITY (Solana) Breakout retest, opp 71, checks 4/6, stop null% away, upside null%; volume fading; weak last 6h.
+NEW watch: PILL (Solana) Breakout retest, opp 69, checks 4/6, stop 82.8% away, upside 248.5%; volume fading; weak last 6h.
+NEW watch: STONK (Solana) Liquidity sweep reclaim, opp 68, checks 5/6, stop 14.4% away, upside 43.3%; more sellers than buyers in the last hour.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: SPCX (Mint Authority still enabled), TRUMP (Top 10 holders high ownership), CARDS (Top 10 holders high ownership), ZEREBRO (Top 10 holders high ownership), ANSEM (Single holder ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
