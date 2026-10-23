@@ -1,3 +1,5 @@
-Hourly refresh 08:10 Brisbane: 4 tracked coins refreshed, 4 scored, 1 above 65. On-chain volume Strong (1.19x 7-day avg).
+Full scan 09:11 Brisbane: 84 scanned, 65 scored, 2 above 65. On-chain volume Strong (1.21x 7-day avg).
+NEW watch: ABYSS (Robinhood) Trend pullback, opp 67, checks 5/6, stop 53% away, upside 159%; weak last 6h.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: TRUMP (Top 10 holders high ownership), TTWO (Mint Authority still enabled), DUCAT (owner can mint more), NOTE (owner can mint more), DJT (Mint Authority still enabled), ZEREBRO (Top 10 holders high ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
