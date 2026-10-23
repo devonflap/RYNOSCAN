@@ -74,7 +74,51 @@ export function managePosition(pos0, q, closes5, nowSec, cfg = BOT) {
   if (heldH >= cfg.maxHoldH && pos.remUnits > 0) sellAll(`time limit (${cfg.maxHoldH} hours)`);
   return { pos, actions };
 }
-export const pnlOf = (pos, price) => pos.bankedUsd + pos.remUnits * (price > 0 ? price : 0) - pos.costUsd;
+// what an open position is worth now: spot = units times the price; a perp = its margin plus the profit or loss on the full size, less
+// the fees and borrow so far (never under zero: that is a liquidation). A closed position is worth nothing more (it is all in bankedUsd).
+export const posValue = (p, price) => { if (p.mode !== 'perp') return p.remUnits * (price > 0 ? price : 0); if (!(p.remUnits > 0)) return 0; const px = price > 0 ? price : p.entry; return Math.max(0, p.costUsd + (p.side === 'short' ? -1 : 1) * (px - p.entry) * p.units - (p.feesUsd || 0) - (p.borrowUsd || 0)); };
+export const pnlOf = (pos, price) => pos.bankedUsd + posValue(pos, price) - pos.costUsd;
+// open risk of a position (what hitting its stop would cost now): perps carry it in riskUsd; spot from the units left and the stop
+export const riskOf = (p, slipPct = 0) => (p.mode === 'perp' ? (p.remUnits > 0 ? p.riskUsd || 0 : 0) : p.free ? 0 : Math.max(0, p.remUnits * (p.entry - p.stop * (1 - (p.slipOut ?? slipPct) / 100))));
+
+// ---------- PERPS (paper only: the BTC and ETH range bots; no perps executor exists, live is refused) ----------
+// Costs modelled on Jupiter Perps: 0.06% of the position size to open and again to close, borrow charged hourly on the full size
+// (borrowPctH, 0.002%/hour: their example rate is 0.0016%), USDC collateral. Liquidation when the loss eats the margin less a
+// maintenance cushion (mmPct of the size); a liquidation loses the whole margin. Size: the 1% risk spread over stop distance plus fees,
+// capped at maxNotionalX times the pot; the stop must sit well inside the liquidation price (stopPct at most 80% of the distance to it).
+export const PERP = { leverage: 10, feePct: 0.06, borrowPctH: 0.002, mmPct: 0.75, maxNotionalX: 3 };
+export const liqDistPct = (lev, mmPct = PERP.mmPct) => 100 / lev - mmPct;
+export function perpSize(acct, stopPct, openRiskUsd, cfg) {
+  const P = { ...PERP, ...cfg }, eff = stopPct + 2 * P.feePct, riskUsd = acct.equity * P.riskPct / 100; let notional = riskUsd / (eff / 100), cut = null;
+  if (stopPct > 0.8 * liqDistPct(P.leverage, P.mmPct)) return { notional: 0, cut: `stop ${stopPct.toFixed(1)}% is too close to liquidation at ${P.leverage}x (${liqDistPct(P.leverage, P.mmPct).toFixed(1)}%)` };
+  const caps = [[acct.equity * P.maxNotionalX, `size cap ${P.maxNotionalX}x the pot`], [acct.cash * P.leverage, 'cash for the margin'], [acct.equity * P.maxPosPct / 100 * P.leverage, 'margin cap'], [Math.max(0, acct.equity * P.maxOpenRiskPct / 100 - openRiskUsd) / (eff / 100), 'open risk cap']];
+  for (const [lim, why] of caps) if (notional > lim) { notional = Math.max(0, lim); cut = why; }
+  return { notional: +notional.toFixed(2), margin: +(notional / P.leverage).toFixed(2), riskUsd: +(notional * eff / 100).toFixed(2), cut };
+}
+export function openPerp(setup, d, sz, nowIso, cfg) {
+  const P = { ...PERP, ...cfg }, side = setup.side === 'short' ? 'short' : 'long', entry = d.price, units = sz.notional / entry, ld = liqDistPct(P.leverage, P.mmPct) / 100;
+  return { id: setup.pool + '@' + nowIso + (side === 'short' ? ':s' : ''), mode: 'perp', side, coin: setup.coin, chain: setup.chain, pool: setup.pool, url: setup.url || null, openedAt: nowIso, entry: +entry.toPrecision(8), stop0: d.stop, stop: d.stop, tp1: setup.tp1, targets: [setup.tp1], hits: 0,
+    leverage: P.leverage, notional: sz.notional, units, remUnits: units, costUsd: sz.margin, bankedUsd: 0, feesUsd: +(sz.notional * P.feePct / 100).toFixed(4), borrowUsd: 0, borrowAt: Date.parse(nowIso) / 1000, liqPx: +(entry * (side === 'short' ? 1 + ld : 1 - ld)).toPrecision(8), riskUsd: sz.riskUsd, peak: entry, trough: entry, sells: [], free: false };
+}
+export function managePerp(pos0, q, nowSec, cfg) {
+  const P = { ...PERP, ...cfg }, pos = { ...pos0, sells: [...(pos0.sells || [])] }, price = n(q && q.priceUsd), actions = []; if (!(price > 0) || !(pos.remUnits > 0)) return { pos, actions };
+  const dir = pos.side === 'short' ? -1 : 1, at = new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z';
+  pos.borrowUsd = +((pos.borrowUsd || 0) + pos.notional * P.borrowPctH / 100 * Math.max(0, nowSec - (pos.borrowAt || nowSec)) / 3600).toFixed(4); pos.borrowAt = nowSec; pos.peak = Math.max(pos.peak, price); pos.trough = Math.min(pos.trough ?? price, price);
+  const close = (px, why, liquidated = false) => { const exitFee = pos.units * px * P.feePct / 100, pnl = dir * (px - pos.entry) * pos.units - pos.feesUsd - exitFee - pos.borrowUsd, banked = liquidated ? 0 : Math.max(0, pos.costUsd + pnl); pos.feesUsd = +(pos.feesUsd + exitFee).toFixed(4); pos.remUnits = 0; pos.bankedUsd = +banked.toFixed(2); const a = { why, units: pos.units, usd: pos.bankedUsd, px: +px.toPrecision(8), all: true, at }; pos.sells.push(a); actions.push(a); return { pos, actions }; };
+  if (P.closeNow) return close(price, 'closed by hand from the desk');
+  if (dir * (price - pos.liqPx) <= 0) return close(pos.liqPx, `liquidated at ${pos.leverage}x: the whole margin is gone`, true);
+  if (dir * (price - pos.stop) <= 0) return close(price * (1 - dir * (P.slipPct || 0) / 100), 'stop');
+  if (pos.tp1 > 0 && dir * (price - pos.tp1) >= 0) { pos.hits = 1; return close(pos.tp1, pos.side === 'short' ? "target: Monday's low" : "target: Monday's high"); }
+  if ((nowSec - Date.parse(pos.openedAt) / 1000) / 3600 >= (P.maxHoldH || 120)) return close(price, `time limit (${Math.round((P.maxHoldH || 120) / 24)} days)`);
+  return { pos, actions };
+}
+// the short-side limit: rests at the bottom of the bearish order block; a price through the stop (above) first cancels it
+export function decideLimitShort(setup, price, nowSec, cfg = BOT) {
+  if (!(price > 0)) return null; const age = nowSec - Date.parse(setup.at) / 1000, eh = setup.expireH || 48;
+  if (age > eh * 3600) return { act: 'drop', why: `expired (no fill in ${eh} hours)` }; if (price >= setup.stop) return { act: 'drop', why: 'cancelled (price went through the stop before the limit filled)' };
+  if (price < setup.zoneLow) return null; const fillPx = setup.zoneLow, stopPct = (setup.stop / fillPx - 1) * 100; if (stopPct > (cfg.maxStopPct || 35)) return { act: 'drop', why: `stop would be ${stopPct.toFixed(0)}% away: too wide` };
+  return { act: 'buy', price: fillPx, stop: setup.stop, stopPct: +stopPct.toFixed(2), kind: 'short limit at the bottom of the order block', why: [price > setup.zoneHigh ? 'price went through the zone: the short filled at the bottom of it' : 'price came back up into the order block'] };
+}
 
 // ---------- Breakout retest (the pattern exactly as the backtest traded it) ----------
 // Entry: a limit order at the top of the retest zone, 48 hours to fill; cancelled if the price falls through the stop first.
@@ -120,8 +164,17 @@ export function manageLadder(pos0, q, nowSec, cfg = BOT) {
   while (pos.hits < N && price >= pos.targets[pos.hits] && pos.remUnits > 0) {
     const last = pos.hits === N - 1 && !hasMoon; sell(last ? pos.remUnits : pos.units * share(pos.hits), `TP${pos.hits + 1}: ${last ? 'the rest' : N === 3 && !pos.shares ? 'a third' : Math.round(share(pos.hits) * 100) + '%'}`, last);
     pos.hits++; if (pos.hits === 1 && cfg.beAfterFirst !== false) { pos.tp1Done = true; pos.stop = Math.max(pos.stop, pos.entry); (pos.moves ||= []).push({ at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z', stop: pos.stop, why: 'break-even after TP1' }); }
-    if (pos.hits === N && hasMoon && pos.remUnits > 0) { pos.free = true; pos.stop = 0; pos.moonPeak = price; (pos.moves ||= []).push({ at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z', stop: 0, why: `${Math.round(moon * 100)}% moonbag: no stop, trails ${Math.round((cfg.moonTrail || 0.45) * 100)}% off its high` }); } }
-  if (pos.free && hasMoon && pos.remUnits > 0) { pos.moonPeak = Math.max(pos.moonPeak || price, price); if (price <= pos.moonPeak * (1 - (cfg.moonTrail || 0.45))) { sell(pos.remUnits, `moonbag trail: ${Math.round((cfg.moonTrail || 0.45) * 100)}% off the high`, true); return { pos, actions }; } }
+    if (pos.hits === N && hasMoon && pos.remUnits > 0) { pos.free = true; pos.stop = 0; pos.moonPeak = price; (pos.moves ||= []).push({ at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z', stop: 0, why: cfg.ticketExit ? `${Math.round(moon * 100)}% giant ticket: no stop, no trail; sold only when the coin is dead (${cfg.ticketExit.days || 7}-day volume under ${cfg.ticketExit.deadVolPct ?? 5}% of its best week) or after ${cfg.ticketExit.maxDays || 120} days` : `${Math.round(moon * 100)}% moonbag: no stop, trails ${Math.round((cfg.moonTrail || 0.45) * 100)}% off its high` }); } }
+  // the giant ticket (the rider; from the giants study, 22 Oct: the five complete giants fell 92-99% on the way to 85x-3,549x, so no price
+  // trail survives them and "hold" beat every trail 16 to 1): the moonbag is never sold on price. It is sold when the coin is dead:
+  // the last `days` days' average 24-hour volume under deadVolPct of the best such average since entry (interest gone), or after maxDays.
+  if (pos.free && hasMoon && pos.remUnits > 0 && cfg.ticketExit) { const T = cfg.ticketExit, dayK = Math.floor(nowSec / 86400), v24 = +(q.volume && q.volume.h24) || 0; pos.volLog ||= []; const lastD = pos.volLog.length ? pos.volLog[pos.volLog.length - 1][0] : null;
+    if (lastD !== dayK) pos.volLog.push([dayK, v24]); else pos.volLog[pos.volLog.length - 1][1] = Math.max(pos.volLog[pos.volLog.length - 1][1], v24); pos.volLog = pos.volLog.slice(-400);
+    const n = T.days || 7, avg = (xs) => xs.reduce((a, x) => a + x[1], 0) / xs.length; if (pos.volLog.length >= 2 * n) { let best = 0; for (let i = n; i <= pos.volLog.length; i++) best = Math.max(best, avg(pos.volLog.slice(i - n, i))); const nowAvg = avg(pos.volLog.slice(-n));
+      if (best > 0 && nowAvg < best * ((T.deadVolPct ?? 5) / 100)) { sell(pos.remUnits, `giant ticket: the coin is dead (${n}-day volume ${Math.round((nowAvg / best) * 100)}% of its best week)`, true); return { pos, actions }; } }
+    if (heldH >= (T.maxDays || 120) * 24) { sell(pos.remUnits, `giant ticket: ${T.maxDays || 120} days are up`, true); return { pos, actions }; }
+    pos.moonPeak = Math.max(pos.moonPeak || price, price); }
+  else if (pos.free && hasMoon && pos.remUnits > 0) { pos.moonPeak = Math.max(pos.moonPeak || price, price); if (price <= pos.moonPeak * (1 - (cfg.moonTrail || 0.45))) { sell(pos.remUnits, `moonbag trail: ${Math.round((cfg.moonTrail || 0.45) * 100)}% off the high`, true); return { pos, actions }; } }
   if (pos.remUnits > 0 && heldH >= (cfg.maxHoldH || 168)) sell(pos.remUnits, `time limit (${Math.round((cfg.maxHoldH || 168) / 24)} days)`, true);
   return { pos, actions };
 }
@@ -188,7 +241,7 @@ export function decideMinute(setup, bars1m, price, nowSec, cfg = BOT) {
   const t0 = Date.parse(setup.at) / 1000, waitMin = cfg.minWaitMin ?? 15, failPct = cfg.minFailPct ?? 10, chase = cfg.chaseLimitPct ?? 10; if (!(price > 0)) return null;
   if (price < setup.zoneHigh * (1 - failPct / 100)) return { act: 'drop', why: `fell ${failPct}%+ under the signal price before any entry` };
   if (nowSec - t0 > waitMin * 60) return { act: 'drop', why: `no green minute within ${waitMin} minutes of the signal` };
-  const B = (bars1m || []).filter((b) => b[0] + 60 <= nowSec && b[0] + 60 > t0 - 60); if (B.length < 2) return null; const last = B[B.length - 1], prev = B[B.length - 2];
+  const B = (bars1m || []).filter((b) => b[0] + 60 <= nowSec); if (B.length < 2) return null; const last = B[B.length - 1], prev = B[B.length - 2]; if (last[0] + 60 <= t0) return null; // the green minute must close after the signal
   if (!(last[4] > last[1] && last[4] > prev[4])) return null; if (price > setup.zoneHigh * (1 + chase / 100)) return { act: 'drop', why: `already ${chase}%+ above the signal price: chased` };
   const stop = +(price * (1 - (cfg.fixedStopPct || 15) / 100)).toPrecision(6);
   return { act: 'buy', price, stop, stopPct: cfg.fixedStopPct || 15, kind: 'first green minute', why: [`first green 1-minute close above the previous close after the signal`, ...(setup.why || []).slice(0, 2)] };

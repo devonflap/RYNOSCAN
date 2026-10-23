@@ -55,49 +55,57 @@
   "name": "dogwifhat",
   "chain": "solana",
   "token": "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm",
-  "cg": "dogwifcoin"
+  "cg": "dogwifcoin",
+  "gate": "WIF_USDT"
  },
  {
   "symbol": "POPCAT",
   "chain": "solana",
   "token": "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr",
-  "cg": "popcat"
+  "cg": "popcat",
+  "gate": "POPCAT_USDT"
  },
  {
   "symbol": "AI16Z",
   "chain": "solana",
   "token": "HeLp6NuQkmYB4pYWo2zYs22mESHXPQYzXbB8n4V98jwC",
-  "cg": "ai16z"
+  "cg": "ai16z",
+  "gate": "AI16Z_USDT"
  },
  {
   "symbol": "BONK",
   "chain": "solana",
   "token": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
-  "cg": "bonk"
+  "cg": "bonk",
+  "gate": "BONK_USDT"
  },
  {
   "symbol": "FARTCOIN",
   "chain": "solana",
   "token": "9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump",
-  "cg": "fartcoin"
+  "cg": "fartcoin",
+  "gate": "FARTCOIN_USDT"
  },
  {
   "symbol": "PNUT",
   "chain": "solana",
   "token": "2qEHjDLDLbuBgRYvsxhc5D6uDWAivNFZGan56P1tpump",
-  "cg": "peanut-the-squirrel"
+  "cg": "peanut-the-squirrel",
+  "gate": "PNUT_USDT"
  },
  {
   "symbol": "GOAT",
   "chain": "solana",
   "token": "CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuypump",
-  "cg": "goatseus-maximus"
+  "cg": "goatseus-maximus",
+  "gate": "GOAT_USDT"
  },
  {
   "symbol": "MOODENG",
   "chain": "solana",
   "token": "ED5nyyWEzpPPiWimP8vYm7sD7TD3LaT3dAAcHvCjpump",
-  "cg": "moo-deng"
+  "cg": "moo-deng",
+  "gate": "MOODENG_USDT"
  },
  {
   "symbol": "TORCH",
@@ -128,7 +136,8 @@
   "symbol": "HAWK",
   "chain": "solana",
   "kind": "dud",
-  "cg": "hawk-tuah"
+  "cg": "hawk-tuah",
+  "gate": "HAWK_USDT"
  },
  {
   "symbol": "LIBRA",
@@ -140,27 +149,32 @@
   "symbol": "MELANIA",
   "chain": "solana",
   "kind": "dud",
-  "cg": "melania-meme"
+  "cg": "melania-meme",
+  "gate": "MELANIA_USDT"
  },
  {
   "symbol": "PONKE",
   "chain": "solana",
-  "cg": "ponke"
+  "cg": "ponke",
+  "gate": "PONKE_USDT"
  },
  {
   "symbol": "PEPE",
   "chain": "ethereum",
-  "cg": "pepe"
+  "cg": "pepe",
+  "gate": "PEPE_USDT"
  },
  {
   "symbol": "TRUMP",
   "chain": "solana",
-  "cg": "official-trump"
+  "cg": "official-trump",
+  "gate": "TRUMP_USDT"
  },
  {
   "symbol": "SPX",
   "name": "SPX6900",
   "chain": "ethereum",
-  "cg": "spx6900"
+  "cg": "spx6900",
+  "gate": "SPX_USDT"
  }
 ]

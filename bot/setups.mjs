@@ -20,16 +20,30 @@
 //   the scanner's runners that pass at least 3 of the 4 checks with no risk rule tripped, at most 2 new per scan, bought on sight.
 const n = (v) => (v == null || v === '' || !isFinite(+v) ? null : +v);
 export const RANGE = { rrMin: 3, rrMax: 8, discount: false, expireH: 24, swept: 72 };
-export const IGN = { ignPct: 5, ignVolX: 12, ignMax24h: 150, ignMinHist: 48, ignBuyX: 1.1 };
+export const IGN = { ignPct: 5, ignVolX: 12, ignMax24h: 150, ignMinHist: 6, ignBuyX: 1.1 }; // ignMinHist was 48 hours until 23 Oct: 23 of 27 missed runners were under two days old, so the candle could never fire on them
 
 // bars: [[tSec, open, high, low, close, vol], ...] oldest first. dayStart(nowSec) = 00:00 UTC of the current day.
 const dayStart = (t) => Math.floor(t / 86400) * 86400;
 export function swings(bars) { const hi = [], lo = []; for (let i = 1; i < bars.length - 1; i++) { if (bars[i][2] > bars[i - 1][2] && bars[i][2] > bars[i + 1][2]) hi.push(i); if (bars[i][3] < bars[i - 1][3] && bars[i][3] < bars[i + 1][3]) lo.push(i); } return { hi, lo }; }
 
+// the Monday range (CSK's rules as written, for BTC and ETH): Monday 00:00-24:00 UTC sets the range; Tuesday to Sunday, the setup is the
+// sweep of Monday's low and the reclaim. rangeMode 'day' is the previous-UTC-day version the meme-coin range bot used (retired).
+export const mondayStart = (t) => { const d = Math.floor(t / 86400); return (d - ((d + 3) % 7)) * 86400; }; // 1 Jan 1970 was a Thursday
+// a time zone's offset from UTC at an instant, in seconds (America/New_York: -4 hours in summer, -5 in winter)
+const tzFmt = {}; export function tzOffset(t, tz) { if (!tz || tz === 'UTC') return 0; const f = (tzFmt[tz] ||= new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })); const p = Object.fromEntries(f.formatToParts(new Date(t * 1000)).map((x) => [x.type, x.value])); return (Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second) / 1000) - Math.floor(t); }
+// Monday 00:00 in a time zone, as a UTC instant (the New York Monday: the week as America trades it; DST switches fall on Sundays, never inside Monday)
+export function mondayStartTz(t, tz) { if (!tz || tz === 'UTC') return mondayStart(t); const L = t + tzOffset(t, tz), m0L = mondayStart(L); let m0 = m0L - tzOffset(m0L - tzOffset(t, tz), tz); m0 = m0L - tzOffset(m0, tz); return m0; }
+export function rangeWindow(nowSec, mode = 'day', tz = null) {
+  if (mode === 'monday') { const m0 = mondayStartTz(nowSec, tz); if (nowSec < m0 + 86400) return null; return { from: m0, to: m0 + 86400, after: m0 + 86400, label: tz === 'America/New_York' ? 'Monday (New York)' : 'Monday' }; }
+  const d0 = dayStart(nowSec); return { from: d0 - 86400, to: d0, after: d0, label: 'yesterday' };
+}
 export function rangeSetup(bars1h, bars15, nowSec, cfg = RANGE) {
-  if (!Array.isArray(bars1h)) return null; const d0 = dayStart(nowSec), prev = bars1h.filter((b) => b[0] >= d0 - 86400 && b[0] < d0), today = bars1h.filter((b) => b[0] >= d0 && b[0] + 3600 <= nowSec);
-  if (prev.length < 20) return { dead: 'not enough of yesterday' }; const rHi = Math.max(...prev.map((b) => b[2])), rLo = Math.min(...prev.map((b) => b[3]));
-  let sweepI = -1; for (let i = 0; i < today.length; i++) if (today[i][3] < rLo) { sweepI = i; break; } if (sweepI < 0) return null;
+  if (!Array.isArray(bars1h)) return null; const W = rangeWindow(nowSec, cfg.rangeMode, cfg.rangeTz); if (!W) return null; // Monday itself: the range is still forming
+  const prev = bars1h.filter((b) => b[0] >= W.from && b[0] < W.to), today = bars1h.filter((b) => b[0] >= W.after && b[0] + 3600 <= nowSec);
+  if (prev.length < 20) return { dead: `not enough of ${W.label}'s candles` }; const rHi = Math.max(...prev.map((b) => b[2])), rLo = Math.min(...prev.map((b) => b[3]));
+  // the first sweep (day mode, as the meme bot traded it) or the latest one (Monday mode: a week can sweep the low several times; the newest is the live setup)
+  let sweepI = -1; if (cfg.lastSweep) { for (let i = today.length - 1; i >= 0; i--) if (today[i][3] < rLo) { sweepI = i; break; } } else { for (let i = 0; i < today.length; i++) if (today[i][3] < rLo) { sweepI = i; break; } } if (sweepI < 0) return null;
+  if (cfg.lastSweep) { while (sweepI > 0 && today[sweepI - 1][3] < rLo) sweepI--; } // back to the first candle of that sweep (several hours under the low are one sweep)
   let backI = -1; for (let i = sweepI; i < today.length; i++) if (today[i][4] > rLo) { backI = i; break; } if (backI < 0) return null;
   if (!Array.isArray(bars15)) return { need15: true, rangeHi: rHi, rangeLo: rLo }; // the hourly part passed: the caller fetches the 15-minute candles and calls again
   const sweepT = today[sweepI][0], since = bars15.filter((b) => b[0] >= sweepT && b[0] + 900 <= nowSec); if (since.length < 6) return null;
@@ -43,7 +57,7 @@ export function rangeSetup(bars1h, bars15, nowSec, cfg = RANGE) {
   if (!(entry > stop) || !(rr > 0)) return null; if (rr < cfg.rrMin) return { dead: `only ${rr.toFixed(1)}R to the range high: under ${cfg.rrMin}R` }; if (rr > cfg.rrMax) return { dead: `${rr.toFixed(1)}R to the range high: over ${cfg.rrMax}R, too far to be real` };
   const mid = (since[lowI][3] + since[msbI][2]) / 2; if (cfg.discount && entry > mid) return { dead: 'order block is above the midpoint: not in discount' };
   return { zoneLow: +bodyLow.toPrecision(6), zoneHigh: +entry.toPrecision(6), stop, tp1: +target.toPrecision(6), rr: +rr.toFixed(2), rangeHi: rHi, rangeLo: rLo, sweepAt: sweepT, msbAt: since[msbI][0], discount: entry <= mid, expireH: cfg.expireH,
-    why: [`swept yesterday's low ${rLo} and closed back inside`, `15-minute structure break at ${swingHi}`, `order block ${bodyLow}-${entry}`, `${rr.toFixed(1)}R to the range high ${rHi}`] };
+    why: [`swept ${W.label}'s low ${rLo} and closed back inside`, `15-minute structure break at ${swingHi}`, `order block ${bodyLow}-${entry}`, `${rr.toFixed(1)}R to the range high ${rHi}`] };
 }
 
 // bars1h: hourly candles oldest first, the last one may still be forming (ignored unless closed). q: DexScreener pair (txns.h1, priceChange.h24, liquidity).
@@ -89,6 +103,19 @@ export const MIN = { surgeX: 1.8, buyX: 1.05, minH1Pct: 2, maxH1Pct: 120, max24h
 export function runnerSetups(items, { minPassed = 3, maxNew = 2, minLiqUsd = 100000 } = {}) {
   const ok = (Array.isArray(items) ? items : []).filter((r) => r && r.pool && (r.passed ?? 0) >= minPassed && !(r.vetoed || []).length && n(r.price) > 0 && (n(r.m && r.m.liq) ?? Infinity) >= minLiqUsd);
   return ok.sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, maxNew).map((r) => ({ pool: r.pool, coin: r.coin, chain: r.chain, token: r.token || null, price: +r.price, opp: r.score ?? null, liq: n(r.m && r.m.liq) || 0, checks: (r.checks || []).filter((c) => c.ok).map((c) => c.k), why: (r.checks || []).filter((c) => c.ok).map((c) => `${c.k}: ${c.note}`) }));
+}
+
+// the short side, the mirror image (paper perps only): a sweep of Monday's HIGH, an hourly close back inside, a 15-minute break DOWN through
+// the last swing low, the bearish order block (the last green candle before the break), a short limit at its bottom, stop just over its
+// body, target Monday's low. Built by running the long detector on the price turned upside down (1/price): every high becomes a low,
+// every rule maps exactly onto its mirror, so the two sides can never drift apart. Levels are mapped back to real prices.
+const invBar = (b) => [b[0], 1 / b[1], 1 / b[3], 1 / b[2], 1 / b[4], b[5]];
+export function rangeSetupShort(bars1h, bars15, nowSec, cfg = RANGE) {
+  const r = rangeSetup(Array.isArray(bars1h) ? bars1h.map(invBar) : bars1h, Array.isArray(bars15) ? bars15.map(invBar) : bars15, nowSec, cfg); if (!r) return r;
+  if (r.dead || r.need15) return r.need15 ? { ...r, rangeHi: 1 / r.rangeLo, rangeLo: 1 / r.rangeHi, side: 'short' } : { ...r, dead: r.dead.replace("'s low", "'s high").replace('to the range high', 'to the range low'), side: 'short' };
+  const entry = 1 / r.zoneHigh, top = 1 / r.zoneLow, stop = 1 / r.stop, target = 1 / r.tp1, rr = (entry - target) / (stop - entry), P = (x) => +x.toPrecision(6);
+  return { ...r, side: 'short', zoneLow: P(entry), zoneHigh: P(top), stop: P(stop), tp1: P(target), rr: +rr.toFixed(2), rangeHi: 1 / r.rangeLo, rangeLo: 1 / r.rangeHi,
+    why: [`swept the ${r.why[0].match(/swept (.*?)'s low/) ? r.why[0].match(/swept (.*?)'s low/)[1] : 'range'}'s high ${P(1 / r.rangeLo)} and closed back inside`, `15-minute structure break down through ${P(1 / +r.why[1].split(' at ')[1])}`, `bearish order block ${P(entry)}-${P(top)}`, `${rr.toFixed(1)}R to the range low ${P(target)}`] };
 }
 
 // THE RIDER (from the giants study): not the launch, the first real pullback on day 2 to 7 of a coin that has already proven it can move.

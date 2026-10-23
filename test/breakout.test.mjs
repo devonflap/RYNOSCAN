@@ -74,7 +74,7 @@ const T0 = Date.parse('2026-10-22T00:00:00Z'), H = 3600e3, iso = (ms) => new Dat
   const loss = (() => { const p = st.positions[0]; return p.remUnits * (p.entry - p.stop); })(); ok(Math.abs(loss - 10) < 0.01, 'risk at the stop is 1% of the account');
   council = { botTuning: { breakout: { active: ['Reward to risk (TP2)|3R+|only', 'Chain|Robinhood|only'] } } }; await cycle(st, cfg, deps(T0 + 3 * H, 1.1));
   console.log = out; ok(msgs.length === 1 && /RynoBot Breakout: filters changed/.test(msgs[0]) && /On: only when chain is Robinhood/.test(msgs[0]) && jr.some((j) => j.type === 'filters'), 'the tuner switched a filter on: one phone note saying what changed (sizing untouched)');
-  ok(Object.keys(BOTS).join() === 'runner,breakout,lab,minute,trench,rider,ignition' && DEFAULTS.name === 'rules' && cfg.name === 'breakout' && cfg.maxStopPct === 35 && cfg.minOpp === 50, 'seven bots (the retired rules book stays as the defaults)'); }
+  ok(Object.keys(BOTS).join() === 'runner,breakout,lab,minute,trench,rider,btc,eth,ignition' && DEFAULTS.name === 'rules' && cfg.name === 'breakout' && cfg.maxStopPct === 35 && cfg.minOpp === 50, 'seven bots (the retired rules book stays as the defaults)'); }
 
 // reality check against the Breakout bot's paper twin
 { const paper = [], closed = [];
@@ -84,7 +84,7 @@ const T0 = Date.parse('2026-10-22T00:00:00Z'), H = 3600e3, iso = (ms) => new Dat
   ok(r.n === 10 && r.book === 'brkBot' && r.paperFurther === 10 && r.call === 'paper flatters', 'the Breakout bot is compared with its own paper twin, target by target'); }
 
 // the watchdog watches each bot on its own
-{ const hb = (ms, n) => ({ time: ms / 1000, message: `hb:${n} ${iso(ms)}` }), now = T0 + H; const msgs = [hb(now - 10 * 60e3, 'rules'), hb(now - 3 * H, 'breakout')];
+{ const hb = (ms, n) => ({ time: ms / 1000, message: `hb:${n} ${iso(ms)}` }), now = T0 + H; const msgs = [hb(now - 10 * 60e3, 'rules'), hb(now - 7 * H, 'breakout')];
   ok(botsIn(msgs).sort().join() === 'breakout,rules' && decide(msgs, { now, name: 'rules' }).action === 'ok' && decide(msgs, { now, name: 'breakout' }).action === 'alert', 'one bot quiet, the other fine: only the quiet one is reported');
   ok(/RynoBot breakout has gone quiet/.test(message(decide(msgs, { now, name: 'breakout' }), 'breakout').title) && /systemctl status rynobot@breakout/.test(message(decide(msgs, { now, name: 'breakout' }), 'breakout').body), 'the alert names the bot and the exact service to check');
   ok(decide([...msgs, { time: (now - H) / 1000, message: 'quiet-alerted:breakout' }], { now, name: 'breakout' }).action === 'already', 'reported once per outage, per bot'); }

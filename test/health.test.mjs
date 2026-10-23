@@ -10,11 +10,12 @@ const T0 = Date.parse('2026-10-21T00:00:00Z'), M = 60e3, H = 3600e3, iso = (ms) 
 { const hb = (ms) => ({ time: ms / 1000, message: 'hb ' + iso(ms) }), mark = (ms, t) => ({ time: ms / 1000, message: t });
   ok(decide([], { now: T0 }).action === 'none', 'no heartbeat in 12 hours (bot not installed yet): stays quiet');
   ok(decide([hb(T0 - 20 * M)], { now: T0 }).action === 'ok', 'heartbeat 20 minutes ago: fine');
-  const d = decide([hb(T0 - 2 * H)], { now: T0 }); ok(d.action === 'alert' && /gone quiet/.test(message(d).title) && /08:00 Brisbane/.test(message(d).body) && /systemctl status rynobot/.test(message(d).body), 'two hours without a heartbeat: one alert with when it stopped and what to check');
-  ok(decide([hb(T0 - 2 * H), mark(T0 - 30 * M, 'quiet-alerted')], { now: T0 }).action === 'already', 'the same outage is not reported twice');
-  ok(decide([hb(T0 - 10 * H)], { now: T0 - 8 * H }).action === 'wait', 'at 2am it waits until 6am Brisbane');
-  const b = decide([hb(T0 - 3 * H), mark(T0 - H, 'quiet-alerted'), hb(T0 - 5 * M)], { now: T0 }); ok(b.action === 'back' && /is back/.test(message(b).title), 'heartbeats start again: one "back" message');
-  ok(decide([hb(T0 - 3 * H), mark(T0 - H, 'quiet-alerted'), hb(T0 - 5 * M), mark(T0 - 4 * M, 'back-noted')], { now: T0 }).action === 'ok', 'and only once'); }
+  ok(decide([hb(T0 - 2 * H)], { now: T0 }).action === 'ok', 'six hours without a heartbeat: fine (heartbeats come every two hours; seven bots at every 30 minutes hit the free ntfy limit)');
+  const d = decide([hb(T0 - 6 * H)], { now: T0 }); ok(d.action === 'alert' && /gone quiet/.test(message(d).title) && /04:00 Brisbane/.test(message(d).body) && /systemctl status rynobot/.test(message(d).body), 'six hours without a heartbeat: one alert with when it stopped and what to check');
+  ok(decide([hb(T0 - 6 * H), mark(T0 - 30 * M, 'quiet-alerted')], { now: T0 }).action === 'already', 'the same outage is not reported twice');
+  ok(decide([hb(T0 - 14 * H)], { now: T0 - 8 * H }).action === 'wait', 'at 2am it waits until 6am Brisbane');
+  const b = decide([hb(T0 - 7 * H), mark(T0 - H, 'quiet-alerted'), hb(T0 - 5 * M)], { now: T0 }); ok(b.action === 'back' && /is back/.test(message(b).title), 'heartbeats start again: one "back" message');
+  ok(decide([hb(T0 - 7 * H), mark(T0 - H, 'quiet-alerted'), hb(T0 - 5 * M), mark(T0 - 4 * M, 'back-noted')], { now: T0 }).action === 'ok', 'and only once'); }
 
 // bot health helper: alert once after the wait, then once when it clears
 { const st = {}, msgs = [], N = async (t, b) => msgs.push(t + ' | ' + b), o = { afterMin: 15, title: 'prices', text: (m, why) => `down ${m} min (${why})` };
@@ -37,7 +38,7 @@ const T0 = Date.parse('2026-10-21T00:00:00Z'), M = 60e3, H = 3600e3, iso = (ms) 
   feed = 'up'; await cycle(st, cfg, deps(T0 + 21 * M, 1)); ok(msgs.length === 2 && /prices back to normal/.test(msgs[1]), 'prices back: one note');
   pages = 'down'; for (let i = 22; i <= 60; i++) await cycle(st, cfg, deps(T0 + i * M, 1));
   ok(msgs.length === 3 && /RynoBot problem: scanner data/.test(msgs[2]) && /HTTP 503/.test(msgs[2]), "can't read the dashboard data for 30 minutes: one alert");
-  ok(hbs.length === 3, 'heartbeats keep going every 30 minutes (0, 30 and 60 minutes in)');
+  ok(hbs.length === 1, 'one heartbeat in the first hour (they come every 2 hours now: seven bots at every 30 minutes hit the free ntfy limit)');
   console.log = log0; }
 ok(JSON.parse(fs.readFileSync('config/settings.json', 'utf8')).phoneAlerts === 'health' && DEFAULTS.tradeAlerts === false && DEFAULTS.dailySummary === false, 'defaults: phone gets health alerts only, scanner and bot');
 process.exit(f);

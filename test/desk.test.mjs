@@ -30,7 +30,7 @@ const T0 = Date.parse('2026-10-22T00:00:00Z'), H = 3600e3, iso = (ms) => new Dat
   ok((await fetch(U + '/')).status === 401 && (await fetch(U + '/api/desk')).status === 401, 'nothing is served without the password');
   ok((await fetch(U + '/', { headers: { authorization: 'Basic ' + Buffer.from('x:wrong').toString('base64') } })).status === 401, 'a wrong password is refused');
   const page = await fetch(U + '/', { headers: { authorization: auth } }); ok(page.status === 200 && /RynoBot desk/.test(await page.text()), 'the desk page opens with the password (any user name)');
-  const api = await fetch(U + '/api/desk', { headers: { authorization: auth } }), j = await api.json(); ok(api.status === 200 && j.mode === 'dry run' && j.bots.length === 7 && j.bots.every((b) => b.name), 'the desk data covers all seven bots');
+  const api = await fetch(U + '/api/desk', { headers: { authorization: auth } }), j = await api.json(); ok(api.status === 200 && j.mode === 'dry run' && j.bots.length === 9 && j.bots.every((b) => b.name), 'the desk data covers all nine bots');
   ok((await fetch(U + '/api/desk', { method: 'POST', headers: { authorization: auth } })).status === 405, 'the server accepts nothing but reads');
   ok(authorised({ headers: { authorization: auth } }, 'correct horse battery') && !authorised({ headers: {} }, 'correct horse battery'), 'password check');
   const cmd = await fetch(U + '/api/cmd', { method: 'POST', headers: { authorization: auth, 'x-desk': '1', 'content-type': 'application/json' }, body: '{"bot":"breakout","type":"pause"}' });

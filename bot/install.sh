@@ -4,7 +4,7 @@
 #   bash bot/install.sh --https desk.yourdomain.com     also puts the desk behind HTTPS (Caddy + Let's Encrypt) and fail2ban
 #   bash bot/install.sh --passwords                     choose new desk and control passwords (the old ones are forgotten)
 # What it sets up, and why (see bot/SECURITY.md):
-#   - seven bot services (runner, breakout, rider, lab, ignition, minute, trench) running as you, with the secrets file /etc/rynobot.env (root only)
+#   - nine bot services (runner, breakout, rider, btc, eth, lab, ignition, minute, trench) running as you, with the secrets file /etc/rynobot.env (root only)
 #   - the desk as its OWN user "rynodesk" with its own environment file holding only the desk passwords: it cannot read the bot keys,
 #     the ntfy topic or the GitHub token even if the page were ever broken into
 #   - a desk password (the view) and an optional, separate control password (close/cancel/pause); no control password = read only
@@ -56,10 +56,10 @@ if ! sudo grep -q '^DASH_CONTROL_B64=' /etc/rynobot-desk.env; then
   read -rsp "Control password (12+ characters, or blank for read only): " CP; echo
   if [ -n "$CP" ] && [ ${#CP} -ge 12 ]; then echo "DASH_CONTROL_B64=$(printf '%s' "$CP" | base64 -w0)" | sudo tee -a /etc/rynobot-desk.env >/dev/null; else echo "Desk stays read only (run the installer again to add a control password)."; fi
 fi
-BOTS="runner breakout rider lab ignition minute trench"
+BOTS="runner breakout rider btc eth lab ignition minute trench"
 # retired bots (rules, degen): stop their services and tell the GitHub watchdog so it does not report them as gone quiet
 TOPIC_HB="$(sudo grep '^NTFY_TOPIC=' /etc/rynobot.env 2>/dev/null | cut -d= -f2-)"
-for old in rules degen range; do sudo systemctl stop "rynobot@$old" >/dev/null 2>&1 || true; sudo systemctl mask "rynobot@$old" >/dev/null 2>&1 || true; if systemctl list-unit-files "rynobot@$old.service" >/dev/null 2>&1 && systemctl is-enabled "rynobot@$old" >/dev/null 2>&1; then sudo systemctl disable --now "rynobot@$old" >/dev/null 2>&1 || true; sudo systemctl mask "rynobot@$old" >/dev/null 2>&1 || true; echo "Retired the $old bot (its files are kept: bot/state-$old.json, bot/journal-$old.jsonl)."; [ -n "$TOPIC_HB" ] && curl -fsS -o /dev/null -X POST -H "Priority: min" -d "quiet-alerted:$old retired" "https://ntfy.sh/${TOPIC_HB}-hb" || true; fi; done
+for old in rules degen range; do sudo systemctl stop "rynobot@$old" >/dev/null 2>&1 || true; sudo systemctl mask "rynobot@$old" >/dev/null 2>&1 || true; if [ ! -f "/etc/rynobot/retired-$old" ]; then sudo touch "/etc/rynobot/retired-$old"; [ -n "$TOPIC_HB" ] && curl -fsS -o /dev/null -X POST -H "Priority: min" -d "quiet-alerted:$old retired" "https://ntfy.sh/${TOPIC_HB}-hb" || true; fi; if systemctl list-unit-files "rynobot@$old.service" >/dev/null 2>&1 && systemctl is-enabled "rynobot@$old" >/dev/null 2>&1; then sudo systemctl disable --now "rynobot@$old" >/dev/null 2>&1 || true; sudo systemctl mask "rynobot@$old" >/dev/null 2>&1 || true; echo "Retired the $old bot (its files are kept: bot/state-$old.json, bot/journal-$old.jsonl)."; [ -n "$TOPIC_HB" ] && curl -fsS -o /dev/null -X POST -H "Priority: min" -d "quiet-alerted:$old retired" "https://ntfy.sh/${TOPIC_HB}-hb" || true; fi; done
 sed "s#__DIR__#$PWD#; s#__USER__#$RUN_AS#" "bot/rynobot@.service" | sudo tee "/etc/systemd/system/rynobot@.service" >/dev/null
 sudo systemctl disable --now rynobot 2>/dev/null || true   # an older single-bot install, if there is one
 sudo systemctl daemon-reload
@@ -87,12 +87,12 @@ IP=$(hostname -I 2>/dev/null | awk '{print $1}')
 sleep 2
 for b in $BOTS; do node bot/run.mjs --bot "$b" --check || true; done   # checks the data feeds; the ntfy topic is only readable by the services
 echo
-echo "RynoBot is running in DRY-RUN mode: seven bots (runner, breakout, rider, lab, ignition, minute, trench), each with a \$10,000 paper account. Lab, minute and trench are research bots: they never go live."
+echo "RynoBot is running in DRY-RUN mode: nine bots (runner, breakout, rider, btc, eth, lab, ignition, minute, trench), each with a \$10,000 paper account. Lab, minute and trench are research bots: they never go live."
 echo
 if [ -n "$DOMAIN" ]; then echo "  BOT DESK: open  https://$DOMAIN  (the certificate takes a minute the first time). Any user name, and the desk password."
 else echo "  BOT DESK: open  http://$IP:8080  on your computer. Any user name, and the desk password. Before sharing the address or going live:  bash bot/install.sh --https desk.yourdomain.com"; fi
 echo
 echo "  live log:            sudo journalctl -u 'rynobot@*' -f          desk log: sudo journalctl -u rynobot-dash -f"
-echo "  how a bot is doing:  node bot/run.mjs --bot breakout --status     (or --bot runner, --bot rider, --bot lab, --bot ignition, --bot minute, --bot trench)"
+echo "  how a bot is doing:  node bot/run.mjs --bot breakout --status     (or --bot runner, --bot rider, --bot btc, --bot eth, --bot lab, --bot ignition, --bot minute, --bot trench)"
 echo "  stop new entries:    touch bot/STOP   (all bots)   or   touch bot/STOP-breakout   (one bot); delete the file to allow them again"
 echo "  update:              git pull && bash bot/install.sh"

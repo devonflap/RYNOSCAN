@@ -1,7 +1,7 @@
 // Live execution layer, exercised against a fake market: arming checks, token safety, honeypot test, slippage limits, quote (rehearsal)
 // fills, live fills with confirmation, refused exits, reconciliation. No network, no key, no money.
 import fs from 'node:fs'; process.env.RYNOBOT_DIR = fs.mkdtempSync('/tmp/rynolive-');
-import { liveCheck, ARM_TEXT, quotedBuy, quotedSell, acceptable, mintSafety, reconcile, buy, sell, SOL, LIVE } from '../bot/live.mjs';
+import { liveCheck, ARM_TEXT, quotedBuy, quotedSell, acceptable, mintSafety, reconcile, buy, sell, SOL, LIVE, USDC_MINT, nativeUsd, baseOf } from '../bot/live.mjs';
 import { cycle, newState, DEFAULTS, filesFor, loadConfig as loadConfigFor } from '../bot/run.mjs';
 import path from 'node:path';
 const out = console.log; let f = 0; const ok = (c, m) => { out((c ? 'PASS ' : 'FAIL ') + m); if (!c) f = 1; };
@@ -53,7 +53,7 @@ const base = { cfg: { ...LIVE }, mint: 'M'.repeat(44), usd: 50, expectedPx: 0.1,
 // the bot in quote mode end to end: the market quote becomes the fill, exits use quotes, a refused exit keeps the position
 { const cfg = { ...DEFAULTS, mode: 'quote', setupsEveryMin: 0, slipPct: 1 }, st = newState(cfg), jr = [], msgs = [], log0 = console.log; console.log = () => {};
   const T = T0, mkb = (i, o, h, l, c, v) => [T + i * M, o, h, l, c, v], b0 = Array.from({ length: 14 }, (_, i) => mkb(i, 1.05, 1.06, 1.04, 1.05, 100)), flush = [...b0, mkb(14, 1.05, 1.05, 0.97, 0.98, 120), mkb(15, 0.98, 1.03, 0.97, 1.02, 200)];
-  const q = (px) => ({ priceUsd: String(px), priceNative: String(px / 200), txns: { h1: { buys: 50, sells: 40 }, m5: { buys: 5, sells: 4 } }, volume: { h6: 30000, h24: 100000 }, pairCreatedAt: (T - 5 * 86400) * 1000, liquidity: { usd: 500000 } });
+  const q = (px) => ({ priceUsd: String(px), priceNative: String(px / 200), quoteToken: { symbol: 'SOL', address: SOL }, txns: { h1: { buys: 50, sells: 40 }, m5: { buys: 5, sells: 4 } }, volume: { h6: 30000, h24: 100000 }, pairCreatedAt: (T - 5 * 86400) * 1000, liquidity: { usd: 500000 } });
   const setupsJson = [{ id: 'SOL:AAA', coin: 'AAA', chain: 'Solana', pool: 'P1', token: 'M'.repeat(44), signal: 'Watch', opp: 80, setupType: 'Falling wedge', entryLow: 1.0, entryHigh: 1.04, stop: 0.9, tp1: 1.2, liquidity: 500000 }];
   let sellRefuse = false; const io = mk({ buyPx: 1.03 }); io.quote = async (inMint, outMint, amount, slip) => { if (inMint === SOL) { const usd = (amount / 1e9) * 200; return { inAmount: String(amount), outAmount: String(Math.floor((usd / 1.03) * 1e6)), priceImpactPct: '0.004', routePlan: [] }; } if (sellRefuse) return { inAmount: String(amount), outAmount: String(Math.floor(((amount / 1e6) * 0.5 / 200) * 1e9)), priceImpactPct: '0.1' }; return { inAmount: String(amount), outAmount: String(Math.floor(((amount / 1e6) * 0.97 * 0.97 / 200) * 1e9)), priceImpactPct: '0.006' }; };
   const deps = (ms, price) => ({ now: ms * 1000, getJson: async (u) => (u.endsWith('setups.json') ? setupsJson : []), quotes: async () => ({ p1: q(price) }), candles5: async () => flush, notify: async (t, b) => msgs.push(t + ' | ' + b), journal: (o) => jr.push(o), heartbeat: async () => {}, io });
@@ -101,4 +101,19 @@ const base = { cfg: { ...LIVE }, mint: 'M'.repeat(44), usd: 50, expectedPx: 0.1,
   await cycle(st, cfg, deps(T0 + 8 * 3600, 2.2)); ok(st.positions.length === 1 && p === st.positions[0] || st.positions[0].free, 'ride free at 2x');
   const c5 = [[T0 + 8 * 3600, 2.2], [T0 + 8 * 3600 + 300, 1.0]].map(([t, c]) => [t, c, c, c, c, 100]); await cycle(st, cfg, deps(T0 + 8 * 3600 + 900, 1.0, c5)); console.log = log0;
   ok(st.positions.length === 0 && st.closed[0] && /giveback/.test(st.closed[0].sells.slice(-1)[0].why) && st.closed[0].pnl > 0, 'then out on a 5-minute close 50% under the best close, in profit'); }
+// the BTC and ETH bots sit in USDC: orders go USDC -> cbBTC and back to USDC; the issuer's mint authority does not refuse cbBTC
+{ const CB = 'cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij', calls = [];
+  const io = { mintInfo: async () => ({ mintAuthority: 'COINBASE', freezeAuthority: 'COINBASE', decimals: 8 }), tokenBalance: async (pk, m) => (m === USDC_MINT ? 500 : 0.0005), solBalance: async () => 0.1,
+    quote: async (inM, outM, amount) => { calls.push([inM, outM, amount]); return inM === USDC_MINT ? { inAmount: String(amount), outAmount: String(Math.round(amount / 1e6 / 100000 * 1e8)), priceImpactPct: '0.0001', routePlan: [] } : { inAmount: String(amount), outAmount: String(Math.round(amount / 1e8 * 99900 * 1e6)), priceImpactPct: '0.0001', routePlan: [] }; },
+    swapTx: async () => 'TX', send: async () => 'SIG' };
+  const cfg = { ...LIVE, baseMint: USDC_MINT, liveSlipPct: 0.5 };
+  const b = await buy({ cfg, io, mint: CB, usd: 50, expectedPx: 100000, solUsd: null, mode: 'live', keyFile: 'k', pubkey: 'P' });
+  ok(b.fill && calls[0][0] === USDC_MINT && calls[0][1] === CB && calls[0][2] === 50e6 && Math.abs(b.fill.px - 100000) < 1 && Math.abs(b.fill.usd - 50) < 0.01, 'a $50 BTC buy spends 50 USDC (not SOL), at $100,000 a coin, and the Coinbase mint authority does not block it');
+  const s = await sell({ cfg, io, mint: CB, units: 0.0005, decimals: 8, expectedPx: 100000, solUsd: null, mode: 'live', keyFile: 'k', pubkey: 'P' }); ok(s.fill && calls.at(-1)[1] === USDC_MINT && Math.abs(s.fill.usd - 49.95) < 0.01, 'the sale goes back to USDC: the pot sits in dollars between trades');
+  ok(/USDC/.test((await buy({ cfg, io: { ...io, tokenBalance: async () => 10 }, mint: CB, usd: 50, expectedPx: 100000, solUsd: null, mode: 'live', keyFile: 'k', pubkey: 'P' })).refused || ''), 'not enough USDC in the wallet: refused');
+  ok(/authority/.test((await buy({ cfg, io, mint: 'MEMEmint1111111111111111111111111111111111', usd: 50, expectedPx: 1, solUsd: 200, mode: 'quote', keyFile: 'k', pubkey: 'P' })).refused || ''), 'a meme coin with a mint authority is still refused (only the named issuers are trusted)');
+  ok(baseOf({}, 150).mint === SOL && baseOf({ baseMint: USDC_MINT }, 150).px === 1, 'other bots still pay in SOL'); }
+// the SOL price is never read off a pair quoted in USDC (that would size a $50 order as 50 SOL)
+{ const now = Date.now(), usdcPair = { priceUsd: '100000', priceNative: '100000', quoteToken: { symbol: 'USDC', address: USDC_MINT } }, solPair = { priceUsd: '0.002', priceNative: '0.00001', quoteToken: { symbol: 'SOL', address: SOL } };
+  ok(nativeUsd(solPair, {}, false, now) === 200 && nativeUsd(usdcPair, {}, false, now) === null && nativeUsd(usdcPair, { solUsd: 180, solUsdAt: now - 60e3 }, false, now) === 180 && nativeUsd(usdcPair, { solUsd: 180, solUsdAt: now - 3600e3 }, false, now) === null, 'SOL price: from a SOL-quoted pair, or the bot\'s own fresh SOL price; never 1 from a USDC pair; a stale price refuses the order'); }
 process.exit(f);

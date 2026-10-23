@@ -1,10 +1,12 @@
-// Is RynoBot alive? The bot posts a heartbeat every 30 minutes to a silent second ntfy topic (<NTFY_TOPIC>-hb) that your phone
-// doesn't subscribe to. The watchdog workflow runs this every 30 minutes: if the heartbeats stop for 90 minutes it tells your phone
+// Is RynoBot alive? Each bot posts a heartbeat every 2 hours to a silent second ntfy topic (<NTFY_TOPIC>-hb) that your phone
+// doesn't subscribe to (every 30 minutes until 23 Oct: seven bots at that pace blew through ntfy's free daily message limit, the
+// heartbeats were refused and every bot was reported quiet while all were running). The watchdog workflow runs this every 30 minutes:
+// if the heartbeats stop for 5 hours it tells your phone
 // once (between 6am and 10pm Brisbane; a night outage is reported at 6am), and once more when they start again. It leaves a
 // marker on the heartbeat topic so the same outage is never reported twice. ntfy keeps messages for 12 hours, so no heartbeat at
 // all in that time means the bot isn't installed yet (or the outage was already reported), and it stays quiet.
 // decide() is pure so it can be tested; the CLI at the bottom is what the workflow calls.
-export const QUIET_MIN = 90;
+export const QUIET_MIN = 300;
 const awake = (ms) => { const h = (new Date(ms).getUTCHours() + 10) % 24; return h >= 6 && h < 22; };
 const bne = (ms) => new Date(ms + 10 * 3600e3).toISOString().slice(11, 16);
 // each bot tags its heartbeat "hb:<name> ..." (older heartbeats "hb <time> ..." are the rules bot); markers carry the same name

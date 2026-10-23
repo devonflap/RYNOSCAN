@@ -162,6 +162,7 @@ function hatScout(learned, wscore, G) {
   if (wscore) pts.push(wscore.proven && wscore.proven.length ? `Wallet scorecard: ${wscore.proven.length} proven wallet${wscore.proven.length === 1 ? '' : 's'} out of ${wscore.wallets} scored.` : `Wallet scorecard: ${wscore.episodes || 0} coin-days logged, ${wscore.resolved || 0} with an outcome, no proven wallets yet.`);
   const fast = ['pulse', 'scalpBreak', 'proven'].map((k) => G.books[k]).filter((x) => x && x.ev.n >= 5 && x.ev.avgR > 0); fast.forEach((x) => pts.push(`${x.B.short} is early but positive: ${R(x.ev.avgR)} over ${x.ev.n}.`));
   const headline = relS.length ? `${relS[0].short} does ${relS[0].diff > 0 ? 'better' : 'worse'} when ${relS[0].slice} is "${relS[0].bucket}" (${R(relS[0].avgR)} against ${R(relS[0].restAvgR)}).` : good.length ? `Lead to follow: ${good[0].feature.toLowerCase()} "${good[0].bucket}" (${R(good[0].avgR)} over ${good[0].n}).` : bad.length ? `Clearest finding is a warning: ${bad[0].feature.toLowerCase()} "${bad[0].bucket}" loses (${R(bad[0].avgR)} over ${bad[0].n}).` : 'Nothing stands out yet in the learning loop.';
+  if (G.majorsBt && Array.isArray(G.majorsBt.lines)) pts.push(...G.majorsBt.lines.slice(0, 4));
   if (G.giants && G.giants.summary) { const g = G.giants.summary; pts.push(`GIANTS (${g.n} charts that ran to the top, reverse-engineered): ${g.lines[0]}`, g.lines[1], g.lines[2]); }
   return { stance: good.length || relS.some((t) => t.diff > 0) ? 'for' : bad.length || relS.length ? 'mixed' : 'wait', headline, points: pts.length ? pts : ['The learning loop has not run on enough trades yet.'], good, bad, slices: relS, metric: String(good.length + bad.length), metricLabel: 'reliable findings' };
 }
@@ -207,6 +208,7 @@ export function missedReview(r) {
     else if (g.gate === 'too vertical') out.push(`Question for the entry: ${g.n} runners were already up more than the hourly cap when the scan saw them: the scan is late, not the cap. A 1-minute candle entry (the minute bot) is the test.`);
     else if (g.gate === 'liquidity') out.push(`Question for the gates: ${g.n} runners were under the liquidity floor. Thin pools run hardest and rug hardest; the lab and the minute bot test a lower floor, the runner keeps its floor until they report.`);
     else if (g.gate === 'buyers leading') out.push(`Question for the gates: ${g.n} runners failed the buyers-leading rule at the time. Sellers lead early in a run when the first buyers take profit; a lower ratio (1.05x) is the minute bot's setting.`);
+    else if (g.gate === 'seen late') out.push(`Question for the universe, not the gates: ${g.n} runners joined the scan list after their run was over. The live universe (trending and new pools every 5 minutes) is the fix; if this keeps showing, the list needs more pages or a faster refresh.`);
     else if (g.gate === 'ignition candle') out.push(`Question for the gates: ${g.n} runners never printed the ignition candle (+5% hourly close on 12x the median volume). The candle is the strictest gate in the fleet; the runner's minute scan is the looser test of the same coins.`);
     else if (g.gate === 'too late (24h)') out.push(`Question for the gates: ${g.n} runners were already past the 24-hour cap when seen; a second leg was left behind. Worth a lab variant without the cap, with the structure stop.`); }
   if (ms.entry >= 3) out.push(`Question for the entry: ${ms.entry} runners were seen and the entry was dropped (too old, chased, size, age). The pullback and 1-minute entries in the lab and minute bot are the test of that.`);
@@ -275,8 +277,8 @@ function discuss(G, H, C) {
 }
 
 // the whole council. learned: learned.json; wscore: walletscore.json; history: [{ at, approved }] from earlier runs
-export function council({ signals = [], degen = [], lab = [], learned = null, wscore = null, since = null, history = [], now = Date.now(), botRecs = null, giants = null } = {}) {
-  const G = gather({ signals, degen, lab, since, now }), hist = Array.isArray(history) ? history : []; G.giants = giants;
+export function council({ signals = [], degen = [], lab = [], learned = null, wscore = null, since = null, history = [], now = Date.now(), botRecs = null, giants = null, majorsBt = null } = {}) {
+  const G = gather({ signals, degen, lab, since, now }), hist = Array.isArray(history) ? history : []; G.giants = giants; G.majorsBt = majorsBt;
   const bots = {}; for (const [k, B] of Object.entries(BOT)) bots[k] = botBook(G.allPos, { adaptive: B.adaptive, approvals: B.council ? hist : null, regime: !!B.regime, since, now });
   const H = { stats: hatStats(G) }; H.skeptic = hatSkeptic(G); H.risk = hatRisk(G, bots); H.exits = hatExits(G, learned); H.scout = hatScout(learned, wscore, G); H.exec = hatExec(G); H.live = hatLive(botRecs, G);
   const prev = hist.length ? hist[hist.length - 1].approved || [] : []; H.chair = chair(G, H, bots, prev, learned);
