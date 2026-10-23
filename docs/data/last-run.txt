@@ -1,4 +1,4 @@
-Hourly refresh 15:10 Brisbane: 6 tracked coins refreshed, 6 scored, 3 above 65. On-chain volume Normal (0.89x 7-day avg).
-Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Hourly refresh 16:10 Brisbane: 4 tracked coins refreshed, 4 scored, 3 above 65. On-chain volume Normal (0.89x 7-day avg).
+Market: SOL neutral, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Removed for token safety: CASHCAT (top 10 wallets hold 36.3% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
