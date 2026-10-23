@@ -349,4 +349,9 @@ const bar = (t, o, h, l, c, v = 100) => [t, o, h, l, c, v];
   const s = summarise([{ kind: 'giant', study: mk(true) }, { kind: 'giant', study: mk(true) }, { kind: 'dud', study: mk(false) }, { kind: 'dud', study: mk(false) }, { kind: 'dud', study: mk(false) }]);
   ok(s.n === 2 && s.duds === 3 && s.fingerprint.giants.xDay3 > s.fingerprint.duds.xDay3 && s.fingerprint.giants.heldDay1Close === 1 && s.fingerprint.duds.heldDay1Close === 0 && /Day-3 fingerprint/.test(s.lines.at(-1)), 'on day 3 the giants were still above their day-1 close and the duds were not; the summary says so'); }
 
+// ---- 23 Oct: the lab has room for about ten signals at once (and the comment that once hid its settings is gone), and a stop that has
+// trailed into profit is called what it is
+{ const L = loadConfig('lab'); ok(L.maxOpen === 70 && L.maxOpenRiskPct === 16 && L.signalMaxAgeH === 4 && L.chaseLimitPct === 15 && L.pbDipPct === 12 && L.pbWaitH === 3 && L.pbFailPct === 15 && L.variants.length === 7, 'lab: 70 positions, 16% open risk, and every other setting on that line still in force');
+  const c = { ...BOT, slipPct: 0, beAfterFirst: false }, p = { ...openLadder({ pool: 'P', coin: 'P', chain: 'solana', mults: [1.5, 3], shares: [0.3, 0.3] }, { price: 1, stop: 0.85 }, 100, '2026-10-23T00:00:00Z', c, 1e6), hits: 1, stop: 1.3 }, at = Date.parse('2026-10-23T01:00:00Z') / 1000;
+  ok(manageLadder(p, { priceUsd: '1.29' }, at, c).actions[0].why === 'trailing stop (in profit)' && manageLadder({ ...p, stop: 1 }, { priceUsd: '0.99' }, at, c).actions[0].why === 'break-even stop' && manageLadder({ ...p, hits: 0, stop: 0.85 }, { priceUsd: '0.84' }, at, c).actions[0].why === 'stop', 'stop labels: trailing stop (in profit) above the entry, break-even at the entry, plain stop below'); }
 process.exit(f);

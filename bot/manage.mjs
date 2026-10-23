@@ -142,7 +142,7 @@ export function manageLadder(pos0, q, nowSec, cfg = BOT) {
   if (!(price > 0) || !(pos.remUnits > 0)) return { pos, actions };
   const sell = (units, why, all = false) => { const u = Math.min(units, pos.remUnits); if (!(u > 0)) return; const px = price * (1 - (pos.slipOut ?? cfg.slipPct) / 100), usd = u * px; pos.remUnits -= u; pos.bankedUsd += usd; const a = { why, units: u, usd: +usd.toFixed(2), px: +px.toPrecision(6), all: all || pos.remUnits <= 1e-12, at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z' }; pos.sells.push(a); actions.push(a); };
   pos.peak = Math.max(pos.peak, price); pos.trough = Math.min(pos.trough ?? price, price);
-  if (price <= pos.stop) { sell(pos.remUnits, pos.hits ? 'break-even stop' : 'stop', true); return { pos, actions }; }
+  if (price <= pos.stop) { sell(pos.remUnits, pos.stop > pos.entry * 1.002 ? 'trailing stop (in profit)' : pos.hits ? 'break-even stop' : 'stop', true); return { pos, actions }; }
   // the dump cut (degen runner): sellers plainly in control and the price already well off its high, at any stage, in profit or not: everything out
   if (cfg.dumpCut && pos.remUnits > 0) { const t1 = (q.txns && q.txns.h1) || {}, t5 = (q.txns && q.txns.m5) || {}, b1 = +t1.buys || 0, s1 = +t1.sells || 0, b5 = +t5.buys || 0, s5 = +t5.sells || 0, D = cfg.dumpCut;
     if (s5 >= (D.min5 || 8) && s5 >= (D.sellX5 || 1.5) * Math.max(1, b5) && s1 >= (D.sellX1 || 1.2) * Math.max(1, b1) && price <= pos.peak * (1 - (D.offHighPct || 0.15))) { sell(pos.remUnits, `sellers dumping (${s5} sells vs ${b5} buys in 5 minutes, ${Math.round((1 - price / pos.peak) * 100)}% off the high)`, true); return { pos, actions }; } }
