@@ -1,5 +1,10 @@
-# Tidies the repo after a flat web upload put bot files at the top level. Run it by hand: Actions tab -> "Tidy repo" -> Run workflow.
-# It deletes the stray copies at the root (the real ones live in bot/ and test/) and nothing else. Safe to run again any time.
+# Tidies the repo after a web upload put files at the top level instead of in their folders. Run it by hand:
+# Actions tab -> "Tidy repo" -> Run workflow. Safe to run again any time.
+# For every file at the top level that belongs somewhere else (one file of that name lives in bot/, src/, test/, docs/ ...):
+#   - if the top-level copy was committed AFTER the one in its folder, it is the new upload: it is moved into the folder, replacing the old one
+#   - if it is older, it is a leftover: it is deleted
+# A bot README uploaded over the scanner's own README is moved to bot/README.md (when newer) and the scanner's README is restored.
+# Files that belong at the top level (README.md, package.json, CRON-JOB-SETUP.md, .gitignore ...) are never touched otherwise.
 name: Tidy repo
 on:
   workflow_dispatch:
@@ -10,18 +15,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Remove stray copies at the top level
+        with:
+          fetch-depth: 0
+      - name: Put stray top-level files back in their folders
         run: |
           set -e
-          removed=""
-          for f in SECURITY.md dash.html desk.mjs install.sh live.test.mjs run.mjs rynobot-dash.service rynobot@.service manage.mjs live.mjs evm.mjs wallet.mjs publish.mjs reality.mjs kitty.mjs setups.mjs config.example.json Caddyfile; do
-            if [ -f "$f" ]; then git rm -q "$f"; removed="$removed $f"; fi
+          done_list=""
+          when() { git log -1 --format=%ct -- "$1" 2>/dev/null || echo 0; }
+          for f in $(git ls-files | grep -v /); do
+            case "$f" in README.md|package.json|package-lock.json|CRON-JOB-SETUP.md|.gitignore|LICENSE) continue;; esac
+            homes=$(git ls-files | grep "/$f\$" | grep -v '^docs/data/' || true)
+            n=$(printf '%s\n' "$homes" | grep -c . || true)
+            if [ "$n" != "1" ]; then echo "leaving $f (it belongs in $n places)"; continue; fi
+            if [ "$(when "$f")" -gt "$(when "$homes")" ]; then git mv -f "$f" "$homes"; done_list="$done_list $f->$homes"; else git rm -q "$f"; done_list="$done_list $f(old copy removed)"; fi
           done
-          # a stray bot README at the root: restore the scanner's own README from the last commit before it was overwritten
+          # the scanner's README overwritten by the bot's README
           if head -1 README.md | grep -q "RynoBot"; then
-            last=$(git log --format=%H -S'# RynoScan' -- README.md | head -1)
-            git show "${last}:README.md" > README.md && git add README.md && removed="$removed README.md(restored)"
+            if [ "$(when README.md)" -gt "$(when bot/README.md)" ]; then cp README.md bot/README.md && git add bot/README.md && done_list="$done_list README.md->bot/README.md"; fi
+            for c in $(git log --format=%H -- README.md); do if git show "$c:README.md" 2>/dev/null | head -1 | grep -q "^# RynoScan"; then git show "$c:README.md" > README.md; break; fi; done
+            git add README.md && done_list="$done_list README.md(restored)"
           fi
           git config user.name "rynoscan-bot"
           git config user.email "rynoscan-bot@users.noreply.github.com"
-          if git diff --cached --quiet; then echo "nothing to tidy"; else git commit -m "tidy: remove stray top-level copies ($removed)" && git push; fi
+          if git diff --cached --quiet; then echo "nothing to tidy"; else echo "tidied:$done_list"; git commit -m "tidy: files back in their folders ($done_list)" && git push; fi
