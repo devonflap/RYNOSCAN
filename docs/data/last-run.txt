@@ -1,5 +1,4 @@
-Full scan 18:11 Brisbane: 75 scanned, 55 scored, 3 above 65. On-chain volume Normal (0.99x 7-day avg).
-NEW watch: SI (Solana) Bottom reversal, opp 80, checks 6/6, stop 23.2% away, upside 147.2%.
+Hourly refresh 19:10 Brisbane: 4 tracked coins refreshed, 4 scored, 2 above 65. On-chain volume Normal (0.99x 7-day avg).
 Market: SOL neutral, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: SPCX (Mint Authority still enabled), ZEREBRO (Top 10 holders high ownership), PUMP (top 10 wallets hold 60.3% (gate 30%)), NOTE (owner can mint more), CARDS (Top 10 holders high ownership), ANSEM (Single holder ownership).
+Removed for token safety: CASHCAT (top 10 wallets hold 36.3% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
