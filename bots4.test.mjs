@@ -1,0 +1,352 @@
+// The three new bots: Runner (Ryan's ladder + seller cut on the scanner's runners), Range (the Monday-range trade on yesterday's range)
+// and Ignition (the Ignition Rider on meme coins with momentum exits and a moonbag). Candles are made up; nothing touches the network.
+import fs0 from 'node:fs'; process.env.RYNOBOT_DIR = fs0.mkdtempSync('/tmp/rynobots4-');
+import { rangeSetup, rangeSetupShort, ignitionSetup, runnerSetups, swings, runnerWhyNot, riderSetup, mondayStart, mondayStartTz, tzOffset, RANGE, RUN, RIDER } from '../bot/setups.mjs';
+import { simulate, simulateShort, stats, verdict } from '../src/majorsbt.mjs';
+import { trenchFeed, trenchSetup, quoteFor, trenchSetupsIn, TRENCH, DSLAUNCH, TREND, dsLaunchSetup, trendSetup, fixLiq } from '../bot/trench.mjs';
+import { missedSummary } from '../bot/desk.mjs';
+import { missedReview, labVariants, council } from '../docs/council.mjs';
+import { studyChart, summarise } from '../src/giants.mjs';
+import { manageMomentum, openMomentum, manageLadder, openLadder, structureStop, decidePullback, decideMinute, manageMinute, BOT, perpSize, openPerp, managePerp, decideLimitShort, posValue, pnlOf, liqDistPct, PERP } from '../bot/manage.mjs';
+import { cycle, newState, loadConfig, BOTS, RETIRED } from '../bot/run.mjs';
+const out = console.log; let f = 0; const ok = (c, m) => { out((c ? 'PASS ' : 'FAIL ') + m); if (!c) f = 1; };
+const DAY = Date.parse('2026-10-22T00:00:00Z') / 1000, H = 3600, iso = (s) => new Date(s * 1000).toISOString().slice(0, 19) + 'Z';
+const bar = (t, o, h, l, c, v = 100) => [t, o, h, l, c, v];
+
+// ---- range: yesterday 1.00-1.20, today sweeps to 0.97, closes back at 1.03, 15m structure break, order block 1.00-1.02, target 1.20
+{ const y = []; for (let i = 0; i < 24; i++) y.push(bar(DAY - 86400 + i * H, 1.05, i === 10 ? 1.2 : 1.1, i === 4 ? 1.0 : 1.02, 1.08));
+  const today = [bar(DAY, 1.05, 1.06, 0.97, 0.99), bar(DAY + H, 0.99, 1.04, 0.98, 1.03), bar(DAY + 2 * H, 1.03, 1.05, 1.0, 1.04)];
+  const b1h = [...y, ...today], now = DAY + 3 * H + 600;
+  // 15-minute bars after the sweep: drift down (swing high 1.01 on the way), the low 0.95, a red candle 1.00->0.96 (the order block), then a break above 1.01
+  const t15 = DAY + 900, m = [bar(t15, 1.0, 1.005, 0.99, 1.0), bar(t15 + 900, 1.0, 1.01, 0.995, 1.005), bar(t15 + 1800, 1.005, 1.0, 0.985, 0.99), bar(t15 + 2700, 0.99, 0.995, 0.95, 0.96), bar(t15 + 3600, 0.96, 0.99, 0.958, 0.985), bar(t15 + 4500, 1.0, 1.0, 0.955, 0.96), bar(t15 + 5400, 0.96, 1.02, 0.958, 1.015), bar(t15 + 6300, 1.015, 1.03, 1.01, 1.025), bar(t15 + 7200, 1.025, 1.04, 1.02, 1.03)];
+  const pre = rangeSetup(b1h, null, now); ok(pre && pre.need15 && pre.rangeLo === 1.0 && pre.rangeHi === 1.2, 'hourly part: yesterday\'s range, a sweep of its low and a close back inside: asks for 15-minute candles');
+  const r = rangeSetup(b1h, m, now); ok(r && !r.dead && r.zoneHigh === 1.0 && r.zoneLow === 0.96 && r.tp1 === 1.2 && r.rr > 3 && r.rr < 8, `order block 0.96-1.00, stop under its body, target the range high, ${r && r.rr}R`);
+  ok(r.discount === false && /not in discount/.test(rangeSetup(b1h, m, now, { rrMin: 3, rrMax: 8, discount: true }).dead), 'this order block sits above the midpoint of the low-to-break range: taken by default, refused when the discount rule is on');
+  const noSweep = [...y, bar(DAY, 1.05, 1.06, 1.01, 1.03)]; ok(rangeSetup(noSweep, m, DAY + H + 600) === null, 'no sweep of the low: no setup');
+  const noBack = [...y, bar(DAY, 1.05, 1.06, 0.97, 0.98)]; ok(rangeSetup(noBack, m, DAY + H + 600) === null, 'swept but not closed back inside: no setup');
+  const far = rangeSetup(b1h.map((b) => b[0] >= DAY - 86400 && b[0] < DAY ? [b[0], b[1], Math.max(b[2], 1.6), b[3], b[4], b[5]] : b), m, now); ok(far && /over 8R/.test(far.dead), 'a range high too far away (over 8R): refused');
+  const near = rangeSetup(b1h.map((b) => b[0] >= DAY - 86400 && b[0] < DAY ? [b[0], b[1], Math.min(b[2], 1.03), b[3], b[4], b[5]] : b), m, now); ok(near && /under 3R/.test(near.dead), 'a range high too close (under 3R): refused');
+  ok(swings([bar(0, 1, 1, 1, 1), bar(1, 1, 2, 0.5, 1), bar(2, 1, 1, 1, 1)]).hi[0] === 1 && swings([bar(0, 1, 1, 1, 1), bar(1, 1, 2, 0.5, 1), bar(2, 1, 1, 1, 1)]).lo[0] === 1, '3-bar swings');
+  // one-target ladder: everything out at the range high; cancelled below the stop before the fill (decideLimit, tested in breakout.test)
+  const pos = openLadder({ pool: 'p', coin: 'X', chain: 'Solana', tp1: 1.2 }, { price: 1.0, stop: 0.985 }, 300, iso(now), { slipPct: 0 }, 0); ok(pos.targets.length === 1, 'one target');
+  const a = manageLadder(pos, { priceUsd: '1.21' }, now + H, { slipPct: 0, maxHoldH: 48 }); ok(a.actions.length === 1 && a.actions[0].all && /TP1: the rest/.test(a.actions[0].why), 'at the range high: everything out'); }
+
+// ---- ignition: 49 quiet hours then an hourly close +8% on 15x the median volume, buyers leading
+{ const bars = []; for (let i = 0; i < 49; i++) bars.push(bar(DAY + i * H, 1.0, 1.01, 0.99, 1.0, 100 + (i % 5))); bars.push(bar(DAY + 49 * H, 1.0, 1.1, 0.995, 1.08, 1500)); const now = DAY + 50 * H + 30;
+  const q = { priceUsd: '1.08', txns: { h1: { buys: 60, sells: 30 } }, priceChange: { h24: 12 }, liquidity: { usd: 200000 } };
+  const r = ignitionSetup(bars, q, now); ok(r && !r.dead && r.zoneHigh === 1.08 && r.stop === 0.995 && r.volX > 14 && r.retPct === 8, 'ignition candle found: buy at the close, stop at the candle\'s low');
+  ok(ignitionSetup(bars, { ...q, txns: { h1: { buys: 20, sells: 30 } } }, now).dead, 'sellers leading the hour: refused');
+  ok(/too late/.test(ignitionSetup(bars, { ...q, priceChange: { h24: 400 } }, now).dead), 'already up 400% in a day: too late to be early');
+  ok(ignitionSetup(bars.map((b, i) => (i === 49 ? [b[0], b[1], b[2], b[3], b[4], 400] : b)), q, now) === null, 'only 4x the usual volume: no ignition');
+  ok(ignitionSetup(bars, q, DAY + 49 * H + 600) === null, 'the candle is still forming: wait for the close');
+  ok(ignitionSetup(bars.slice(-5), q, now) === null && ignitionSetup(bars.slice(30), q, now) && !ignitionSetup(bars.slice(30), q, now).dead, 'under 6 hours of history: no read on the usual volume; 30+ hours is enough (was 48: most runners are under two days old)');
+  // momentum exits
+  const cfg = { slipPct: 0 }, pos0 = openMomentum({ pool: 'p', coin: 'X', chain: 'Solana', trigVol: 1500 }, { price: 1.08, stop: 0.995 }, 500, iso(now), cfg, 0);
+  ok(pos0.mode === 'momentum' && !pos0.cashed && pos0.stop === 0.995, 'opened with the trigger low as the stop');
+  let r1 = manageMomentum(pos0, { priceUsd: '0.99' }, null, now + H, cfg); ok(r1.actions.length === 1 && r1.actions[0].all && /trigger candle/.test(r1.actions[0].why), 'under the trigger low: all out');
+  let p = pos0; r1 = manageMomentum(p, { priceUsd: '1.2' }, null, now + H, cfg); p = r1.pos; ok(r1.actions.length === 0 && p.stop === 0.995, 'up 11%: not armed yet, stop stays at the trigger low');
+  r1 = manageMomentum(p, { priceUsd: '1.5' }, null, now + 2 * H, cfg); p = r1.pos; ok(r1.actions.length === 0 && Math.abs(p.stop - 1.125) < 1e-6, 'up 39%: armed, the trail sits 25% under the high');
+  r1 = manageMomentum(p, { priceUsd: '2.0' }, null, now + 3 * H, cfg); p = r1.pos; ok(Math.abs(p.stop - 1.5) < 1e-6, 'the trail follows the high');
+  r1 = manageMomentum(p, { priceUsd: '1.49' }, null, now + 4 * H, cfg); p = r1.pos; ok(r1.actions.length === 1 && !r1.actions[0].all && Math.abs(r1.actions[0].units - pos0.units * 0.9) < 1e-9 && /90% out/.test(r1.actions[0].why) && p.cashed && p.stop === 0, 'trail hit: 90% out, the moonbag stays with no stop');
+  r1 = manageMomentum(p, { priceUsd: '3.0' }, null, now + 5 * H, cfg); p = r1.pos; r1 = manageMomentum(p, { priceUsd: '1.6' }, null, now + 6 * H, cfg); p = r1.pos; ok(r1.actions.length === 1 && r1.actions[0].all && /moonbag trail/.test(r1.actions[0].why), 'moonbag: 45% off its high and it is sold');
+  // the faded-hour exit while in profit (red hour on a third of the ignition volume), and the no-run time limit
+  let p2 = manageMomentum(pos0, { priceUsd: '1.15' }, null, now + H, cfg).pos; const fade = manageMomentum(p2, { priceUsd: '1.15' }, [bar(now + 2 * H - 3600, 1.17, 1.18, 1.14, 1.15, 400)], now + 2 * H + 10, cfg);
+  ok(fade.actions.length === 1 && /volume faded/.test(fade.actions[0].why) && fade.pos.cashed, 'a red hour on 27% of the ignition volume while in profit: 90% out');
+  const flat = manageMomentum(pos0, { priceUsd: '1.09' }, null, now + 49 * H, cfg); ok(flat.actions.length === 1 && flat.actions[0].all && /48 hours/.test(flat.actions[0].why), 'nothing happened in 48 hours: out'); }
+
+// ---- runner: the scanner's runners list, 3 of 4 checks, no risk rule, two a scan; Ryan's ladder with the seller cut
+{ const items = [{ coin: 'A', chain: 'Solana', pool: 'a', price: 1, passed: 4, vetoed: [], score: 80, m: { liq: 300000 }, checks: [{ k: 'Volume surge', ok: true, note: '3x' }] }, { coin: 'B', chain: 'Solana', pool: 'b', price: 2, passed: 3, vetoed: [], score: 70, m: { liq: 150000 }, checks: [] }, { coin: 'C', chain: 'Solana', pool: 'c', price: 3, passed: 3, vetoed: [], score: 60, m: { liq: 150000 }, checks: [] }, { coin: 'D', chain: 'Solana', pool: 'd', price: 1, passed: 4, vetoed: ['wallets selling'], score: 90, m: { liq: 300000 }, checks: [] }, { coin: 'E', chain: 'Solana', pool: 'e', price: 1, passed: 2, vetoed: [], score: 95, m: { liq: 300000 }, checks: [] }];
+  const r = runnerSetups(items); ok(r.length === 2 && r[0].coin === 'A' && r[1].coin === 'B', 'top two by score among 3-of-4 passers with no risk rule; vetoed and 2-of-4 left out');
+  const cfg = { ...loadConfig('lab'), peakGiveback: null, dumpCut: null, variants: null }; ok(cfg.fixedStopPct === 20 && cfg.mults.join() === '1.5,2,2.5,3,4' && cfg.shares.join() === '0.2,0.2,0.2,0.2,0.1' && cfg.flowCut && cfg.beAfterFirst === false && cfg.moonTrail === 0.45, "Ryan's clips (the lab's base case): stop 20%, 20% out at +50/+100/+150/+200%, 10% at +300%, a 10% moonbag trailing 45%, no break-even move, seller cut on");
+  const pos = openLadder({ pool: 'a', coin: 'A', chain: 'Solana', mults: cfg.mults, shares: cfg.shares }, { price: 1, stop: 0.8 }, 300, iso(DAY), { slipPct: 0 }, 0);
+  ok(pos.targets.join() === '1.5,2,2.5,3,4' && pos.shares.join() === '0.2,0.2,0.2,0.2,0.1', 'targets from the fill');
+  const t1 = manageLadder(pos, { priceUsd: '1.5', txns: {} }, DAY + H, { ...cfg, slipPct: 0 }); ok(t1.actions.length === 1 && Math.abs(t1.actions[0].units - 60) < 1e-9 && t1.pos.stop === 0.8, 'first clip at +50%: 20% out, stop stays at 20% under (no break-even move, as Ryan trades it)');
+  let pm = pos; for (const px of ['1.5', '2', '2.5', '3', '4']) pm = manageLadder(pm, { priceUsd: px, txns: {} }, DAY + H, { ...cfg, slipPct: 0 }).pos; ok(pm.hits === 5 && Math.abs(pm.remUnits - 30) < 1e-9 && pm.free && pm.stop === 0, 'all five clips taken on the way to 4x: 10% moonbag left, no stop');
+  pm = manageLadder(pm, { priceUsd: '6', txns: {} }, DAY + 2 * H, { ...cfg, slipPct: 0 }).pos; const mb = manageLadder(pm, { priceUsd: '3.2', txns: {} }, DAY + 3 * H, { ...cfg, slipPct: 0 }); ok(mb.actions.length === 1 && mb.actions[0].all && /moonbag trail/.test(mb.actions[0].why) && Math.abs(mb.pos.bankedUsd - (60 * 1.5 + 60 * 2 + 60 * 2.5 + 60 * 3 + 30 * 4 + 30 * 3.2)) < 0.01, 'the moonbag rode to 6x and was sold 45% off that high: the whole trade banked');
+  const cut = manageLadder(pos, { priceUsd: '0.9', txns: { h1: { buys: 10, sells: 30 }, m5: { buys: 1, sells: 5 } } }, DAY + H, { ...cfg, slipPct: 0 }); ok(cut.actions.length === 1 && cut.actions[0].all && /sellers took over/.test(cut.actions[0].why), 'down 10% with sellers in control: the seller cut takes it out before the 20% stop');
+  const hold = manageLadder(pos, { priceUsd: '0.9', txns: { h1: { buys: 30, sells: 10 }, m5: { buys: 5, sells: 1 } } }, DAY + H, { ...cfg, slipPct: 0 }); ok(hold.actions.length === 0, 'down 10% with buyers still leading: held');
+  // the bot end to end: the list arrives, two setups, bought on sight, the third coin waits for the next scan
+  const st = newState(cfg), jr = [], log0 = console.log; console.log = () => {};   // the four-hourly list as a source (kept for a bot that wants it; the runner bot now uses the minute scan only)
+  const deps = (ms) => ({ now: ms, getJson: async (u) => (u.endsWith('runners.json') ? { at: iso(DAY), items } : []), quotes: async () => ({ a: { priceUsd: '1.01', liquidity: { usd: 300000 }, txns: {} }, b: { priceUsd: '2.02', liquidity: { usd: 150000 }, txns: {} } }), candles5: async () => null, notify: async () => {}, journal: (o) => jr.push(o), heartbeat: async () => {} });
+  await cycle(st, { ...cfg, source: 'runners', liveScan: false, minLiqUsd: 100000, setupsEveryMin: 0, slipPct: 0 }, deps(DAY * 1000 + 60e3)); console.log = log0;
+  ok(st.positions.length === 2 && st.positions.every((p) => p.mode === 'ladder' && p.targets.length === 5 && Math.abs(p.stop / p.entry - 0.8) < 0.01) && jr.filter((j) => j.type === 'buy').length === 2, 'two runners bought on sight with 20% stops and the five clips (the list source, on the lab\'s ladder)'); }
+
+// ---- end to end: the ignition bot scans the universe from hourly candles, buys at the next check, rides; the range bot rests a limit at the order block
+{ const bars = []; for (let i = 0; i < 49; i++) bars.push(bar(DAY + i * H, 1.0, 1.01, 0.99, 1.0, 100 + (i % 5))); bars.push(bar(DAY + 49 * H, 1.0, 1.1, 0.995, 1.08, 1500)); const now = (DAY + 50 * H + 30) * 1000;
+  const P = 'P'.repeat(44), q = { priceUsd: '1.09', txns: { h1: { buys: 60, sells: 30 } }, priceChange: { h24: 12 }, liquidity: { usd: 200000 }, baseToken: { address: 'T'.repeat(44) } };
+  const cfg = { ...loadConfig('ignition'), exit: 'momentum', setupsEveryMin: 0, slipPct: 0 }, st = newState(cfg), jr = [], log0 = console.log; console.log = () => {};   // the optional momentum exit, end to end
+  const deps = (ms, px) => ({ now: ms, getJson: async (u) => (u.endsWith('universe.json') ? [{ pool: P, chain: 'Solana', sym: 'IGN', net: 'solana' }] : []), quotes: async () => ({ [P.toLowerCase()]: { ...q, priceUsd: String(px) } }), candlesH: async () => bars, candles15: async () => null, candles5: async () => null, notify: async () => {}, journal: (o) => jr.push(o), heartbeat: async () => {} });
+  await cycle(st, cfg, deps(now, 1.09)); console.log = log0;
+  const p = st.positions[0]; ok(p && p.mode === 'momentum' && p.stop === 0.995 && p.trigVol === 1500 && jr.some((j) => j.type === 'setup' && j.kind === 'ignition') && jr.some((j) => j.type === 'buy'), 'ignition: the candle is found in the universe scan and bought at the next check, stop at its low');
+  ok(p && Math.abs(p.costUsd - 100) < 0.01, 'ignition stakes 1% of the pot ($100): small money, big upside');
+  console.log = () => {}; await cycle(st, cfg, deps(now + 3600e3, 1.6)); await cycle(st, cfg, deps(now + 7200e3, 1.15)); console.log = log0;
+  ok(st.positions.length === 1 && st.positions[0].cashed && Math.abs(st.positions[0].remUnits / p.units - 0.1) < 1e-9, 'rode to +48%, the trail took 90% out on the way back, the 10% moonbag is still held');
+  ok(st.scanAt[P] > 0 && Object.keys(st.setups).length === 0, 'the coin is marked scanned (about once an hour) and the setup is spent');
+  // range
+  const y = []; for (let i = 0; i < 24; i++) y.push(bar(DAY - 86400 + i * H, 1.05, i === 10 ? 1.2 : 1.1, i === 4 ? 1.0 : 1.02, 1.08));
+  const b1h = [...y, bar(DAY, 1.05, 1.06, 0.97, 0.99), bar(DAY + H, 0.99, 1.04, 0.98, 1.03), bar(DAY + 2 * H, 1.03, 1.05, 1.0, 1.04)], t15 = DAY + 900;
+  const m = [bar(t15, 1.0, 1.005, 0.99, 1.0), bar(t15 + 900, 1.0, 1.01, 0.995, 1.005), bar(t15 + 1800, 1.005, 1.0, 0.985, 0.99), bar(t15 + 2700, 0.99, 0.995, 0.95, 0.96), bar(t15 + 3600, 0.96, 0.99, 0.958, 0.985), bar(t15 + 4500, 1.0, 1.0, 0.955, 0.96), bar(t15 + 5400, 0.96, 1.02, 0.958, 1.015), bar(t15 + 6300, 1.015, 1.03, 1.01, 1.025), bar(t15 + 7200, 1.025, 1.04, 1.02, 1.03)];
+  const cfgR = { ...loadConfig('range'), setupsEveryMin: 0, slipPct: 0 }, sr = newState(cfgR), jr2 = [], nowR = (DAY + 3 * H + 600) * 1000;
+  const depsR = (ms, px) => ({ now: ms, getJson: async (u) => (u.endsWith('universe.json') ? [{ pool: P, chain: 'Solana', sym: 'RNG', net: 'solana' }] : []), quotes: async () => ({ [P.toLowerCase()]: { priceUsd: String(px), liquidity: { usd: 300000 }, txns: {} } }), candlesH: async () => b1h, candles15: async () => m, candles5: async () => null, notify: async () => {}, journal: (o) => jr2.push(o), heartbeat: async () => {} });
+  console.log = () => {}; await cycle(sr, cfgR, depsR(nowR, 1.03)); console.log = log0;
+  const su = sr.setups[P]; ok(su && su.kind === 'range' && su.zoneHigh === 1.0 && su.tp1 === 1.2 && sr.positions.length === 0, 'range: setup found, the limit rests at the top of the order block while price is above it');
+  console.log = () => {}; await cycle(sr, cfgR, depsR(nowR + 1800e3, 0.995)); console.log = log0;
+  const pr = sr.positions[0]; ok(pr && pr.mode === 'ladder' && pr.targets.length === 1 && pr.targets[0] === 1.2 && pr.entry > 0.995 && pr.entry < 1.01 && pr.stop === 0.9552, 'price comes back into the order block: filled at the price plus costs, stop under the block, one target at the range high');
+  console.log = () => {}; await cycle(sr, cfgR, depsR(nowR + 3 * 3600e3, 1.21)); console.log = log0;
+  ok(sr.positions.length === 0 && sr.closed[0].pnl > 0 && /TP1: the rest/.test(sr.closed[0].sells[0].why), 'at the range high: everything out, trade closed in profit'); }
+
+// ---- gates from the edge report: no follow-through time stop, a paid boost tightens the stop, too-young pools are not traded
+{ const cfg = { ...loadConfig('runner'), slipPct: 0 }, pos = openLadder({ pool: 'a', coin: 'A', chain: 'Solana', mults: cfg.mults, shares: cfg.shares }, { price: 1, stop: 0.8 }, 300, iso(DAY), { slipPct: 0 }, 0);
+  const nf = manageLadder(pos, { priceUsd: '0.95', txns: {} }, DAY + 25 * H, cfg); ok(nf.actions.length === 1 && nf.actions[0].all && /no follow-through after 24 hours/.test(nf.actions[0].why), 'under the entry with no clip hit after a day: out');
+  ok(manageLadder(pos, { priceUsd: '1.2', txns: {} }, DAY + 25 * H, cfg).actions.length === 0, 'above the entry after a day: held');
+  const bo = manageLadder(pos, { priceUsd: '1.3', txns: {}, boosts: { active: 2 } }, DAY + H, cfg); ok(bo.actions.length === 0 && Math.abs(bo.pos.stop - 1.105) < 1e-6 && /paid boost/.test(bo.pos.moves[0].why), 'a paid boost on a held coin: stop tightened to 15% under the price, nothing sold');
+  const st = newState(cfg), jr = [], log0 = console.log; console.log = () => {}; const items = [{ coin: 'NEW', chain: 'Solana', pool: 'n', price: 1, passed: 4, vetoed: [], score: 80, m: { liq: 300000 }, checks: [] }];
+  await cycle(st, { ...cfg, source: 'runners', liveScan: false, minAgeH: 24, setupsEveryMin: 0 }, { now: DAY * 1000 + 60e3, getJson: async (u) => (u.endsWith('runners.json') ? { at: iso(DAY), items } : []), quotes: async () => ({ n: { priceUsd: '1.01', liquidity: { usd: 300000 }, txns: {}, pairCreatedAt: DAY * 1000 - 5 * 3600e3 } }), candles5: async () => null, notify: async () => {}, journal: (o) => jr.push(o), heartbeat: async () => {} }); console.log = log0;
+  ok(st.positions.length === 0 && jr.some((j) => j.type === 'drop' && /5\.0 hours old/.test(j.why)), 'a 5-hour-old pool is not traded (24-hour survivor gate)'); }
+
+// ---- the council argues over a bot's own gates from its closed trades
+{ const { botSlices } = await import('../docs/council.mjs'); const closed = []; for (let i = 0; i < 16; i++) closed.push({ R: i < 8 ? 1 : -0.5, chain: 'Solana', openedAt: '2026-10-20T03:00:00Z', meta: { volX: i < 8 ? 50 : 15, stopPct: 8 } });
+  const sl = botSlices({ closed }); ok(sl.length === 1 && sl[0].feat === 'ignition volume' && /40x\+ averages \+1.00R \(8\) against 12-20x at -0.50R \(8\)/.test(sl[0].text), 'a bot feature that splits winners from losers is put to the council');
+  ok(botSlices({ closed: closed.slice(0, 6) }).length === 0, 'too few trades: nothing is argued'); }
+{ const { council } = await import('../docs/council.mjs'); const mk = (R) => ({ R, chain: 'Solana', openedAt: '2026-10-20T03:00:00Z', closedAt: '2026-10-21T03:00:00Z', meta: {} }); const closed = []; for (let i = 0; i < 32; i++) closed.push(mk(i % 4 === 0 ? 0.2 : -0.6));
+  const c = council({ botRecs: { ignition: { bot: 'ignition', execMode: 'dry', stats: { closed: 32, avgR: -0.4 }, account: { pnlPct: -3 }, closed } } }); const live = c.hats.find((h) => h.key === 'live') || c.H && c.H.live; const txt = JSON.stringify(c);
+  ok(/KILL RULE/.test(txt) && /ignition: KILL RULE\. 32 closed/.test(txt), 'a bot with 30+ closed trades whose lucky end is still under zero is told to retire'); }
+
+// ---- the variants bar (Deflated Sharpe idea): with many rules tried, the best lucky one must clear a higher bar
+{ const { deflatedBar } = await import('../docs/council.mjs'); const b1 = deflatedBar({ n: 30, sd: 1, tests: 1 }), b20 = deflatedBar({ n: 30, sd: 1, tests: 20 });
+  ok(b1 && b1.need === 0 && b20 && b20.trials === 20 && b20.need > 0.4 && b20.need < 0.5, 'one variant: no bar; twenty variants tried: the bar is about 0.45R on 30 trades with 1R spread');
+  ok(deflatedBar({ n: 5, sd: 1, tests: 20 }) === null, 'too few trades: no bar'); }
+
+// ---- study-exit variants on the paper engine: break-even once +30% has shown; the 35% giveback
+{ const { runExit, PROFILES } = await import('../docs/exits.mjs'); const T0 = DAY * 1000, hb = (i, o, h, l, c) => [DAY + i * 900, o, h, l, c, 100], P = { ...PROFILES.studyBE, slipPct: 0, exitSlipPct: 0 }, s = { signalAt: iso(DAY - 60), fill: { px: 1.0, at: iso(DAY + 900) } };
+  const bars = [hb(0, 1, 1.01, 0.99, 1), hb(1, 1, 1.02, 0.99, 1.0), hb(2, 1.0, 1.4, 0.99, 1.35), hb(3, 1.35, 1.36, 1.1, 1.12), hb(4, 1.12, 1.13, 0.95, 0.96), hb(5, 0.96, 0.97, 0.7, 0.72), hb(6, 0.72, 0.73, 0.55, 0.58)];
+  const r = runExit(s, bars, iso(DAY + 40 * 3600), P), r0 = runExit(s, bars, iso(DAY + 40 * 3600), { ...PROFILES.study, slipPct: 0, exitSlipPct: 0 });
+  ok(/break-even/.test(r.status) && r.retPct > -1 && r.retPct < 1 && /stopped out/.test(r0.status) && r0.retPct < -35, 'protected study: a trade that showed +40% and then fell is out at break-even, where the plain study exits take the full -40%');
+  ok(PROFILES.studyTrail.giveback === 0.35 && PROFILES.study.giveback === 0.5 && PROFILES.studyBE.flowCut, 'the two variants: 35% giveback; break-even after +30% plus the seller cut'); }
+
+// ---- the size study: the same trades at several risk levels, return against the deepest drop, with the order reshuffled
+{ const { sizeStudy } = await import('../docs/evidence.mjs'); const Rs = []; for (let i = 0; i < 40; i++) Rs.push(i % 3 === 0 ? 3 : -1);   // a third of trades win 3R
+  const ss = sizeStudy(Rs); ok(ss.n === 40 && ss.rows.length === 5 && ss.rows.every((r) => r.retPct > 0) && ss.rows[4].ddPct > ss.rows[0].ddPct, 'five risk levels, all profitable on a winning book, bigger size means deeper drops');
+  ok(ss.best && ss.best.dd95Pct <= 30, 'the best level is the highest return-to-drop whose unlucky-order drop stays under 30%');
+  const lose = sizeStudy(Rs.map((x) => -Math.abs(x))); ok(lose.rows.length === 5 && lose.best === null, 'a losing book: no level is recommended');
+  ok(sizeStudy(Rs.slice(0, 20)).rows.length === 0, 'under 30 trades: collecting'); }
+
+// ---- the runner's minute-level scan: DexScreener volume surge, buyers leading, moving but not vertical, not already up too much
+{ const { runnerLive } = await import('../bot/setups.mjs'); const q = (o = {}) => ({ priceUsd: '1', volume: { h1: 60000, h24: 240000 }, txns: { h1: { buys: 120, sells: 80 } }, priceChange: { m5: 1, h1: 12, h24: 40 }, liquidity: { usd: 300000 }, ...o });
+  const r = runnerLive(q()); ok(r && !r.dead && r.surge === 6 && r.buyRatio === 1.5 && /volume 6.0x/.test(r.why[0]), 'volume 6x the 24-hour pace, buyers 1.5x sellers, +12% in the hour: a runner');
+  ok(runnerLive(q({ volume: { h1: 15000, h24: 240000 } })) === null, 'only 1.5x the pace: not a surge');
+  ok(runnerLive(q({ txns: { h1: { buys: 80, sells: 100 } } })) === null, 'sellers leading: no');
+  ok(runnerLive(q({ priceChange: { m5: 1, h1: 1, h24: 5 } })) === null, 'flat: no');
+  ok(/vertical/.test(runnerLive(q({ priceChange: { m5: 1, h1: 90, h24: 95 } })).dead) && /too late/.test(runnerLive(q({ priceChange: { m5: 1, h1: 12, h24: 400 } })).dead), 'up 90% in an hour or 400% in a day: refused, not chased');
+  // end to end: the universe is quoted every minute and a runner is bought on sight with the clips
+  const P = 'R'.repeat(44), cfg = { ...loadConfig('runner'), setupsEveryMin: 1e9, slipPct: 0 }, st = newState(cfg), jr = [], log0 = console.log; console.log = () => {};
+  await cycle(st, cfg, { now: DAY * 1000, getJson: async (u) => (u.endsWith('universe.json') ? [{ pool: P, chain: 'Solana', sym: 'RUNX', net: 'solana' }] : []), quotes: async () => ({ [P.toLowerCase()]: { ...q(), pairCreatedAt: DAY * 1000 - 5 * 86400e3, baseToken: { address: 'T'.repeat(44) } } }), candles5: async () => null, notify: async () => {}, journal: (o) => jr.push(o), heartbeat: async () => {} }); console.log = log0;
+  const p = st.positions[0]; ok(p && p.mode === 'ladder' && p.targets.length === 4 && p.targets[0] / p.entry > 1.99 && Math.abs(p.stop / p.entry - 0.8) < 0.01 && jr.some((j) => j.type === 'setup' && /live scan|volume/.test(JSON.stringify(j))), 'found in the minute scan and bought on sight: first clip at +100%, stop 20% (no candles in the test)');
+  console.log = () => {}; await cycle(st, cfg, { now: DAY * 1000 + 60e3, getJson: async () => [], quotes: async () => ({ [P.toLowerCase()]: q() }), candles5: async () => null, notify: async () => {}, journal: (o) => jr.push(o), heartbeat: async () => {} }); console.log = log0;
+  ok(st.positions.length === 1 && Object.keys(st.setups).length === 0, 'the same coin is not taken again (72-hour cooldown)'); }
+
+// ---- the six bots are what the services run; lab, minute and trench are research only (never live)
+{ ok(Object.keys(BOTS).join() === 'runner,breakout,lab,minute,trench,rider,btc,eth,ignition', 'nine bots: runner, breakout, lab, minute, trench, rider, btc, eth, ignition');
+  ok(BOTS.runner.realityBook === null && BOTS.breakout.realityBook === 'brkBot' && BOTS.lab.realityBook === null && BOTS.ignition.realityBook === null && BOTS.runner.source === 'live' && BOTS.runner.minLiqUsd === 50000 && BOTS.runner.minAgeH === 2, 'breakout has a paper twin; runner (pure minute scan, $50k liquidity, 2-hour age), lab and ignition are judged on their own record');
+  ok(BOTS.runner.mults.join() === '2,3,4,5' && BOTS.runner.shares.join() === '0.2,0.2,0.2,0.2' && BOTS.runner.moonTrail === 0.35 && BOTS.runner.stopMode === 'structure' && BOTS.runner.dumpCut && BOTS.runner.peakGiveback, 'runner: 20% clips at +100/+200/+300/+400, the last 20% trails 35%, structure stop, dump cut and giveback');
+  ok(BOTS.lab.labOnly && BOTS.minute.labOnly && BOTS.trench.labOnly && BOTS.lab.variants.length === 7 && BOTS.lab.variants.map((v) => v.key[0]).join('') === 'ABCDEFG', 'lab (7 variants), minute and trench are research bots that can never go live');
+  ok(loadConfig('ignition').exit === 'ladder' && loadConfig('range').entry === 'limit' && RETIRED.range && loadConfig('trench').engine === 'trench' && loadConfig('minute').entry === 'minute', 'range is retired but still loads; trench and minute load with their engines'); }
+
+// ---- the structure stop, the giveback rule, the dump cut and the dead-chart rule (the HOOKR fix)
+{ const H = (lo) => [1000 - 3600, 1, 1.1, lo, 1.05, 100]; const ss = structureStop(1, [H(0.9), [1000 - 7200, 1, 1, 0.85, 1, 100]], 2000); ok(ss.stopPct >= 12 && ss.stopPct <= 30 && ss.stop < 1, 'structure stop: under the last two hourly lows, between 12% and 30%: ' + ss.stopPct);
+  ok(structureStop(1, [[1000 - 3600, 1, 1, 0.99, 1, 100]], 2000).stopPct === 12 && structureStop(1, [[1000 - 3600, 1, 1, 0.5, 1, 100]], 2000).stopPct === 30 && structureStop(1, [], 2000).stopPct === 20, 'widened to 12% when the low is too close, capped at 30%, 20% with no candles');
+  const cfg = { ...BOT, peakGiveback: { armPct: 0.3, keep: 0.5 }, dumpCut: { min5: 8, sellX5: 1.5, sellX1: 1.2, offHighPct: 0.15 }, flowCut: false, slipPct: 0 };
+  let p = openLadder({ pool: 'P', coin: 'H', chain: 'solana', mults: [2, 3], shares: [0.2, 0.2] }, { price: 1, stop: 0.8 }, 100, '2026-10-22T00:00:00Z', cfg, 1e6);
+  p = manageLadder(p, { priceUsd: '1.6', txns: { m5: { buys: 10, sells: 2 }, h1: { buys: 50, sells: 20 } } }, Date.parse('2026-10-22T01:00:00Z') / 1000, cfg).pos; ok(p.remUnits > 0 && p.peak >= 1.6, 'up 60%: still in');
+  let r = manageLadder(p, { priceUsd: '1.25', txns: { m5: { buys: 10, sells: 2 }, h1: { buys: 50, sells: 20 } } }, Date.parse('2026-10-22T02:00:00Z') / 1000, cfg); ok(r.actions.length === 1 && /gave back/.test(r.actions[0].why) && r.pos.remUnits === 0, 'giveback: half of a +60% gain given back (price 1.25, below entry + 30%): everything out at +25%, not back at the entry');
+  r = manageLadder(p, { priceUsd: '1.3', txns: { m5: { buys: 4, sells: 12 }, h1: { buys: 30, sells: 40 } } }, Date.parse('2026-10-22T02:00:00Z') / 1000, cfg); ok(r.actions.length === 1 && /sellers dumping/.test(r.actions[0].why), 'dump cut: sellers 1.5x buys in 5 minutes and 1.2x in the hour, 15%+ off the high: out');
+  r = manageLadder(p, { priceUsd: '1.5', txns: { m5: { buys: 4, sells: 12 }, h1: { buys: 30, sells: 40 } } }, Date.parse('2026-10-22T02:00:00Z') / 1000, cfg); ok(r.actions.length === 0, 'sellers lead but the price is only 6% off the high: a shake-out, still in');
+  r = manageLadder(p, { priceUsd: '1.5', lastTradeSec: 100, txns: { m5: { buys: 1, sells: 0 }, h1: { buys: 1, sells: 0 } } }, 100 + 5 * 60, { ...cfg, deadMin: 4 }); ok(r.actions.length === 1 && /dead chart/.test(r.actions[0].why), 'dead chart (trencher): no trades for 4 minutes: out'); }
+
+// ---- the pullback entry and the minute entry and exit
+{ const at = '2026-10-22T00:00:00Z', t0 = Date.parse(at) / 1000, s = { at, zoneHigh: 1, zoneLow: 1, why: [] }, cfg = { ...BOT, pbDipPct: 12, pbWaitH: 3, pbFailPct: 15 };
+  const b5 = (closes) => closes.map((c, i) => [t0 + i * 300, closes[i - 1] ?? c, Math.max(c, closes[i - 1] ?? c) * 1.01, Math.min(c, closes[i - 1] ?? c) * 0.99, c, 100]);
+  ok(decidePullback(s, b5([1, 1.1, 1.2]), 1.2, t0 + 20 * 60, cfg) == null, 'pullback: no dip yet, no entry');
+  const d = decidePullback(s, b5([1, 1.2, 1.05, 1.02, 1.06]), 1.06, t0 + 30 * 60, cfg); ok(d && d.act === 'buy' && d.stop < 1.02, 'pullback: a 15% dip from the post-signal high, the first 5-minute close back up: buy, stop under the dip');
+  ok(decidePullback(s, b5([1, 1.2, 0.8]), 0.8, t0 + 20 * 60, cfg).act === 'drop', 'pullback: the dip broke 15% under the signal price: dropped');
+  ok(decidePullback(s, b5([1, 1.01]), 1.01, t0 + 4 * 3600, cfg).act === 'drop', 'pullback: nothing in 3 hours: dropped');
+  const b1 = (rows) => rows.map(([o, c, v], i) => [t0 + i * 60, o, Math.max(o, c), Math.min(o, c), c, v]), mc = { ...BOT, fixedStopPct: 15, minWaitMin: 15, minFailPct: 10, chaseLimitPct: 10 };
+  ok(decideMinute(s, b1([[1, 0.99, 10], [0.99, 0.98, 10]]), 0.98, t0 + 180, mc) == null, 'minute entry: red minutes, waits');
+  const m = decideMinute(s, b1([[1, 0.99, 10], [0.99, 1.02, 12]]), 1.02, t0 + 180, mc); ok(m && m.act === 'buy' && m.stopPct === 15, 'minute entry: the first closed green minute above the previous close: buy, stop 15%');
+  ok(decideMinute(s, b1([[1, 0.99, 10], [0.99, 1.02, 12]]), 1.02, t0 + 16 * 60, mc).act === 'drop', 'minute entry: 15 minutes gone: dropped');
+  const xc = { ...BOT, armPct: 0.2, trailBars: 3, dumpBarPct: 8, dumpVolX: 2, flowCut: false, slipPct: 0, mults: [1.5, 2, 3], shares: [0.3, 0.3, 0.2] };
+  let p = openLadder({ pool: 'P', coin: 'M', chain: 'solana', mults: xc.mults, shares: xc.shares }, { price: 1, stop: 0.85 }, 100, at, xc, 1e6); p.mode = 'minute';
+  const flat = (n, c, v = 10) => Array.from({ length: n }, (_, i) => [t0 + i * 60, c, c * 1.005, c * 0.995, c, v]);
+  let r = manageMinute(p, { priceUsd: '1.3' }, flat(25, 1.3), t0 + 26 * 60, xc); ok(r.pos.stop > 0.85 && r.pos.stop >= 1.3 * 0.995 * 0.98 - 1e-9 && r.actions.length === 0, 'minute exit: up 30%, the stop trails 2% under the last three minutes\' low: ' + r.pos.stop);
+  r = manageMinute(r.pos, { priceUsd: '1.18' }, [...flat(24, 1.3), [t0 + 24 * 60, 1.3, 1.3, 1.17, 1.18, 40]], t0 + 26 * 60, xc); ok(r.actions.length === 1 && /dump candle/.test(r.actions[0].why), 'minute exit: a -9% minute on 4x volume: out'); }
+
+// ---- the minute bot end to end: the signal, the first green minute, the ladder it opens (bug 22 Oct: it opened a stack position and the ladder crashed on it)
+{ const cfg = loadConfig('minute'), st = newState(cfg), jr = [], T = 1800000000, log0 = console.log; console.log = () => {};
+  const q = (px) => ({ priceUsd: String(px), priceNative: '0.01', liquidity: { usd: 60000 }, volume: { h1: 50000, h24: 300000 }, txns: { h1: { buys: 120, sells: 100 }, m5: { buys: 20, sells: 10 } }, priceChange: { h1: 8, m5: 2, h24: 30 }, pairCreatedAt: (T - 86400) * 1000, baseToken: { address: 'TOK' } });
+  const b1 = [[T - 180, 1, 1.01, 0.99, 0.99, 10], [T - 120, 0.99, 1.03, 0.98, 1.02, 14], [T - 60, 1.02, 1.02, 1.02, 1.02, 1], [T, 1.02, 1.04, 1.01, 1.03, 12]];
+  const deps = (now, px) => ({ now, getJson: async (u) => (u.endsWith('universe.json') ? [{ pool: 'm1', sym: 'MIN', chain: 'solana' }] : []), quotes: async (items) => Object.fromEntries(items.map((i) => [i.pool, q(px)])), candles1: async () => b1, candles5: async () => null, candlesH: async () => null, notify: async () => {}, journal: (o) => jr.push(o), heartbeat: async () => {} });
+  await cycle(st, { ...cfg, setupsEveryMin: 0, slipPct: 0 }, deps(T * 1000, 1)); await cycle(st, { ...cfg, setupsEveryMin: 0, slipPct: 0 }, deps(T * 1000 + 61e3, 1.02));
+  const p = st.positions[0]; ok(p && p.mode === 'minute' && Array.isArray(p.targets) && p.targets.length === 3 && p.hits === 0, 'the minute bot bought on the first green minute and holds a ladder position (targets, clips) in minute mode');
+  let crashed = false; try { await cycle(st, { ...cfg, setupsEveryMin: 0, slipPct: 0 }, deps(T * 1000 + 122e3, 1.6)); } catch (e) { crashed = true; } console.log = log0;
+  ok(!crashed && p.hits >= 1 || st.positions[0].hits >= 1, 'managing it on the next minute takes the first clip instead of crashing');
+  // a position left behind by the bug (no targets) is repaired on sight
+  st.positions.push({ id: 'old', mode: 'minute', coin: 'OLD', chain: 'solana', pool: 'old', entry: 1, stop: 0.85, units: 100, remUnits: 100, openedAt: new Date(T * 1000).toISOString(), costUsd: 100 });
+  console.log = () => {}; let crashed2 = false; try { await cycle(st, { ...cfg, setupsEveryMin: 0, slipPct: 0 }, { ...deps(T * 1000 + 183e3, 1.6), quotes: async (items) => Object.fromEntries(items.map((i) => [i.pool, q(1.6)])) }); } catch (e) { crashed2 = true; } console.log = log0;
+  const old = st.positions.find((x) => x.id === 'old') || st.closed.find((x) => x.id === 'old'); ok(!crashed2 && old && Array.isArray(old.targets), 'an old minute position without targets is repaired, not crashed on'); }
+
+// ---- the live universe: GeckoTerminal's trending and new pools join the minute scan (23 Oct: the runners were joining the universe after their run)
+{ const cfg = loadConfig('runner'), st = newState(cfg), jr = [], T = 1800000000, log0 = console.log; console.log = () => {};
+  const hot = { priceUsd: '1', priceNative: '0.01', liquidity: { usd: 120000 }, volume: { h1: 200000, h24: 1000000 }, txns: { h1: { buys: 300, sells: 100 }, m5: { buys: 40, sells: 10 } }, priceChange: { h1: 25, m5: 3, h24: 60 }, pairCreatedAt: (T - 10 * 3600) * 1000, baseToken: { address: 'TK' } };
+  const deps = (now) => ({ now, getJson: async (u) => (u.endsWith('universe.json') ? [{ pool: 'old1', sym: 'OLD', chain: 'solana' }] : u.includes('trending_pools?page=1') && u.includes('/solana/') ? { data: [{ id: 'solana_TREND1', attributes: { name: 'TREND / SOL', address: 'TREND1', reserve_in_usd: '120000' } }] } : u.includes('new_pools') ? { data: [{ id: 'solana_NEW1', attributes: { name: 'NEW / SOL', address: 'NEW1', reserve_in_usd: '5000' } }] } : { data: [] }), quotes: async (items) => Object.fromEntries(items.map((i) => [String(i.pool).toLowerCase(), i.pool === 'TREND1' ? hot : { ...hot, volume: { h1: 100, h24: 100000 }, priceChange: { h1: 0, m5: 0, h24: 0 } }])), candles5: async () => null, candlesH: async () => null, notify: async () => {}, journal: (o) => jr.push(o), heartbeat: async () => {} });
+  await cycle(st, { ...cfg, setupsEveryMin: 0, slipPct: 0 }, deps(T * 1000)); console.log = log0;
+  ok(st.liveUni && st.liveUni.TREND1 && !st.liveUni.NEW1 && st.scanList.some((c) => c.pool === 'TREND1'), 'a trending pool with enough liquidity joins the scan list; a $5k new pool does not');
+  ok(st.positions.length === 1 && st.positions[0].pool === 'TREND1', 'the runner found and bought the trending coin within the minute, not at the next four-hourly scan'); }
+
+// ---- BTC and ETH: the Monday range. Monday 100-115; Tuesday sweeps to 97, closes back inside, the 15-minute chart breaks structure over
+// 104 and leaves an order block 97.2-99.2; the limit fills at 99.2 and the price runs to Monday's high (115)
+{ const NY = 'America/New_York', MON = mondayStartTz(1800000000, NY), TUE = MON + 86400, Q = 900, m15 = [];
+  ok(MON % 3600 === 0 && (MON / 3600) % 24 === 5 && tzOffset(1800000000, NY) === -5 * 3600, 'the New York Monday in winter starts at 05:00 UTC');
+  for (let k = 0; k < 96; k++) { const lo = k === 16 ? 100 : 106, hi = k === 40 ? 115 : 110; m15.push([MON + k * Q, 108, hi, lo, 108.5, 100]); }
+  const tue = [[108, 108, 104, 105], [105, 106, 97, 98], [98, 103, 97.5, 102], [102, 104, 101, 103.5], [103.5, 103.6, 99, 99.5], [99.5, 100, 96, 96.5], [96.5, 99, 96.2, 98.8], [99, 99.2, 97, 97.2], [97.2, 105, 97.1, 104.5], [104.5, 105, 103, 104], [104, 104.2, 100, 100.5], [100.5, 101, 99.4, 99.5], [99.5, 100, 98.9, 99.8], [99.8, 108, 99.5, 107], [107, 116, 106, 115]];
+  tue.forEach((c, k) => m15.push([TUE + k * Q, ...c, 120])); for (let k = tue.length; k < 5 * 96; k++) m15.push([TUE + k * Q, 112, 112.5, 111.5, 112, 80]);
+  const agg = (B) => { const by = new Map(); for (const b of B) { const h = Math.floor(b[0] / 3600) * 3600, x = by.get(h); if (!x) by.set(h, [h, b[1], b[2], b[3], b[4], b[5]]); else { x[2] = Math.max(x[2], b[2]); x[3] = Math.min(x[3], b[3]); x[4] = b[4]; x[5] += b[5]; } } return [...by.values()]; };
+  const h1 = agg(m15), cfgM = { ...RANGE, rangeMode: 'monday', rangeTz: NY, lastSweep: true, expireH: 24, maxHoldH: 120 }, now = TUE + 3 * 3600, upTo = (B, t, w) => B.filter((b) => b[0] + w <= t);
+  ok(rangeSetup(h1, null, MON + 12 * 3600, cfgM) === null, 'on Monday itself: the range is still forming, no setup');
+  const pre = rangeSetup(upTo(h1, now, 3600), null, now, cfgM); ok(pre && pre.need15 && pre.rangeLo === 100 && pre.rangeHi === 115, "Tuesday: Monday's range 100-115, swept to 97 and closed back inside in the same hour: asks for the 15-minute chart");
+  const r = rangeSetup(upTo(h1, now, 3600), upTo(m15, now, 900), now, cfgM); ok(r && !r.dead && r.zoneHigh === 99.2 && r.zoneLow === 97.2 && r.tp1 === 115 && r.rr > 6 && r.rr < 6.5 && /Monday \(New York\)'s low/.test(r.why[0]), `structure break over 104, order block 97.2-99.2, stop ${r && r.stop}, target Monday's high, ${r && r.rr}R`);
+  const rS = rangeSetup(upTo(h1, now, 3600), upTo(m15, now, 900), now, { ...cfgM, stopAt: 'sweep', rrMin: 1.5 }), rM = rangeSetup(upTo(h1, now, 3600), upTo(m15, now, 900), now, { ...cfgM, entryAt: 'mid', rrMax: 12 });
+  ok(rS && !rS.dead && Math.abs(rS.stop - 96 * 0.998) < 0.01 && rS.zoneHigh === 99.2 && rM && !rM.dead && Math.abs(rM.zoneHigh - 98.2) < 1e-6 && rM.stop === r.stop, 'variants: the stop under the sweep low (95.8), or the entry at the middle of the order block (98.2)');
+  const thu = TUE + 2 * 86400; ok(rangeSetup(upTo(h1, thu, 3600), upTo(m15, thu, 900), thu, cfgM) && rangeSetup(upTo(h1, thu, 3600), upTo(m15, thu, 900), thu, cfgM).sweepAt === TUE, 'on Thursday the same week, the latest sweep (Tuesday) is still the one it reads');
+  // the backtest plays it out: fills at 99.2 on the next 15 minutes, out at 115
+  const tr = simulate(h1, m15, cfgM, { from: MON + 86400, costPct: 0.1 }); const f = tr.filter((x) => x.filled);
+  ok(f.length === 1 && f[0].why === 'target (Monday high)' && Math.abs(f[0].R - (115 - 99.2 - 2 * 0.0992) / (99.2 - 97.2 * 0.995)) < 0.02, 'backtest: one trade, filled at the order block, out at Monday\'s high, ' + (f[0] && f[0].R) + 'R after costs');
+  const stopped = m15.map((b) => (b[0] === TUE + 13 * Q ? [b[0], 99.8, 100, 95, 96, 100] : b)), tr2 = simulate(agg(stopped), stopped, cfgM, { from: MON + 86400 }).filter((x) => x.filled); ok(tr2.length === 1 && tr2[0].why === 'stop' && tr2[0].R < -1 && tr2[0].R > -1.1, 'the same setup stopped out: about -1R after costs');
+  const st = stats([...Array(25)].map((_, i) => ({ filled: true, R: i % 3 === 0 ? 4 : -1 }))); ok(st.trades === 25 && st.winPct === 36 && st.avgR > 0.7 && /EDGE|UNDECIDED/.test(verdict(st)) && /too few/.test(verdict(stats([{ filled: true, R: 2 }]))), 'stats: win rate, R a trade with a luck range, and a plain verdict');
+  ok(/PROMISING, NOT PROVEN/.test(verdict({ ...stats([...Array(40)].map((_, i) => ({ filled: true, R: i % 2 ? 3 : -1 }))), halves: { first: 1.4, second: -0.1 } })), 'a luck range above zero that only one half of the year supports is called promising, not an edge');
+  // the bot end to end: DexScreener finds the cbBTC pool, the scan sets the limit, the price fills it, then Monday's high takes it out
+  const cfg = { ...loadConfig('btc'), rangeTz: NY }, stB = newState(cfg), jr = [], log0 = console.log; console.log = () => {}; // this week is built on New York's Monday
+  const pairs = { pairs: [{ chainId: 'solana', pairAddress: 'CBPOOL', dexId: 'orca', baseToken: { address: cfg.mint, symbol: 'cbBTC' }, quoteToken: { symbol: 'USDC' }, liquidity: { usd: 25e6 } }, { chainId: 'solana', pairAddress: 'THIN', dexId: 'raydium', baseToken: { address: cfg.mint }, quoteToken: { symbol: 'USDC' }, liquidity: { usd: 2e5 } }] };
+  const depsB = (nowS, px) => ({ now: nowS * 1000, getJson: async (u) => (u.includes('/dex/tokens/') ? pairs : []), quotes: async (items) => Object.fromEntries(items.map((i) => [String(i.pool).toLowerCase(), { priceUsd: String(px), liquidity: { usd: 25e6 }, txns: {}, baseToken: { address: cfg.mint } }])), candlesH: async () => upTo(h1, nowS, 3600), candles15: async () => upTo(m15, nowS, 900), candles5: async () => null, notify: async () => {}, journal: (o) => jr.push(o), heartbeat: async () => {} });
+  await cycle(stB, { ...cfg, setupsEveryMin: 0 }, depsB(now, 99.5)); const setup = stB.setups.CBPOOL;
+  ok(stB.major && stB.major.pool === 'CBPOOL' && setup && setup.zoneHigh === 99.2 && setup.tp1 === 115 && stB.positions.length === 0, 'the bot picked the deep cbBTC pool, found the Monday-range setup and rests a limit at 99.2 (price 99.5: not filled yet)');
+  await cycle(stB, { ...cfg, setupsEveryMin: 0 }, depsB(now + 900, 99.0)); const pos = stB.positions[0];
+  ok(pos && pos.mode === 'perp' && pos.side === 'long' && pos.leverage === 10 && pos.entry === 99.2 && pos.stop === setup.stop && pos.tp1 === 115 && Math.abs(pos.riskUsd - 100) < 1 && Math.abs(pos.costUsd * 10 - pos.notional) < 0.1 && pos.liqPx < pos.stop, 'the limit filled at 99.2 as a 10x perp long: $100 at risk (1%), margin a tenth of the size, liquidation well under the stop');
+  await cycle(stB, { ...cfg, setupsEveryMin: 0 }, depsB(now + 3600, 115.2)); console.log = log0;
+  ok(stB.positions.length === 0 && stB.closed.length === 1 && stB.closed[0].R > 5.5 && stB.closed[0].R < 6.2 && Math.abs(stB.cash + (stB.kitty || 0) - (10000 + stB.closed[0].pnl)) < 0.01 && stB.kitty > 0, 'Monday\'s high reached: closed at the target, ' + (stB.closed[0] && stB.closed[0].R) + 'R after fees and borrow; the profit went to the kitty, the pot is back to $10k');
+  // the mirror week: every price turned upside down (10000/price). Monday's HIGH is swept, the short fills at the bottom of the bearish block and runs to Monday's low
+  const K = 10000, inv = (B) => B.map((b) => [b[0], K / b[1], K / b[3], K / b[2], K / b[4], b[5]]), h1s = inv(h1), m15s = inv(m15);
+  ok(rangeSetup(upTo(h1s, now, 3600), upTo(m15s, now, 900), now, cfgM) == null, 'the long detector sees nothing in the mirror week (no sweep of the low)');
+  const rs = rangeSetupShort(upTo(h1s, now, 3600), upTo(m15s, now, 900), now, cfgM); ok(rs && rs.side === 'short' && Math.abs(rs.zoneLow - K / 99.2) < 0.01 && Math.abs(rs.tp1 - K / 115) < 0.01 && rs.stop > rs.zoneHigh && rs.rr > 5 && /high/.test(rs.why[0]) && /down through/.test(rs.why[1]), `short: sweep of Monday's high, order block ${rs && rs.zoneLow}-${rs && rs.zoneHigh}, stop ${rs && rs.stop}, target ${rs && rs.tp1}, ${rs && rs.rr}R`);
+  const bs = simulateShort(h1s, m15s, cfgM, { from: MON + 86400, costPct: 0.06, borrowPctH: 0.002 }).filter((x) => x.filled); ok(bs.length === 1 && bs[0].side === 'short' && /Monday low/.test(bs[0].why) && bs[0].R > 4.5 && Math.abs(bs[0].entry - K / 99.2) < 0.01, 'backtest, short side: the mirror week gives one short, out at Monday\'s low, ' + (bs[0] && bs[0].R) + 'R after perp costs');
+  const stS = newState(cfg); console.log = () => {}; const depsS = (nowS, px) => ({ ...depsB(nowS, px), candlesH: async () => upTo(h1s, nowS, 3600), candles15: async () => upTo(m15s, nowS, 900) });
+  await cycle(stS, { ...cfg, setupsEveryMin: 0 }, depsS(now, K / 99.5)); const ss = Object.values(stS.setups).find((x) => x.side === 'short');
+  await cycle(stS, { ...cfg, setupsEveryMin: 0 }, depsS(now + 900, K / 99.0)); const sp = stS.positions[0];
+  await cycle(stS, { ...cfg, setupsEveryMin: 0 }, depsS(now + 3600, K / 115.2)); console.log = log0;
+  ok(ss && sp && sp.side === 'short' && sp.liqPx > sp.stop && stS.positions.length === 0 && stS.closed.length === 1 && /Monday's low/.test(stS.closed[0].sells.at(-1).why) && stS.closed[0].R > 5, 'the bot shorted the mirror week at 10x and took Monday\'s low: ' + (stS.closed[0] && stS.closed[0].R) + 'R');
+  ok(loadConfig('btc').rangeMode === 'monday' && loadConfig('btc').rangeTz === 'UTC' && loadConfig('btc').venue === 'perp' && loadConfig('btc').leverage === 10 && loadConfig('eth').shorts, 'both bots: the UTC Monday, 10x perps, long and short'); }
+
+// ---- the perp engine on its own: fees, borrow, the stop, liquidation, and the guard that keeps the stop inside the liquidation price
+{ const cfg = { ...PERP, riskPct: 1, maxPosPct: 25, maxOpenRiskPct: 2, maxHoldH: 120, slipPct: 0 };
+  const sz = perpSize({ equity: 10000, cash: 10000 }, 1.88, 0, cfg); ok(Math.abs(sz.riskUsd - 100) < 0.5 && Math.abs(sz.notional - 100 / 0.02) < 1 && sz.margin === +(sz.notional / 10).toFixed(2), `1% risk on a 1.88% stop: $${sz.notional} of BTC on $${sz.margin} margin`);
+  ok(perpSize({ equity: 10000, cash: 10000 }, 0.1, 0, cfg).notional === 25000 && perpSize({ equity: 10000, cash: 10000 }, 0.1, 0, cfg).cut === 'margin cap' && /too close to liquidation/.test(perpSize({ equity: 10000, cash: 10000 }, 8, 0, cfg).cut), 'a tiny stop is capped (a quarter of the pot as margin: 2.5x the pot in size); a stop near the liquidation price is refused');
+  ok(Math.abs(liqDistPct(10) - 9.25) < 1e-9, 'at 10x the liquidation sits 9.25% away (10% less a 0.75% maintenance cushion)');
+  const t0 = '2026-10-27T00:00:00Z', T0 = Date.parse(t0) / 1000, p = openPerp({ pool: 'P', coin: 'BTC', chain: 'solana', tp1: 110 }, { price: 100, stop: 98 }, perpSize({ equity: 10000, cash: 10000 }, 2, 0, cfg), t0, cfg);
+  ok(Math.abs(posValue(p, 101) - (p.costUsd + p.units - p.feesUsd)) < 1e-6 && Math.abs(pnlOf(p, 100) + p.feesUsd) < 1e-6, 'open value: margin plus the move on the full size, less the opening fee');
+  const later = managePerp(p, { priceUsd: '100.5' }, T0 + 10 * 3600, cfg).pos; ok(Math.abs(later.borrowUsd - p.notional * 0.002 / 100 * 10) < 1e-3, 'borrow builds hourly on the full size');
+  const st = managePerp(later, { priceUsd: '97.9' }, T0 + 11 * 3600, cfg); ok(st.actions.length === 1 && st.actions[0].why === 'stop' && st.pos.remUnits === 0 && pnlOf(st.pos, 0) < -100 && pnlOf(st.pos, 0) > -112, 'stopped: just over 1% of the pot lost (the stop plus fees and borrow): ' + pnlOf(st.pos, 0).toFixed(2));
+  const lq = managePerp({ ...p, stop: 50 }, { priceUsd: '90' }, T0 + 3600, cfg); ok(/liquidated/.test(lq.actions[0].why) && lq.pos.bankedUsd === 0, 'through the liquidation price: the whole margin is gone (the stop is there so this never happens)');
+  const s0 = { at: t0, expireH: 24, zoneLow: 100, zoneHigh: 101, stop: 103 }; ok(decideLimitShort(s0, 99, T0 + 60) == null && decideLimitShort(s0, 100.5, T0 + 60).act === 'buy' && decideLimitShort(s0, 100.5, T0 + 60).price === 100 && decideLimitShort(s0, 102, T0 + 60).price === 100 && decideLimitShort(s0, 103.1, T0 + 60).act === 'drop', 'the short limit rests under the block, fills at its own price (the bottom of the block) however far the price has gone, cancels through the stop'); }
+
+// ---- the trencher: feed events in, setups and quotes out; the gates are loose but real
+{ const f = trenchFeed({ WS: null }), t0 = 1000; f.push({ txType: 'create', mint: 'M1', name: 'Pepe Ten', symbol: 'PEPE10', traderPublicKey: 'dev', initialBuy: 30e6, vSolInBondingCurve: 31, vTokensInBondingCurve: 1.05e9, marketCapSol: 29.5 }, t0);
+  for (let i = 0; i < 14; i++) f.push({ txType: 'buy', mint: 'M1', traderPublicKey: 'w' + i, solAmount: 0.4, vSolInBondingCurve: 31 + 0.4 * (i + 1), vTokensInBondingCurve: 1.05e9 - 12e6 * (i + 1), marketCapSol: 32 + i }, t0 + 20 + i * 5);
+  f.push({ txType: 'sell', mint: 'M1', traderPublicKey: 'w1', solAmount: 0.3, vSolInBondingCurve: 36.3, vTokensInBondingCurve: 0.89e9, marketCapSol: 44 }, t0 + 95);
+  const tok = f.tokens.get('M1'); ok(tok && Object.keys(tok.buyers).length === 14 && tok.trades.length === 15, 'the feed keeps a tally per launch: 14 buyers, 15 trades');
+  ok(trenchSetup(tok, t0 + 20, TRENCH) == null, 'under 30 seconds old: not yet');
+  const r = trenchSetup(tok, t0 + 100, TRENCH); ok(r && !r.dead && r.buyers === 14 && r.mcapSol === 44 && r.devPct === 3, 'a minute and a half in, 14 buyers, buys 14 to 1, 44 SOL, dev 3%: a setup');
+  const q = quoteFor(tok, t0 + 100, 200); ok(+q.priceUsd > 0 && q.txns.m5.buys === 14 && q.txns.m5.sells === 1 && q.lastTradeSec === t0 + 95 && /pump\.fun/.test(q.url), 'the quote looks like DexScreener\'s: price in USD, buys and sells, last trade time');
+  ok(trenchSetup(tok, t0 + 13 * 60, TRENCH).dead && /past the window/.test(trenchSetup(tok, t0 + 13 * 60, TRENCH).dead), '13 minutes old: past the window');
+  f.push({ txType: 'create', mint: 'M2', symbol: 'RUG', traderPublicKey: 'dev2', initialBuy: 120e6, vSolInBondingCurve: 35, vTokensInBondingCurve: 0.95e9, marketCapSol: 37 }, t0); for (let i = 0; i < 14; i++) f.push({ txType: 'buy', mint: 'M2', traderPublicKey: 'x' + i, solAmount: 0.5, vSolInBondingCurve: 36 + i, vTokensInBondingCurve: 0.9e9, marketCapSol: 40 + i }, t0 + 30 + i * 4);
+  ok(/dev bought 12%/.test(trenchSetup(f.tokens.get('M2'), t0 + 100, TRENCH).dead), 'the dev bought 12% at launch: dead');
+  const st = { positions: [], setups: {}, seen: {} }, jr = []; trenchSetupsIn(st, loadConfig('trench'), f, { J: (o) => jr.push(o), now: (t0 + 100) * 1000, nowIso: '2026-10-22T00:01:40Z', solUsd: 200 });
+  ok(st.setups.M1 && st.setups.M1.kind === 'trench' && st.setups.M1.chain === 'solana' && Math.abs(st.setups.M1.stop / st.setups.M1.zoneHigh - 0.65) < 0.01 && !st.setups.M2 && jr.some((j) => j.type === 'skip' && j.pool === 'M2'), 'setups from the feed: PEPE10 in with a 35% stop, RUG skipped with the reason in the journal');
+  ok(loadConfig('trench').maxPosPct === 1 && loadConfig('trench').maxHoldH === 1 && loadConfig('trench').deadMin === 4, 'trencher: $100 flat, an hour at most, dead after 4 quiet minutes'); }
+
+// ---- the trencher, rebuilt 23 Oct: it never fired because the per-coin trades never arrived. Launches with no feed trades are judged on
+// DexScreener; a trending lane watches pump.fun and PumpSwap; the feed reports what it received every hour
+{ const T0 = 1800000000, cfg = loadConfig('trench'), f = trenchFeed({ WS: null }); f.testing = true;
+  for (let i = 0; i < 3; i++) f.push({ txType: 'create', mint: 'L' + i, symbol: 'LAUNCH' + i, traderPublicKey: 'dev', initialBuy: 1e7, vSolInBondingCurve: 30, vTokensInBondingCurve: 1.07e9, marketCapSol: 28 }, T0 - 5 * 60);
+  ok(f.stats(T0).creates1h === 3 && f.stats(T0).trades1h === 0, 'the feed counts what it receives: 3 launches, no trades');
+  const dsPair = (mint, o = {}) => ({ chainId: 'solana', dexId: 'pumpfun', pairAddress: 'PAIR_' + mint, baseToken: { address: mint, symbol: 'X' + mint }, priceUsd: '0.00002', marketCap: 22000, txns: { m5: { buys: 40, sells: 20 }, h1: { buys: 60, sells: 25 } }, volume: { m5: 6000, h1: 9000 }, priceChange: { m5: 12, h1: 30 }, pairCreatedAt: (T0 - 300) * 1000, url: 'https://dexscreener.com/solana/PAIR_' + mint, ...o });
+  ok(dsLaunchSetup(dsPair('L0'), 5) && !dsLaunchSetup(dsPair('L0', { txns: { m5: { buys: 40, sells: 35 } } }), 5) && !dsLaunchSetup(dsPair('L0'), 1) && /no longer early/.test(dsLaunchSetup(dsPair('L0', { marketCap: 200000 }), 5).dead), 'DexScreener launch judge: 40 buys vs 20 sells, $6k in 5 minutes, $22k cap passes; sellers close behind, under 2 minutes old or already $200k does not');
+  const G = async (u) => (u.includes('/dex/tokens/') ? { pairs: u.split('/').pop().split(',').map((m) => (m === 'L1' ? dsPair(m) : dsPair(m, { txns: { m5: { buys: 5, sells: 9 } } }))) } : u.includes('geckoterminal') ? { data: u.includes('duration=5m&page=1') ? [{ id: 'solana_TRENDPOOL', attributes: { name: 'HOT / SOL' }, relationships: { dex: { data: { id: 'pumpswap' } } } }, { id: 'solana_RAYPOOL', attributes: { name: 'RAY / SOL' }, relationships: { dex: { data: { id: 'raydium' } } } }] : [] } : {});
+  const trendQ = { chainId: 'solana', dexId: 'pumpswap', pairAddress: 'TRENDPOOL', baseToken: { address: 'HOTMINT', symbol: 'HOT' }, priceUsd: '0.004', marketCap: 3.2e6, liquidity: { usd: 250000 }, txns: { m5: { buys: 90, sells: 40 } }, volume: { h1: 400000 }, priceChange: { m5: 4, h1: 45 }, pairCreatedAt: (T0 - 20 * 3600) * 1000 };
+  const asked = []; const Q = async (items) => { asked.push(...items.map((i) => i.pool)); return Object.fromEntries(items.filter((i) => i.pool === 'TRENDPOOL' || i.pool === 'RAYPOOL').map((i) => [i.pool.toLowerCase(), i.pool === 'TRENDPOOL' ? { ...trendQ } : { ...trendQ, dexId: 'raydium', pairAddress: 'RAYPOOL' }])); };
+  ok(trendSetup(trendQ, T0 * 1000) && /vertical/.test(trendSetup({ ...trendQ, priceChange: { m5: 4, h1: 450 } }, T0 * 1000).dead) && !trendSetup({ ...trendQ, pairCreatedAt: (T0 - 100 * 3600) * 1000 }, T0 * 1000), 'trending judge: 90 buys vs 40, $400k an hour, +45%: in; +450% in the hour is vertical; over 3 days old is not the trencher\'s');
+  const st = newState(cfg), jr = []; await trenchSetupsIn(st, cfg, f, { J: (o) => jr.push(o), now: T0 * 1000, nowIso: new Date(T0 * 1000).toISOString(), solUsd: 200, G, Q });
+  const ss = Object.values(st.setups); ok(ss.some((x) => x.src === 'ds' && x.pool === 'PAIR_L1' && x.kind === 'trench') && !ss.some((x) => x.pool === 'PAIR_L0') && ss.some((x) => x.src === 'trend' && x.pool === 'TRENDPOOL' && x.kind === 'trend' && Math.abs(x.stop / x.zoneHigh - 0.75) < 0.001) && !asked.includes('RAYPOOL'), 'one launch passes on DexScreener (the one with buyers), the pump.fun trending pool becomes a trend setup with a 25% stop, the Raydium pool is never even quoted');
+  // the bot end to end: it buys both, prices them on DexScreener (not the silent feed), and the trend position keeps the trend exits
+  const log0 = console.log; console.log = () => {}; let px = { PAIR_L1: 0.00002, TRENDPOOL: 0.004 };
+  const deps = (sec) => ({ now: sec * 1000, feed: f, getJson: async (u) => (u.includes('So1111') ? { pairs: [{ priceUsd: '200' }] } : G(u)), dsQuotes: async (items) => Object.fromEntries(items.map((i) => [i.pool.toLowerCase(), i.pool === 'TRENDPOOL' ? { ...trendQ, priceUsd: String(px.TRENDPOOL) } : { ...dsPair('L1'), priceUsd: String(px[i.pool] || 0.00002) }])), candles5: async () => null, notify: async () => {}, journal: (o) => jr.push(o), heartbeat: async () => {} });
+  const stB = newState(cfg); await cycle(stB, { ...cfg, setupsEveryMin: 0, slipPct: 0 }, deps(T0)); await cycle(stB, { ...cfg, setupsEveryMin: 0, slipPct: 0 }, deps(T0 + 60));
+  const pl = stB.positions.find((x) => x.pool === 'PAIR_L1'), pt = stB.positions.find((x) => x.pool === 'TRENDPOOL');
+  ok(pl && pt && pt.meta.signal === 'trend' && pt.meta.lane === 'trend' && pl.meta.lane === 'ds' && Math.abs(pt.stop / pt.entry - 0.75) < 0.02, 'the trencher bought the DexScreener launch and the trending coin ($100 each), the trending one with its 25% stop');
+  px = { PAIR_L1: 0.00002 * 1.6, TRENDPOOL: 0.004 }; await cycle(stB, { ...cfg, setupsEveryMin: 0, slipPct: 0 }, deps(T0 + 120)); console.log = log0;
+  const pl2 = stB.positions.find((x) => x.pool === 'PAIR_L1') || stB.closed.find((x) => x.pool === 'PAIR_L1'); ok(pl2 && pl2.hits >= 1, 'the launch ran 1.6x on DexScreener\'s price: the first clip was sold into the buyers');
+  // the dead chart on DexScreener's numbers, and the hourly report
+  const dq = { priceUsd: '1', txns: { m5: { buys: 0, sells: 0 }, h1: { buys: 3, sells: 1 } } }; const pd = openLadder({ pool: 'D', coin: 'D', chain: 'solana', mults: [1.5], shares: [0.5] }, { price: 1, stop: 0.6 }, 100, new Date(T0 * 1000).toISOString(), { ...cfg, slipPct: 0 }, 1e5);
+  ok(/no trades in the last 5 minutes/.test((manageLadder(pd, dq, T0 + 7 * 60, { ...cfg, deadMin: 6, slipPct: 0 }).actions[0] || {}).why || ''), 'dead chart on DexScreener: not one trade in 5 minutes, after 6 minutes held: out');
+  const stH = newState(cfg); stH.trench = { expired: 4, feedSetups: 0, dsSetups: 1, trendSetups: 2, hourAt: T0 * 1000 - 3601e3 }; const jh = []; await trenchSetupsIn(stH, cfg, f, { J: (o) => jh.push(o), now: T0 * 1000, nowIso: 'x', solUsd: 200 });
+  ok(jh.some((e) => e.type === 'feed' && /3 launches and 0 trades/.test(e.why) && /1 from DexScreener launches, 2 trending/.test(e.why)), 'once an hour the trencher says what it saw: ' + (jh.find((e) => e.type === 'feed') || {}).why);
+  ok(fixLiq({ marketCap: 50000 }).liquidity.usd === 10000 && fixLiq({ marketCap: 50000 }).liquidity.estimated && fixLiq({ liquidity: { usd: 7 } }).liquidity.usd === 7, 'a bonding-curve pair with no liquidity figure gets an estimate (a fifth of its market cap), marked as one'); }
+
+// ---- the missed-runner review: which gate stood in the way of the coin that ran
+{ const q = (o) => ({ priceUsd: '1', volume: { h1: 30000, h24: 240000 }, txns: { h1: { buys: 120, sells: 90 } }, priceChange: { h1: 10, m5: 1, h24: 50 }, ...o });
+  ok(runnerWhyNot(q({ volume: { h1: 30000, h24: 24 * 30000 } }), RUN).gate === 'volume surge' && runnerWhyNot(q({ txns: { h1: { buys: 50, sells: 60 } } }), RUN).gate === 'buyers leading' && runnerWhyNot(q({ priceChange: { h1: 90, m5: 1, h24: 50 } }), RUN).gate === 'too vertical' && runnerWhyNot(q({ volume: { h1: 5000, h24: 1000 } }), RUN).gate === 'hourly volume' && runnerWhyNot(q({}), RUN).gate === 'none', 'the first gate tripped is named: volume surge, buyers leading, too vertical, hourly volume, or none');
+  const ms = missedSummary([{ at: new Date().toISOString(), gate: 'volume surge', coin: 'A', c24: 150, peakC24: 200 }, { at: new Date().toISOString(), gate: 'volume surge', coin: 'B', c24: 120 }, { at: new Date().toISOString(), gate: 'liquidity', coin: 'C', c24: 300 }, { at: new Date().toISOString(), gate: 'exit', coin: 'D', c24: 90 }, { at: new Date().toISOString(), gate: 'entry', coin: 'E', c24: 95 }]);
+  ok(ms.n === 5 && ms.gates[0].gate === 'volume surge' && ms.gates[0].n === 2 && ms.gated === 3 && /mostly the gates/.test(ms.verdict), 'missed summary: grouped by gate, verdict says the gates were in the way: ' + ms.verdict);
+  const rv = missedReview({ missedSummary: { ...ms, n: 9, gates: [{ gate: 'volume surge', n: 5, avgPeak24: 180, coins: ['A', 'B'] }, { gate: 'exit', n: 4, avgPeak24: 100, coins: ['D'] }], entry: 0, exit: 4, gated: 5, verdict: 'a mix of gates and the trade itself' } });
+  ok(rv.length >= 3 && /MISSED RUNNERS: 9/.test(rv[0]) && rv.some((x) => /volume-surge rule/.test(x)) && rv.some((x) => /Question for the exit/.test(x)), 'the council asks the questions: too many gates (which one), or the exit that let go');
+  const lv = labVariants({ closed: [...Array(6)].flatMap((_, i) => [{ R: 1 + i * 0.1, meta: { variant: 'A-base' } }, { R: -0.5, meta: { variant: 'C-control' } }, { R: 2, meta: { variant: 'G-giveback' } }]) });
+  ok(lv.length >= 2 && /LAB, variant by variant/.test(lv[0]) && /beats the random control/.test(lv[1]), 'the council reads the lab variant by variant and checks the real entry against the random control'); }
+
+// ---- the giants study: a chart that runs 10x with dips on the way, tops, then bleeds; what each exit would have kept
+{ const bars = []; let p = 1; for (let i = 0; i < 200; i++) { const ph = i % 12, m = i < 90 ? (ph < 8 ? 1.09 : 0.9) : 0.975, o = p; p *= m; bars.push([1700000000 + i * 86400, o, Math.max(o, p) * 1.05, Math.min(o, p) * 0.95, p, 1000]); }
+  const s = studyChart(bars); ok(s && s.peakDay === 89 && s.x > 10 && s.dipCount[30] >= 5 && s.dipCount[50] === 0 && s.afterPeak.nowPct < -90, 'launch to top in 89 days, 10x, seven 30% dips on the way and none of 50%, now 94% under the top');
+  ok(s.sims.hold.out < 600 && s.sims.trail50.out > s.sims.trail35.out && s.sims.clipsTrail50.out > s.sims.giveback.out && s.sims.peakSold.out > s.sims.trail50.out, 'holding rode it back to nothing; a 50% trail kept more than a 35% one on a chart with 41% dips; the clips plus trail beat the giveback rule');
+  ok(s.pullback && s.pullback.toPeak > 5 && s.entries[0].day === 0 && s.entries.find((e) => e.day === 7).toPeak < s.entries[0].toPeak, 'the first 30% pullback after a 2x still gave 6x to the top; later entry days gave less');
+  const sum = summarise([{ study: s }, { study: s }, { study: null }]); ok(sum.n === 2 && sum.best === 'trail50' && sum.lines.length === 5 && /worst dip before the top: 41%/.test(sum.lines[0]), 'the summary names the rule that kept the most and the dips a moonbag must survive');
+  const c = council({ giants: { summary: sum } }); ok(c.hats.some((h) => (h.points || []).some((x) => /GIANTS \(2 charts/.test(x))), 'the council\'s scout hat reads the giants study'); }
+
+// ---- the rider: day 2-7, proven mover, the first real pullback turning, the giant ticket trailing the giants' width
+{ const T = 1800000000, day = (i, c, h, v) => [T - (6 - i) * 86400, c * 0.9, h, c * 0.85, c, v]; // 7 daily bars, the last one still forming
+  const daily = [day(0, 1, 1.2, 100000), day(1, 2, 2.3, 400000), day(2, 3, 3.4, 500000), day(3, 2.4, 3.1, 450000), day(4, 2.2, 2.5, 420000), day(5, 2.1, 2.3, 400000), day(6, 2.3, 2.4, 380000)];
+  const hours = (turn) => [[T - 7200, 2.1, 2.15, 2.05, 2.1, 10], [T - 3600, 2.1, 2.35, 2.08, turn ? 2.3 : 2.05, 12], [T, 2.3, 2.3, 2.3, 2.3, 1]];
+  const q = (o = {}) => ({ priceUsd: '2.3', pairCreatedAt: (T - 6 * 86400) * 1000, liquidity: { usd: 400000 }, volume: { h24: 900000 }, txns: { h1: { buys: 40, sells: 30 } }, ...o });
+  const r = riderSetup(q(), daily, hours(true), T, RIDER); ok(r && !r.dead && r.x === 2.3 && r.offHighPct === 32 && r.ageD === 6 && r.stopPct >= 15 && r.stopPct <= 35, 'day 6, 2.3x its first close, 32% off the high, turning on the hour: a rider setup, stop ' + (r && r.stopPct) + '%');
+  ok(riderSetup(q(), daily, hours(false), T, RIDER) == null, 'the hour has not turned green: waits');
+  ok(/collapse/.test(riderSetup(q({ priceUsd: '1.5' }), daily, hours(true), T, RIDER).dead), '56% off the high: a collapse, not a pullback');
+  ok(/interest fading/.test(riderSetup(q({ volume: { h24: 300000 } }), daily, hours(true), T, RIDER).dead), '24h volume under 1.5x the liquidity: interest fading');
+  ok(/past the window/.test(riderSetup(q({ pairCreatedAt: (T - 9 * 86400) * 1000 }), daily, hours(true), T, RIDER).dead) && riderSetup(q({ pairCreatedAt: (T - 86400) * 1000 }), daily, hours(true), T, RIDER) == null, 'day 9 is past the window; day 1 is too early');
+  const cfg = loadConfig('rider'); ok(Math.abs(cfg.shares.reduce((a, b) => a + b, 0) - 0.6) < 1e-9 && cfg.ticketExit && cfg.ticketExit.deadVolPct === 5 && cfg.ticketExit.maxDays === 120 && !cfg.giantsTrail && !cfg.peakGiveback && !cfg.dumpCut && cfg.maxEntriesPerCoin === 3 && cfg.noFollowH === 72 && !cfg.labOnly && cfg.maxHoldH === 120 * 24, 'rider: 40% giant ticket with no trail (sold when the coin is dead or at 120 days), no giveback or dump cut, 3 entries a coin, can go live one day');
+  // end to end: trending pools join the universe, the setup is found and bought, the moonbag trails the giants' width
+  const st = newState(cfg), jr = [], log0 = console.log; console.log = () => {};
+  const deps = (now, px) => ({ now, getJson: async (u) => (u.includes('trending_pools') ? { data: [{ id: 'solana_POOLX', attributes: { name: 'GIANT / SOL', address: 'POOLX' } }] } : u.endsWith('universe.json') ? [] : u.endsWith('giants.json') ? { summary: { worstDip: 52 } } : u.endsWith('setups.json') ? [{ id: 'X:INDEX', coin: 'INDEX', chain: 'Robinhood', pool: '0xindex', signal: 'Watch', opp: 73, setupType: 'Volume breakout', entryLow: 1, entryHigh: 1.01, stop: 0.8, liquidity: 500000, rug: 'ok', at: new Date(now).toISOString() }] : []), quotes: async (items) => Object.fromEntries(items.map((i) => [String(i.pool).toLowerCase(), { ...q({ priceUsd: String(px) }), baseToken: { address: 'TOK', symbol: 'GIANT' }, url: 'x' }])), candlesD: async () => daily, candlesH: async () => hours(true), candles5: async () => null, notify: async () => {}, journal: (o) => jr.push(o), heartbeat: async () => {} });
+  await cycle(st, { ...cfg, setupsEveryMin: 0, slipPct: 0 }, deps(T * 1000, 2.3)); console.log = log0;
+  ok(!jr.some((j) => j.type === 'setup' && j.kind !== 'rider'), 'the rider never takes the scanner\'s own setups (bug seen on 22 Oct: it bought a Volume breakout on the watch signal)');
+  ok(st.trending && st.trending[0].pool === 'POOLX' && st.positions.length === 1 && st.positions[0].coin === 'GIANT' && st.positions[0].targets.length === 4 && st.giantsTrail === 0.62, 'the trending pool was scanned and bought: four clips, the giants study set the moonbag trail to 62% (worst dip 52% + 10)');
+  console.log = () => {}; for (const px of [4.7, 7, 9.3, 11.6]) await cycle(st, { ...cfg, setupsEveryMin: 0, slipPct: 0 }, deps(T * 1000 + 3600e3, px)); console.log = log0;
+  const p = st.positions[0]; ok(p && p.hits === 4 && p.free && p.stop === 0 && Math.abs(p.remUnits / p.units - 0.4) < 1e-6, 'all four clips taken by 5x: the 40% giant ticket rides with no stop');
+  console.log = () => {}; await cycle(st, { ...cfg, setupsEveryMin: 0, slipPct: 0 }, deps(T * 1000 + 7200e3, 11.6 * 0.5)); const held = st.positions.length; await cycle(st, { ...cfg, setupsEveryMin: 0, slipPct: 0 }, deps(T * 1000 + 7200e3, 11.6 * 0.05)); console.log = log0;
+  ok(held === 1 && st.positions.length === 1 && st.positions[0].free, 'a 50% dip did not shake the giant ticket out, nor did 95% off the high: no price trail at all');
+  // the coin dies: 14 days of volume logged, the last week under 5% of the best week: the ticket is sold
+  const tk = st.positions[0]; tk.volLog = [...Array(7)].map((_, i) => [1000 + i, 900000]).concat([...Array(7)].map((_, i) => [1007 + i, 20000]));
+  console.log = () => {}; await cycle(st, { ...cfg, setupsEveryMin: 0, slipPct: 0 }, { ...deps(T * 1000 + 3 * 86400e3, 0.9), quotes: async (items) => Object.fromEntries(items.map((i) => [String(i.pool).toLowerCase(), { ...q({ priceUsd: '0.9', volume: { h24: 15000 } }), baseToken: { address: 'TOK', symbol: 'GIANT' }, url: 'x' }])) }); console.log = log0;
+  ok(st.positions.length === 0 && /coin is dead/.test(st.closed[0].sells.at(-1).why), 'the ticket is sold when the coin is dead: ' + st.closed[0].sells.at(-1).why); }
+
+// ---- the giants study tells giants from duds on day 3
+{ const mk = (run) => { const bars = []; let p = 1; for (let i = 0; i < 120; i++) { const ph = i % 12, m = run ? (i < 90 ? (ph < 8 ? 1.09 : 0.9) : 0.975) : (i < 2 ? 1.5 : 0.9), o = p; p *= m; bars.push([1700000000 + i * 86400, o, Math.max(o, p) * 1.05, Math.min(o, p) * 0.95, p, run ? 1000 + i * 10 : 1000 - i * 8]); } return studyChart(bars); };
+  const s = summarise([{ kind: 'giant', study: mk(true) }, { kind: 'giant', study: mk(true) }, { kind: 'dud', study: mk(false) }, { kind: 'dud', study: mk(false) }, { kind: 'dud', study: mk(false) }]);
+  ok(s.n === 2 && s.duds === 3 && s.fingerprint.giants.xDay3 > s.fingerprint.duds.xDay3 && s.fingerprint.giants.heldDay1Close === 1 && s.fingerprint.duds.heldDay1Close === 0 && /Day-3 fingerprint/.test(s.lines.at(-1)), 'on day 3 the giants were still above their day-1 close and the duds were not; the summary says so'); }
+
+process.exit(f);
