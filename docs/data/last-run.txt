@@ -1,5 +1,4 @@
-Full scan 01:11 Brisbane: 71 scanned, 59 scored, 4 above 65. On-chain volume Strong (1.78x 7-day avg).
-NEW watch: SI (Solana) Liquidity sweep reclaim, opp 80, checks 5/6, stop 17% away, upside 144.9%; more sellers than buyers in the last hour.
+Hourly refresh 02:10 Brisbane: 4 tracked coins refreshed, 4 scored, 3 above 65. On-chain volume Strong (1.78x 7-day avg).
+NEW watch: JEANPHIL (Solana) Bottom reversal, opp 80, checks 6/6, stop 21.7% away, upside 197.1%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: TTWO (Mint Authority still enabled), ANSEM (Single holder ownership), UP (owner can mint more), PUMP (top 10 wallets hold 60.3% (gate 30%)), PONS (top 10 wallets hold 52.3% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
