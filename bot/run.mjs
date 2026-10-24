@@ -16,7 +16,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { candidates } from '../src/watch.mjs';
-import { poolExit, marketProblem, quoteProblem, trueLiq } from './manage.mjs';
+import { poolExit, marketProblem, quoteProblem, trueLiq, organicProblem } from './manage.mjs';
 import { copySetupsIn, walletSold, COPY } from './copy.mjs';
 import { BOT, decideEntry, sizeFor, openPosition, managePosition, pnlOf, decideLimit, openLadder, manageLadder, openMomentum, manageMomentum, costPct, closeNow, structureStop, decidePullback, decideMinute, manageMinute, posValue, riskOf, PERP, perpSize, openPerp, managePerp, decideLimitShort, liqDistPct } from './manage.mjs';
 import { reality, reportText, REALITY } from './reality.mjs';
@@ -52,7 +52,7 @@ export const TRENCH_WAYS = [
 // limit are off for all five (they would stop a bot taking shots for reasons that have nothing to do with the trench).
 export const TRENCH_PACK = ['trench', 'trenchlab', 'trenchshot', 'trenchx', 'trenchbonus'];
 const TRENCH_OG = { name: 'trench', label: 'RynoBot Trencher (OG)', engine: 'trench', source: 'trench', labOnly: true, entry: 'market', exit: 'ladder', realityBook: null, minOpp: 0, ...TRENCH, trenchMaxNew: 3, minLiqUsd: 3000, minAgeH: 0, fixedStopPct: 35, minStopPct: 0, maxStopPct: 45, mults: [1.5, 2.2, 3.5], shares: [0.3, 0.3, 0.2], moonTrail: 0.3, beAfterFirst: false, flowCut: true, sellersLoss: 0.1, sellersX: 1.1, noFollowH: 0.25, boostTighten: 0, maxLiqPct: 2, coolH: 24, maxHoldH: 1, maxOpen: 16, maxOpenRiskPct: 14, riskPct: 1, maxPosPct: 1, signalMaxAgeH: 0.1, chaseLimitPct: 25, dumpCut: { min5: 4, sellX5: 1.3, sellX1: 1.1, offHighPct: 0.12 }, peakGiveback: { armPct: 0.25, keep: 0.5 }, heartbeatMin: 120, dsLaunch: DSLAUNCH, trend: TREND,
-  lanes: ['feed', 'ds', 'trend'], regimeDial: false, dailyLossPct: 100, holderRead: false, feedAlerts: true, minPoolLiqUsd: 20000, minLiqMcap: 0.05, /* real-market floor for every trencher: a traded pool needs $20k+ of real liquidity and 5%+ of its market cap */
+  lanes: ['feed', 'ds', 'trend'], regimeDial: false, dailyLossPct: 100, holderRead: false, feedAlerts: true, minPoolLiqUsd: 20000, minLiqMcap: 0.05, organic: true, /* real-market floor for every trencher: a traded pool needs $20k+ of real liquidity and 5%+ of its market cap */
   // the trending lane's coins are older and bigger: a 25% stop, 6 hours at most, out if no new high in 30 minutes while under the entry, dead after 6 quiet minutes
   trendCfg: { fixedStopPct: 25, maxHoldH: 6, noFollowH: 0.5, deadMin: 6 } };
 // THE EXTRACTOR (from the study: devs and their bundles took $579M out of pump.fun, the snipers $31.5M; copying KOL wallets loses money on
@@ -415,6 +415,8 @@ export async function cycle(st, cfg, deps = {}) {
     // the pool must still be there: liquidity can be pulled between the scan and the fill
     const liq = +(qq.liquidity && qq.liquidity.usd) || 0; if (liq < vc.minLiqUsd) { vdrop(`liquidity is now $${Math.round(liq / 1000)}k (under $${Math.round(vc.minLiqUsd / 1000)}k)`); continue; }
     if (vc.venue !== 'perp') { const mp = marketProblem(qq, vc); if (mp) { vdrop(mp); continue; } } /* painted charts and coins nobody can sell are never bought */
+    if (vc.organic) { let gt = null; if (!s0.gtRead && GT[String(s.chain).toLowerCase()]) { try { const j = await G(`https://api.geckoterminal.com/api/v2/networks/${GT[String(s.chain).toLowerCase()]}/pools/${s.pool}`); s0.gtRead = { at: now, a: (j && j.data && j.data.attributes) || null }; } catch { s0.gtRead = { at: now, a: null }; } } gt = s0.gtRead && s0.gtRead.a;
+      const op = organicProblem(qq, gt, vc.organic === true ? null : vc.organic); if (op) { vdrop(op); continue; } } /* the trenchers: only charts with a real crowd (buyers AND sellers) */
     if (s.liq0 > 0 && liq < s.liq0 * (1 - vc.liqDropPct / 100)) { vdrop(`liquidity fell ${Math.round((1 - liq / s.liq0) * 100)}% since the setup: likely being pulled`); continue; }
     // perps (paper only): size on the stop plus fees, open with USDC margin, long or short; nothing below this line applies to them
     if (vc.venue === 'perp') { if (vc.entry === 'limit') d.price = s.side === 'short' ? s.zoneLow : s.zoneHigh; // a resting limit fills at its own price, never the better price the bot happens to see a minute later

@@ -115,6 +115,19 @@ export function quoteProblem(q, { token = null, chain = 'solana', solUsd = 0, ma
   return null; }
 export function trueLiq(q, solUsd = 0) { const L = q && q.liquidity; if (!L) return; const sym = String((q.quoteToken && q.quoteToken.symbol) || '').toUpperCase(), qa = +L.quote, usd = /^W?SOL$/.test(sym) ? (solUsd > 0 && qa >= 0 ? 2 * qa * solUsd : null) : /^(USDC|USDT|USD1|PYUSD|USDS|USDC\.E)$/.test(sym) && qa >= 0 ? 2 * qa : null;
   if (usd != null && isFinite(usd)) { L.reported = L.usd; L.usd = +L.usd > 0 ? Math.min(+L.usd, usd) : usd; } }
+// THE ORGANIC-CHART FILTER (24 Oct, Ryan: "all the shit coins I have flagged look like they're just buyers and no sellers"). The coins
+// that faked their way past everything else had one shape: a fresh coin with hundreds of buys a minute and almost no sellers (COIL,
+// DOPE, 派大星: about 420 buys to 60 sells in 5 minutes, near-identical numbers on different coins: one bot farm), thousands of buying
+// wallets against a handful of selling ones (Rockstar: 2,112 buyers, 102 sellers), or an hour's volume many times the whole coin
+// (HYPEST: $8.9m traded on a $92k coin). A real crowd has people taking profit. null = looks organic; else why not.
+export const ORGANIC = { minSellShare5: 0.25, minSellShare1: 0.3, minBuys5: 50, minBuys1: 100, maxVolToMcap: 20, minSellerShare: 0.2, minBuyers: 50 };
+export function organicProblem(q, gt = null, cfg = ORGANIC) {
+  if (!q) return null; const C = { ...ORGANIC, ...(cfg || {}) }, t5 = (q.txns && q.txns.m5) || {}, t1 = (q.txns && q.txns.h1) || {}, b5 = +t5.buys || 0, s5 = +t5.sells || 0, b1 = +t1.buys || 0, s1 = +t1.sells || 0, v1 = +(q.volume && q.volume.h1) || 0, mc = +(q.marketCap || q.fdv) || 0;
+  if (b5 >= C.minBuys5 && s5 < b5 * C.minSellShare5) return `one-way buying: ${b5} buys vs ${s5} sells in 5 minutes (a real crowd has sellers; this is a bot farm's shape)`;
+  if (b1 >= C.minBuys1 && s1 < b1 * C.minSellShare1) return `one-way buying: ${b1} buys vs ${s1} sells in the hour`;
+  if (mc > 0 && v1 > C.maxVolToMcap * mc) return `wash volume: $${Math.round(v1 / 1000).toLocaleString('en')}k traded in the hour on a $${Math.round(mc / 1000)}k coin (${Math.round(v1 / mc)}x its whole value)`;
+  const g = gt && gt.transactions && gt.transactions.h1; if (g && +g.buyers >= C.minBuyers && +g.sellers < +g.buyers * C.minSellerShare) return `fake buyers: ${g.buyers} wallets buying vs ${g.sellers} selling in the hour`;
+  return null; }
 export const posValue = (p, price) => { if (p.mode !== 'perp') return p.remUnits * (price > 0 ? price : 0) * (1 - (p.slipOut || 0) / 100); /* what selling now would fetch */ if (!(p.remUnits > 0)) return 0; const px = price > 0 ? price : p.entry; return Math.max(0, p.costUsd + (p.side === 'short' ? -1 : 1) * (px - p.entry) * p.units - (p.feesUsd || 0) - (p.borrowUsd || 0)); };
 export const pnlOf = (pos, price) => pos.bankedUsd + posValue(pos, price) - pos.costUsd;
 // open risk of a position (what hitting its stop would cost now): perps carry it in riskUsd; spot from the units left and the stop
