@@ -109,6 +109,8 @@ export function quoteProblem(q, { token = null, chain = 'solana', solUsd = 0, ma
   if (token && bt.address && bt.address !== token) return `the pair now shows a different coin (${bt.symbol || bt.address.slice(0, 6)})`;
   if (!majors && MAJOR_BASE.has(String(bt.symbol || '').toUpperCase())) return `upside-down pair: the base coin is ${bt.symbol}`;
   if (sym && !(sol ? QUOTE_OK.solana : QUOTE_OK.evm).includes(sym)) return `priced against ${qt.symbol}, not SOL or a dollar coin`;
+  /* a pool cannot hold more money than the whole coin is worth (Water Coin, 24 Oct: $240m of "liquidity" under a coin that was $34k a quarter of an hour earlier) */
+  { const L = +(q.liquidity && q.liquidity.usd) || 0, mc = +(q.marketCap || q.fdv) || 0; if (L > 0 && mc > 0 && L > 1.5 * mc) return `liquidity ($${Math.round(L).toLocaleString('en')}) bigger than the coin's whole market cap ($${Math.round(mc).toLocaleString('en')}): a broken quote`; }
   if (sol && /^W?SOL$/.test(sym) && solUsd > 0 && +q.priceNative > 0 && +q.priceUsd > 0) { const r = +q.priceUsd / (+q.priceNative * solUsd); if (r > 1.25 || r < 0.8) return `dollar price does not match price-in-SOL x SOL (${r.toFixed(2)}x off)`; }
   return null; }
 export function trueLiq(q, solUsd = 0) { const L = q && q.liquidity; if (!L) return; const sym = String((q.quoteToken && q.quoteToken.symbol) || '').toUpperCase(), qa = +L.quote, usd = /^W?SOL$/.test(sym) ? (solUsd > 0 && qa >= 0 ? 2 * qa * solUsd : null) : /^(USDC|USDT|USD1|PYUSD|USDS|USDC\.E)$/.test(sym) && qa >= 0 ? 2 * qa : null;
