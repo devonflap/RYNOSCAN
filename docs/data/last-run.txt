@@ -1,5 +1,4 @@
-Full scan 14:11 Brisbane: 85 scanned, 70 scored, 2 above 65. On-chain volume Strong (1.36x 7-day avg).
-NEW watch: ABYSS (Robinhood) Trend pullback, opp 67, checks 5/6, stop 52.4% away, upside 157.1%; more sellers than buyers in the last hour.
+Full scan 15:11 Brisbane: 83 scanned, 71 scored, 4 above 65. On-chain volume Strong (1.41x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: SPCX (Mint Authority still enabled), ANTFUN (Single holder ownership), DJT (Mint Authority still enabled), NOTE (owner can mint more), ANSEM (Single holder ownership), DUCAT (owner can mint more).
+Removed for token safety: SPCX (Mint Authority still enabled), NOTE (owner can mint more), ANTFUN (Single holder ownership), DJT (Mint Authority still enabled), DUCAT (owner can mint more), PONS (top 10 wallets hold 52.3% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
