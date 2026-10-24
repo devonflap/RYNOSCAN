@@ -1,8 +1,6 @@
 name: RynoScan BTC and ETH range backtest
 on:
-  schedule:
-    - cron: "45 14 * * 0"   # Sundays, after the giants study (Brisbane Monday 12:45am)
-  workflow_dispatch: {}
+  workflow_dispatch: {}   # by hand only: the BTC and ETH range bots were retired on 24 Oct (no edge in any of eight readings)
 permissions:
   contents: write
 concurrency:
