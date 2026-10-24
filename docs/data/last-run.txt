@@ -1,3 +1,4 @@
-Hourly refresh 11:11 Brisbane: 4 tracked coins refreshed, 4 scored, 1 above 65. On-chain volume Strong (1.26x 7-day avg).
+Full scan 12:11 Brisbane: 82 scanned, 67 scored, 0 above 65. On-chain volume Strong (1.31x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: SPCX (Mint Authority still enabled), ZEREBRO (Top 10 holders high ownership), CARDS (Top 10 holders high ownership), BIRB (Top 10 holders high ownership), DJT (Mint Authority still enabled), DUCAT (owner can mint more).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
