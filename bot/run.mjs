@@ -52,6 +52,7 @@ export const TRENCH_WAYS = [
 // limit are off for all five (they would stop a bot taking shots for reasons that have nothing to do with the trench).
 export const TRENCH_PACK = ['trench', 'trenchlab', 'trenchshot', 'trenchx', 'trenchbonus'];
 const TRENCH_OG = { name: 'trench', label: 'RynoBot Trencher (OG)', engine: 'trench', source: 'trench', labOnly: true, entry: 'market', exit: 'ladder', realityBook: null, minOpp: 0, ...TRENCH, trenchMaxNew: 3, minLiqUsd: 3000, minAgeH: 0, fixedStopPct: 35, minStopPct: 0, maxStopPct: 45, mults: [1.5, 2.2, 3.5], shares: [0.3, 0.3, 0.2], moonTrail: 0.3, beAfterFirst: false, flowCut: true, sellersLoss: 0.1, sellersX: 1.1, noFollowH: 0.25, boostTighten: 0, maxLiqPct: 2, coolH: 24, maxHoldH: 1, maxOpen: 16, maxOpenRiskPct: 14, riskPct: 1, maxPosPct: 1, signalMaxAgeH: 0.1, chaseLimitPct: 25, dumpCut: { min5: 4, sellX5: 1.3, sellX1: 1.1, offHighPct: 0.12 }, peakGiveback: { armPct: 0.25, keep: 0.5 }, heartbeatMin: 120, dsLaunch: DSLAUNCH, trend: TREND,
+  pollSec: 10, /* 25 Oct: checked every 10 seconds, not every minute (rugs and dumps take seconds; a minute let stops gap 30-90%) */ origin: ['pump', 'bonk'], /* launched on pump.fun or letsbonk, or a locked pool */
   lanes: ['feed', 'ds', 'trend'], regimeDial: false, dailyLossPct: 100, holderRead: false, feedAlerts: true, minPoolLiqUsd: 20000, minLiqMcap: 0.05, organic: true, /* real-market floor for every trencher: a traded pool needs $20k+ of real liquidity and 5%+ of its market cap */
   // the trending lane's coins are older and bigger: a 25% stop, 6 hours at most, out if no new high in 30 minutes while under the entry, dead after 6 quiet minutes
   trendCfg: { fixedStopPct: 25, maxHoldH: 6, noFollowH: 0.5, deadMin: 6 } };
@@ -417,6 +418,13 @@ export async function cycle(st, cfg, deps = {}) {
     if (vc.venue !== 'perp') { const mp = marketProblem(qq, vc); if (mp) { vdrop(mp); continue; } } /* painted charts and coins nobody can sell are never bought */
     if (vc.organic) { let gt = null; if (!s0.gtRead && GT[String(s.chain).toLowerCase()]) { try { const j = await G(`https://api.geckoterminal.com/api/v2/networks/${GT[String(s.chain).toLowerCase()]}/pools/${s.pool}`); s0.gtRead = { at: now, a: (j && j.data && j.data.attributes) || null }; } catch { s0.gtRead = { at: now, a: null }; } } gt = s0.gtRead && s0.gtRead.a;
       const op = organicProblem(qq, gt, vc.organic === true ? null : vc.organic); if (op) { vdrop(op); continue; } } /* the trenchers: only charts with a real crowd (buyers AND sellers) */
+    // WHO CAN PULL THE POOL (25 Oct, from the first day's 650 trench trades: coins NOT launched on pump.fun rugged 41% of the time, coins
+    // launched there 12%). A coin launched on pump.fun or letsbonk gets its pool when it graduates, with the liquidity burned: nobody can
+    // pull it. Anyone else's pool was made by the dev, who can take the liquidity out in one transaction, faster than any check. So a
+    // trencher only buys a launch-platform coin, or one whose pool RugCheck shows as at least 90% locked or burned.
+    if (Array.isArray(vc.origin) && s.chain === 'solana') { const tk = String(s.token || ''), launched = vc.origin.some((x) => tk.endsWith(x)), curve = String(qq.dexId || '') === 'pumpfun';
+      if (!launched && !curve) { if (s0.lpLock === undefined) { let lp = null; if (tk) { try { const rep = await G(`https://api.rugcheck.xyz/v1/tokens/${tk}/report`), mk = (rep && rep.markets) || [], m = mk.find((x) => x && (x.pubkey === s.pool || x.marketAddress === s.pool)), pcts = (m ? [m] : mk).map((x) => +(x.lp && x.lp.lpLockedPct)).filter((x) => isFinite(x)); lp = pcts.length ? Math.max(...pcts) : null; } catch { lp = null; } } s0.lpLock = lp; }
+        if (!(s0.lpLock >= 90)) { vdrop(`not a pump.fun launch and its pool is ${s0.lpLock == null ? 'not known to be locked' : Math.round(s0.lpLock) + '% locked'}: the dev can pull the liquidity`); continue; } } }
     if (s.liq0 > 0 && liq < s.liq0 * (1 - vc.liqDropPct / 100)) { vdrop(`liquidity fell ${Math.round((1 - liq / s.liq0) * 100)}% since the setup: likely being pulled`); continue; }
     // perps (paper only): size on the stop plus fees, open with USDC margin, long or short; nothing below this line applies to them
     if (vc.venue === 'perp') { if (vc.entry === 'limit') d.price = s.side === 'short' ? s.zoneLow : s.zoneHigh; // a resting limit fills at its own price, never the better price the bot happens to see a minute later
@@ -554,11 +562,15 @@ async function main() {
 // journal, rules and heartbeat; they share the feed's token tallies and, for 30 seconds, identical web reads (GeckoTerminal's trending
 // lists, RugCheck reports, DexScreener token lookups), so five bots do not cost five times the free data allowance. The feed is only
 // pruned once a round, keeping whatever ANY of the five holds or watches.
-export function trenchPackDeps(feed, { getJsonFn = getJson, ttlMs = 30000, now = () => Date.now() } = {}) {
+export function trenchPackDeps(feed, { getJsonFn = getJson, quotesFn = quotes, ttlMs = 30000, now = () => Date.now() } = {}) {
   const memo = new Map(), G = async (url, ms) => { const t = now(), m = memo.get(url); if (m && t - m.at < ttlMs) return m.p; const p = getJsonFn(url, ms); memo.set(url, { at: t, p }); p.catch(() => memo.delete(url)); if (memo.size > 2000) for (const [k, v] of memo) if (t - v.at > ttlMs) memo.delete(k); return p; };
   const shared = { ...feed, prune: () => {} };
   const pruneAll = (sts) => feed.prune(Math.floor(now() / 1000), new Set(sts.flatMap((st) => [...st.positions.map((p) => p.pool), ...Object.keys(st.setups)])));
-  return { deps: { feed: shared, getJson: G }, pruneAll, memo };
+  // one DexScreener read per pool per round, shared by the five (they check every 10 seconds now): each bot gets its own copy
+  const qmemo = new Map(), qTtl = Math.min(ttlMs, 8000), dsQuotes = async (items) => { const t = now(), out = {}, need = []; for (const i of items) { const k = String(i.pool).toLowerCase(), m = qmemo.get(k); if (m && t - m.at < qTtl) { if (m.q) out[k] = JSON.parse(m.q); } else need.push(i); }
+    if (need.length) { const got = await quotesFn(need).catch(() => ({})); for (const i of need) { const k = String(i.pool).toLowerCase(); qmemo.set(k, { at: t, q: got[k] ? JSON.stringify(got[k]) : null }); if (got[k]) out[k] = got[k]; } }
+    if (qmemo.size > 3000) for (const [k, v] of qmemo) if (t - v.at > 60e3) qmemo.delete(k); return out; };
+  return { deps: { feed: shared, getJson: G, dsQuotes }, pruneAll, memo };
 }
 async function runTrenchPack(feed, args) {
   const P = TRENCH_PACK.map((name) => { const cfg = loadConfig(name), F = filesFor(name); let st = rd(F.state, null) || newState(cfg); if (st.start !== cfg.accountUsd && !st.positions.length && !st.closed.length) { st.cash = st.start = cfg.accountUsd; st.eq = []; st.eqAt = 0; } return { name, cfg, F, st, errN: 0 }; });
