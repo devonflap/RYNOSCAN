@@ -99,4 +99,19 @@ const T0 = 1800000000, iso = (t) => new Date(t * 1000).toISOString();
   Q = mkq(1); const hp = newState(loadConfig('trenchshot')); await run(hp, T0); await run(hp, T0 + 60); Q = mkq(1.3, { txns: { m5: { buys: 20, sells: 0 }, h1: { buys: 120, sells: 0 } } });
   await run(hp, T0 + 120); ok(hp.positions.length === 1, 'no sells for a few minutes: still held'); await run(hp, T0 + 120 + 3600); const hc = hp.closed[0]; ok(hc && /honeypot, booked at zero/.test(hc.sells.at(-1).why) && hc.pnl < 0, 'no sells at all for an hour: booked at zero as a honeypot (paper only)'); }
 
+// ---- 24 Oct, the second make-believe win ($3.7m-$8.8m in an hour on one coin): quotes are checked before any bot uses them
+{ const { quoteProblem, trueLiq } = await import('../bot/manage.mjs'); const base = { chainId: 'solana', baseToken: { address: 'MINT', symbol: 'CAT' }, quoteToken: { symbol: 'SOL' }, priceUsd: '0.002', priceNative: '0.00001', liquidity: { usd: 40000, quote: 100 } };
+  ok(quoteProblem(base, { token: 'MINT', solUsd: 200 }) === null, 'a sane SOL pair passes ($0.002 = 0.00001 SOL x $200)');
+  ok(/does not match/.test(quoteProblem({ ...base, priceUsd: '74' }, { token: 'MINT', solUsd: 200 })), 'a dollar price 37,000x what the SOL price says is ignored');
+  ok(/different coin/.test(quoteProblem({ ...base, baseToken: { address: 'OTHER', symbol: 'X' } }, { token: 'MINT' })) && /upside-down/.test(quoteProblem({ ...base, baseToken: { address: 'So111', symbol: 'SOL' } }, {})) && /priced against JUNK/.test(quoteProblem({ ...base, quoteToken: { symbol: 'JUNK' } }, {})), 'another coin at the address, an upside-down pair, or a pair priced against a junk token: ignored');
+  const ql = { ...base, liquidity: { usd: 9e8, quote: 100 } }; trueLiq(ql, 200); ok(ql.liquidity.usd === 40000 && ql.liquidity.reported === 9e8, 'liquidity re-worked from the pool\'s own 100 SOL ($40k), not the $900m DexScreener showed');
+  // through the bot: a held coin whose quote turns mispriced is not sold at the fake price
+  const mkq = (px, o = {}) => ({ chainId: 'solana', dexId: 'pumpswap', pairAddress: 'HOT', baseToken: { address: 'HOTMINT', symbol: 'HOT' }, quoteToken: { symbol: 'SOL' }, priceUsd: String(px), priceNative: String(px / 200), marketCap: 1e6, liquidity: { usd: 2e5, quote: 500 }, txns: { m5: { buys: 90, sells: 40 }, h1: { buys: 400, sells: 200 } }, volume: { h1: 3e5 }, priceChange: { m5: 4, h1: 45 }, pairCreatedAt: (T0 - 5 * 3600) * 1000, ...o });
+  const f = trenchFeed({ WS: null }); f.testing = true; let Q = mkq(1); const G = async (u) => (u.includes('So1111') ? { pairs: [{ baseToken: { address: 'So11111111111111111111111111111111111111112' }, quoteToken: { symbol: 'USDC' }, priceUsd: '200', liquidity: { usd: 1e7 } }] } : u.includes('trending_pools?duration=5m&page=1') ? { data: [{ id: 'solana_HOT', attributes: { name: 'HOT / SOL' }, relationships: { dex: { data: { id: 'pumpswap' } } } }] } : { data: [] });
+  const D = (sec) => ({ now: sec * 1000, feed: f, getJson: G, dsQuotes: async (items) => Object.fromEntries(items.map((i) => [i.pool.toLowerCase(), Q])), candles5: async () => null, notify: async () => {}, journal: () => {}, heartbeat: async () => {} }), log0 = console.log;
+  const run = async (st, sec) => { console.log = () => {}; await cycle(st, { ...loadConfig('trench'), slipPct: 0 }, D(sec)); console.log = log0; };
+  const st = newState(loadConfig('trench')); await run(st, T0); await run(st, T0 + 60); ok(st.positions.length === 1, 'the OG buys a sane trending coin');
+  Q = mkq(37000, { priceNative: '0.005' }); for (let k = 2; k < 6; k++) await run(st, T0 + k * 60); const sold = [...st.positions, ...st.closed].flatMap((p) => p.sells).reduce((a, x) => a + x.usd, 0);
+  ok(sold < 200 && st.positions.length === 1, 'its quote turns to $37,000 while the pool says $1: ignored, nothing is sold at the fake price, the position waits for a sane quote'); }
+
 process.exit(f);

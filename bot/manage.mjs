@@ -88,8 +88,26 @@ export function marketProblem(q, cfg = {}) {
   if (!q || cfg.marketCheck === false) return null; const t1 = (q.txns && q.txns.h1) || {}, b = +t1.buys || 0, s = +t1.sells || 0, v1 = +(q.volume && q.volume.h1) || 0, n = b + s, minAvg = cfg.minAvgTradeUsd ?? 5;
   if (n >= 40 && q.volume && q.volume.h1 != null && v1 / n < minAvg) return `dust trades: ${n} trades in the hour averaging $${(v1 / n).toFixed(2)} (the chart is being painted, not traded)`;
   if (b >= 30 && s < b * 0.05) return `almost nobody has sold: ${s} sells vs ${b} buys in the hour (a coin you may not be able to sell)`;
-  if (q.liquidity && q.liquidity.estimated && q.dexId && !/^pump/.test(String(q.dexId)) && !q.pump) return 'no real liquidity figure for this pool';
+  if (q.liquidity && q.liquidity.estimated && String(q.dexId || '') !== 'pumpfun' && !q.pump) return 'no real liquidity figure for this pool (only a pump.fun bonding curve may go without one)';
   return null; }
+// SANE QUOTES (24 Oct, the second make-believe win: three trenchers booked $3.7m-$8.8m in an hour on one coin). DexScreener works out a
+// pool's dollar price AND its dollar liquidity from the price it gives the quote token, so one wrong quote-token price makes both wrong
+// together and the pool cap cannot see it. The checks, on every quote before any bot uses it (null = fine, else why it is ignored):
+//   the pair must show the coin we hold or watch (not another coin at the same address, not SOL/USDC itself: an upside-down pair);
+//   it must be priced against SOL or a dollar coin; on a SOL pair the dollar price must agree with price-in-SOL x the SOL price (25%);
+//   and the dollar liquidity is re-worked from the pool's own SOL or dollar balance (2 x the quote side), never taken on trust.
+export const QUOTE_OK = { solana: ['SOL', 'WSOL', 'USDC', 'USDT', 'USD1', 'PYUSD', 'USDS'], evm: ['ETH', 'WETH', 'USDC', 'USDT', 'BNB', 'WBNB', 'USDC.E'] };
+const MAJOR_BASE = new Set(['SOL', 'WSOL', 'USDC', 'USDT', 'ETH', 'WETH', 'BNB', 'WBNB', 'USD1']);
+export function quoteProblem(q, { token = null, chain = 'solana', solUsd = 0, majors = false } = {}) {
+  if (!q) return null; const bt = q.baseToken || {}, qt = q.quoteToken || {}, sym = String(qt.symbol || '').toUpperCase(), sol = !/robinhood|bsc|base|ethereum|eth/i.test(String(chain || q.chainId || 'solana'));
+  if (q.pump) return null; /* the launch feed's own price from the bonding curve */
+  if (token && bt.address && bt.address !== token) return `the pair now shows a different coin (${bt.symbol || bt.address.slice(0, 6)})`;
+  if (!majors && MAJOR_BASE.has(String(bt.symbol || '').toUpperCase())) return `upside-down pair: the base coin is ${bt.symbol}`;
+  if (sym && !(sol ? QUOTE_OK.solana : QUOTE_OK.evm).includes(sym)) return `priced against ${qt.symbol}, not SOL or a dollar coin`;
+  if (sol && /^W?SOL$/.test(sym) && solUsd > 0 && +q.priceNative > 0 && +q.priceUsd > 0) { const r = +q.priceUsd / (+q.priceNative * solUsd); if (r > 1.25 || r < 0.8) return `dollar price does not match price-in-SOL x SOL (${r.toFixed(2)}x off)`; }
+  return null; }
+export function trueLiq(q, solUsd = 0) { const L = q && q.liquidity; if (!L) return; const sym = String((q.quoteToken && q.quoteToken.symbol) || '').toUpperCase(), qa = +L.quote, usd = /^W?SOL$/.test(sym) ? (solUsd > 0 && qa >= 0 ? 2 * qa * solUsd : null) : /^(USDC|USDT|USD1|PYUSD|USDS|USDC\.E)$/.test(sym) && qa >= 0 ? 2 * qa : null;
+  if (usd != null && isFinite(usd)) { L.reported = L.usd; L.usd = +L.usd > 0 ? Math.min(+L.usd, usd) : usd; } }
 export const posValue = (p, price) => { if (p.mode !== 'perp') return p.remUnits * (price > 0 ? price : 0) * (1 - (p.slipOut || 0) / 100); /* what selling now would fetch */ if (!(p.remUnits > 0)) return 0; const px = price > 0 ? price : p.entry; return Math.max(0, p.costUsd + (p.side === 'short' ? -1 : 1) * (px - p.entry) * p.units - (p.feesUsd || 0) - (p.borrowUsd || 0)); };
 export const pnlOf = (pos, price) => pos.bankedUsd + posValue(pos, price) - pos.costUsd;
 // open risk of a position (what hitting its stop would cost now): perps carry it in riskUsd; spot from the units left and the stop
