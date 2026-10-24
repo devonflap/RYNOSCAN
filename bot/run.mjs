@@ -51,7 +51,7 @@ export const TRENCH_WAYS = [
 // limit are off for all five (they would stop a bot taking shots for reasons that have nothing to do with the trench).
 export const TRENCH_PACK = ['trench', 'trenchlab', 'trenchshot', 'trenchx', 'trenchbonus'];
 const TRENCH_OG = { name: 'trench', label: 'RynoBot Trencher (OG)', engine: 'trench', source: 'trench', labOnly: true, entry: 'market', exit: 'ladder', realityBook: null, minOpp: 0, ...TRENCH, trenchMaxNew: 3, minLiqUsd: 3000, minAgeH: 0, fixedStopPct: 35, minStopPct: 0, maxStopPct: 45, mults: [1.5, 2.2, 3.5], shares: [0.3, 0.3, 0.2], moonTrail: 0.3, beAfterFirst: false, flowCut: true, sellersLoss: 0.1, sellersX: 1.1, noFollowH: 0.25, boostTighten: 0, maxLiqPct: 2, coolH: 24, maxHoldH: 1, maxOpen: 16, maxOpenRiskPct: 14, riskPct: 1, maxPosPct: 1, signalMaxAgeH: 0.1, chaseLimitPct: 25, dumpCut: { min5: 4, sellX5: 1.3, sellX1: 1.1, offHighPct: 0.12 }, peakGiveback: { armPct: 0.25, keep: 0.5 }, heartbeatMin: 120, dsLaunch: DSLAUNCH, trend: TREND,
-  lanes: ['feed', 'ds', 'trend'], regimeDial: false, dailyLossPct: 100, holderRead: false, feedAlerts: true,
+  lanes: ['feed', 'ds', 'trend'], regimeDial: false, dailyLossPct: 100, holderRead: false, feedAlerts: true, minPoolLiqUsd: 20000, minLiqMcap: 0.05, /* real-market floor for every trencher: a traded pool needs $20k+ of real liquidity and 5%+ of its market cap */
   // the trending lane's coins are older and bigger: a 25% stop, 6 hours at most, out if no new high in 30 minutes while under the entry, dead after 6 quiet minutes
   trendCfg: { fixedStopPct: 25, maxHoldH: 6, noFollowH: 0.5, deadMin: 6 } };
 // THE EXTRACTOR (from the study: devs and their bundles took $579M out of pump.fun, the snipers $31.5M; copying KOL wallets loses money on

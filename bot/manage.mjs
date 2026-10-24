@@ -89,6 +89,11 @@ export function marketProblem(q, cfg = {}) {
   if (n >= 40 && q.volume && q.volume.h1 != null && v1 / n < minAvg) return `dust trades: ${n} trades in the hour averaging $${(v1 / n).toFixed(2)} (the chart is being painted, not traded)`;
   if (b >= 30 && s < b * 0.05) return `almost nobody has sold: ${s} sells vs ${b} buys in the hour (a coin you may not be able to sell)`;
   if (q.liquidity && q.liquidity.estimated && String(q.dexId || '') !== 'pumpfun' && !q.pump) return 'no real liquidity figure for this pool (only a pump.fun bonding curve may go without one)';
+  // thin pools (24 Oct, the trenchers kept finding them): a traded pool (not a bonding curve) needs real liquidity of its own, and enough
+  // of it for its market cap; a $1m coin on $5k of liquidity is a price anyone can push and nobody can sell into
+  const curve = String(q.dexId || '') === 'pumpfun' || q.pump, L = +(q.liquidity && q.liquidity.usd) || 0, mc = +(q.marketCap || q.fdv) || 0;
+  if (!curve && cfg.minPoolLiqUsd > 0 && L < cfg.minPoolLiqUsd) return `thin pool: $${Math.round(L / 1000)}k of liquidity (needs $${Math.round(cfg.minPoolLiqUsd / 1000)}k+ off the bonding curve)`;
+  if (!curve && cfg.minLiqMcap > 0 && mc > 0 && L / mc < cfg.minLiqMcap) return `thin for its size: $${Math.round(L / 1000)}k of liquidity under a $${mc >= 1e6 ? (mc / 1e6).toFixed(1) + 'm' : Math.round(mc / 1000) + 'k'} market cap (${((L / mc) * 100).toFixed(1)}%, needs ${Math.round(cfg.minLiqMcap * 100)}%)`;
   return null; }
 // SANE QUOTES (24 Oct, the second make-believe win: three trenchers booked $3.7m-$8.8m in an hour on one coin). DexScreener works out a
 // pool's dollar price AND its dollar liquidity from the price it gives the quote token, so one wrong quote-token price makes both wrong
