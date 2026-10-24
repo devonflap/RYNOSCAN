@@ -1,5 +1,3 @@
-Full scan 10:11 Brisbane: 78 scanned, 63 scored, 3 above 65. On-chain volume Strong (1.26x 7-day avg).
-NEW watch: MICRODUCK (Robinhood) Volume breakout, opp 71, checks 5/6, stop null% away, upside null%; volume fading.
+Hourly refresh 11:11 Brisbane: 4 tracked coins refreshed, 4 scored, 1 above 65. On-chain volume Strong (1.26x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: BIRB (Top 10 holders high ownership), SPCX (Mint Authority still enabled), MU (Mint Authority still enabled), DUCAT (owner can mint more), ZEREBRO (Top 10 holders high ownership), ANTFUN (Single holder ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
