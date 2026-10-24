@@ -148,7 +148,7 @@ export function bookSlices(G, minBook = 20, minN = 8) {
 }
 function hatScout(learned, wscore, G) {
   const slices = bookSlices(G), relS = slices.filter((t) => t.reliable);
-  const pts = relS.slice(0, 4).map((t) => `${t.short} in ${t.slice} "${t.bucket}": ${R(t.avgR)} over ${t.n} against ${R(t.restAvgR)} otherwise (passes the luck check across ${slices.length} slices).`);
+  const pts = [...((G.trench && G.trench.forOthers) || []).slice(0, 3), ...relS.slice(0, 4).map((t) => `${t.short} in ${t.slice} "${t.bucket}": ${R(t.avgR)} over ${t.n} against ${R(t.restAvgR)} otherwise (passes the luck check across ${slices.length} slices).`)];
   if (!relS.length && slices.length) pts.push(`Where each book works: ${slices.length} book-and-condition slices tested, none clearly different yet.`);
   const f = learned && Array.isArray(learned.features) ? learned.features : [];
   const rel = (x) => (x.reliable != null ? x.reliable && x.diff != null : (x.lo90 > 0 || x.hi90 < 0)), dif = (x) => (x.diff != null ? x.diff : x.avgR), good = f.filter((x) => rel(x) && dif(x) > 0 && x.avgR > 0).sort((a, b) => dif(b) - dif(a)).slice(0, 3), bad = f.filter((x) => rel(x) && dif(x) < 0 && x.n >= 10).sort((a, b) => dif(a) - dif(b)).slice(0, 3);
@@ -194,10 +194,14 @@ export function botSlices(rec, minN = 5) {
 // the lab's seven ways, side by side: every signal traded by every variant, so the difference between two variants is the choice itself
 export function labVariants(r) {
   const T = (r && r.closed || []).filter((t) => t.R != null && t.meta && t.meta.variant); if (T.length < 6) return []; const by = {}; for (const t of T) (by[t.meta.variant] ||= []).push(t.R);
-  const rows = Object.entries(by).map(([k, Rs]) => ({ k, n: Rs.length, avg: Rs.reduce((a, b) => a + b, 0) / Rs.length, win: Rs.filter((x) => x > 0).length / Rs.length })).sort((a, b) => b.avg - a.avg); if (rows.length < 2) return [];
-  const R = (x) => (x >= 0 ? '+' : '') + x.toFixed(2) + 'R', base = rows.find((x) => x.k === 'A-base'), ctl = rows.find((x) => x.k === 'C-control'), out = [`LAB, variant by variant: ${rows.map((x) => `${x.k} ${R(x.avg)} over ${x.n} (${Math.round(x.win * 100)}% won)`).join('; ')}.`];
+  const usd = {}; for (const t of T) usd[t.meta.variant] = (usd[t.meta.variant] || 0) + (+t.pnl || 0); const rows = Object.entries(by).map(([k, Rs]) => ({ k, n: Rs.length, avg: Rs.reduce((a, b) => a + b, 0) / Rs.length, win: Rs.filter((x) => x > 0).length / Rs.length, best: Math.max(...Rs), usd: usd[k] || 0 })).sort((a, b) => b.avg - a.avg); if (rows.length < 2) return [];
+  const R = (x) => (x >= 0 ? '+' : '') + x.toFixed(2) + 'R', base = rows.find((x) => x.k === 'A-base') || rows.find((x) => x.k === 'S-shotgun'), /* the trench lab's yardstick is the shotgun */ ctl = rows.find((x) => x.k === 'C-control'), out = [`LAB, variant by variant: ${rows.map((x) => `${x.k} ${R(x.avg)} over ${x.n} (${Math.round(x.win * 100)}% won, best ${R(x.best)}, ${x.usd >= 0 ? '+' : '-'}$${Math.abs(Math.round(x.usd))})`).join('; ')}.`];
   if (base && ctl && ctl.n >= 5 && base.n >= 5) out.push(ctl.avg >= base.avg ? `The random-coin control is doing as well as the real entry (${R(ctl.avg)} vs ${R(base.avg)}): the entry signal is not adding anything yet; the exits are doing the work.` : `The real entry beats the random control by ${R(base.avg - ctl.avg)} a trade: the signal is worth something.`);
-  const best = rows[0]; if (base && best.k !== 'A-base' && best.n >= 10 && base.n >= 10 && best.avg - base.avg >= 0.3) out.push(`${best.k} leads the base case by ${R(best.avg - base.avg)} a trade over ${Math.min(best.n, base.n)}: ${best.n >= 20 ? 'enough to move that rule into the runner' : 'promising, 20 each to call it'}.`);
+  const best = rows[0]; if (base && best.k !== base.k && best.n >= 10 && base.n >= 10 && best.avg - base.avg >= 0.3) out.push(`${best.k} leads the base case by ${R(best.avg - base.avg)} a trade over ${Math.min(best.n, base.n)}: ${best.n >= 20 ? (base.k === 'S-shotgun' ? 'enough to make it the trencher\'s main way' : 'enough to move that rule into the runner') : 'promising, 20 each to call it'}.`);
+  // the holder filter's real cost or saving (trench lab): the shotgun on coins the holder read passed vs the ones it flagged
+  const HS = T.filter((t) => t.meta.variant === 'S-shotgun' && t.meta.holders), grp = (f) => { const x = HS.filter(f).map((t) => t.R); return x.length ? { n: x.length, avg: x.reduce((a, b) => a + b, 0) / x.length, usd: HS.filter(f).reduce((a, t) => a + (+t.pnl || 0), 0) } : null; };
+  const cl = grp((t) => t.meta.holders.clean === true), fl = grp((t) => t.meta.holders.clean === false), uk = grp((t) => t.meta.holders.clean == null);
+  if (cl && fl && cl.n + fl.n >= 10) out.push(`Holder read: the shotgun on clean coins ${R(cl.avg)} over ${cl.n} (${cl.usd >= 0 ? '+' : '-'}$${Math.abs(Math.round(cl.usd))}), on coins the extractors held ${R(fl.avg)} over ${fl.n} (${fl.usd >= 0 ? '+' : '-'}$${Math.abs(Math.round(fl.usd))})${uk ? `, no read yet ${R(uk.avg)} over ${uk.n}` : ''}: ${fl.avg < cl.avg ? 'the filter is saving money' : 'the flagged coins are doing as well or better: the filter is costing money so far'}.`);
   return out;
 }
 export function missedReview(r) {
@@ -216,7 +220,7 @@ export function missedReview(r) {
   return out;
 }
 function hatLive(botRecs, G) {
-  const recs = Object.values(botRecs || {}).filter((r) => r && r.bot), pts = [], notes = {}; if (!recs.length) return { stance: 'wait', headline: 'No bot records yet (the server bots publish hourly once they have a GitHub token).', points: ['Nothing from the server bots yet.'], notes, metric: '0', metricLabel: 'bot records' };
+  const recs = Object.values(botRecs || {}).filter((r) => r && r.bot && !/^trench/.test(r.bot)), pts = [], notes = {}; /* the trenchers have their own council (docs/trenchcouncil.mjs) */ if (!recs.length) return { stance: 'wait', headline: 'No bot records yet (the server bots publish hourly once they have a GitHub token).', points: ['Nothing from the server bots yet.'], notes, metric: '0', metricLabel: 'bot records' };
   const twin = { rules: 'exec', breakout: 'brkBot', runner: 'riskyClip', degen: 'degenStudy' }, R = (x) => (x == null ? '—' : (x >= 0 ? '+' : '') + (+x).toFixed(2) + 'R'), P = (x) => (x == null ? '—' : (x >= 0 ? '+' : '') + (+x).toFixed(1) + '%');
   for (const r of recs) { const s = r.stats || {}, lab = G.books[twin[r.bot]], mode = r.execMode === 'live' ? 'LIVE' : r.execMode === 'quote' ? 'rehearsal quotes' : 'paper';
     const line = `${r.bot} bot (${mode}): ${s.closed || 0} closed, ${R(s.avgR)} a trade, ${P(r.account && r.account.pnlPct)} on the account${s.latencyN ? `; fills ${P(s.latencyPct)} off the trigger price over ${s.latencyN}` : ''}.`; pts.push(line); if (lab) notes[twin[r.bot]] = line;
@@ -277,8 +281,8 @@ function discuss(G, H, C) {
 }
 
 // the whole council. learned: learned.json; wscore: walletscore.json; history: [{ at, approved }] from earlier runs
-export function council({ signals = [], degen = [], lab = [], learned = null, wscore = null, since = null, history = [], now = Date.now(), botRecs = null, giants = null, majorsBt = null } = {}) {
-  const G = gather({ signals, degen, lab, since, now }), hist = Array.isArray(history) ? history : []; G.giants = giants; G.majorsBt = majorsBt;
+export function council({ signals = [], degen = [], lab = [], learned = null, wscore = null, since = null, history = [], now = Date.now(), botRecs = null, giants = null, majorsBt = null, trench = null } = {}) {
+  const G = gather({ signals, degen, lab, since, now }), hist = Array.isArray(history) ? history : []; G.giants = giants; G.majorsBt = majorsBt; G.trench = trench; /* the trench council's findings that are about coins and crowds */
   const bots = {}; for (const [k, B] of Object.entries(BOT)) bots[k] = botBook(G.allPos, { adaptive: B.adaptive, approvals: B.council ? hist : null, regime: !!B.regime, since, now });
   const H = { stats: hatStats(G) }; H.skeptic = hatSkeptic(G); H.risk = hatRisk(G, bots); H.exits = hatExits(G, learned); H.scout = hatScout(learned, wscore, G); H.exec = hatExec(G); H.live = hatLive(botRecs, G);
   const prev = hist.length ? hist[hist.length - 1].approved || [] : []; H.chair = chair(G, H, bots, prev, learned);

@@ -84,7 +84,8 @@ export async function evmBuy({ cfg, io, token, usd, expectedPx, ethUsd, mode, ta
   const fill = { usd, units, px: +px.toPrecision(8), decimals: info.decimals, impactPct: null, route: `${q.src}${q.route ? ' (' + q.route + ')' : ''}`, gasUsd: r.gasUsd, tolPct: slipBps / 100, venue: q.src, others: r.others, skipped: r.skipped };
   if (mode === 'quote') return { fill: { ...fill, sig: null, rehearsal: true }, why: `rehearsal: best of ${1 + r.others.length} venue${r.others.length ? 's' : ''} was ${q.src}, ${units.toPrecision(6)} at ${px.toPrecision(6)}, gas about $${r.gasUsd}, simulated OK, not sent` };
   if (q.value === 0n) await io.approveIfNeeded(RH.weth, q.spender, wei, { permit2: !!q.permit2, router: q.to }); // an aggregator taking WETH needs an approval; a call that sends native ETH (the router's WRAP_ETH path) does not
-  const sig = await io.send(tx); let held = units; try { const b = await io.tokenBalance(taker, token); if (b > 0n) held = Number(b) / 10 ** info.decimals; } catch (e) { log('could not read the token balance after the buy: ' + e.message); }
+  let before = 0n; try { before = BigInt(await io.tokenBalance(taker, token) || 0n); } catch { /* unknown: assume none */ }
+  const sig = await io.send(tx); let held = units; try { const b = BigInt(await io.tokenBalance(taker, token)); if (b - before > 0n) held = Number(b - before) / 10 ** info.decimals; } catch (e) { log('could not read the token balance after the buy: ' + e.message); } /* only what this buy added */
   return { fill: { ...fill, units: held, px: +(usd / held).toPrecision(8), sig }, why: `bought ${held.toPrecision(6)} via ${q.src}, gas about $${r.gasUsd}, tx ${sig}` };
 }
 export async function evmSell({ cfg, io, token, units, decimals, expectedPx, ethUsd, mode, taker }) {

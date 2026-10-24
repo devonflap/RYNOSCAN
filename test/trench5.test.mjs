@@ -1,0 +1,102 @@
+// The five trenchers (24 Oct): their own rules, one shared feed, nothing of one applied to another; and the trench council.
+import fs0 from 'node:fs'; process.env.RYNOBOT_DIR = fs0.mkdtempSync('/tmp/rynotrench5-');
+import { cycle, newState, loadConfig, BOTS, TRENCH_PACK, trenchPackDeps, EXTRACTOR, TRENCH_BONUS } from '../bot/run.mjs';
+import { trenchFeed, trendSetup, TREND } from '../bot/trench.mjs';
+import { openLadder, manageLadder } from '../bot/manage.mjs';
+import { trenchCouncil, league, headToHead, waysOf, learnWay, exitAutopsy, remember } from '../docs/trenchcouncil.mjs';
+import { council } from '../docs/council.mjs';
+const out = console.log; let f = 0; const ok = (c, m) => { out((c ? 'PASS ' : 'FAIL ') + m); if (!c) f = 1; };
+const T0 = 1800000000, iso = (t) => new Date(t * 1000).toISOString();
+
+// ---- the five, each with its own rules
+{ ok(TRENCH_PACK.join() === 'trench,trenchlab,trenchshot,trenchx,trenchbonus' && TRENCH_PACK.every((n) => BOTS[n] && BOTS[n].engine === 'trench' && BOTS[n].labOnly), 'five trenchers, all paper only (labOnly: live is refused)');
+  const C = Object.fromEntries(TRENCH_PACK.map((n) => [n, loadConfig(n)]));
+  ok(TRENCH_PACK.every((n) => C[n].regimeDial === false && C[n].dailyLossPct >= 100), 'no outside gate: the market dial and the daily loss limit are off for every trencher');
+  ok(!C.trench.variants && !C.trench.holderGate && C.trench.holderRead === false && C.trench.mults.join() === '1.5,2.2,3.5' && C.trench.fixedStopPct === 35 && C.trench.maxOpen === 16 && C.trench.maxPosPct === 1, 'the OG: its first rules exactly (clips at 1.5x/2.2x/3.5x, 35% stop, 16 open, $100), no holder read');
+  ok(C.trenchlab.variants.length === 7 && C.trenchlab.maxPosPct === 0.5, 'the lab: seven ways, $50 each');
+  ok(!C.trenchshot.variants && C.trenchshot.noPopMin === 10 && C.trenchshot.mults.join() === '2' && C.trenchshot.freeRide && !C.trenchshot.holderGate && C.trenchshot.maxPosPct === 1, 'the shotgun: the OG\'s shots with the shotgun\'s exits, $100, no holder gate');
+  ok(C.trenchx.holderGate && C.trenchx.insiderExit && C.trenchx.spikeSell.atX === 1.8 && C.trenchx.maxHoldH === 24, 'the extractor: clean coins only, half into the FOMO or at 1.8x, out when insiders sell, a day at most');
+  ok(C.trenchbonus.lanes.join() === 'trend' && C.trenchbonus.trend.minAgeH === 0.5 && C.trenchbonus.holderGate && C.trenchbonus.mults.join() === '3', 'the second wave: trending only, nothing under 30 minutes, clean coins, a third into the FOMO, a third at 3x, a free third');
+  ok(C.trenchshot.trendCfg.maxHoldH === undefined && C.trenchx.trendCfg.deadMin === undefined, 'the OG\'s trending-lane overrides (6 hours, 6 quiet minutes) are not forced on the other trenchers');
+  ok(!('holderGate' in BOTS.breakout) && !('spikeSell' in BOTS.lab) && !('lanes' in BOTS.rider), 'and no trench rule leaks into the other bots'); }
+
+// ---- the second wave: too young is looked at again later, not thrown away
+{ const q = (ageMin) => ({ priceUsd: '1', pairCreatedAt: (T0 - ageMin * 60) * 1000, txns: { m5: { buys: 90, sells: 40 } }, volume: { h1: 3e5 }, priceChange: { m5: 4, h1: 45 }, marketCap: 1e6, dexId: 'pumpswap' });
+  ok(trendSetup(q(20), T0 * 1000, { ...TREND, minAgeH: 0.5 }) === null && trendSetup(q(40), T0 * 1000, { ...TREND, minAgeH: 0.5 }) && trendSetup(q(20), T0 * 1000, TREND), 'second wave: 20 minutes old is not yet (and not marked seen), 40 minutes is; the OG takes it at 20'); }
+
+// ---- the second wave's exits: a third into the FOMO, the ladder carries on, then the free ride
+{ const c = { ...loadConfig('trenchbonus'), slipPct: 0 }, p0 = openLadder({ pool: 'B', coin: 'B', chain: 'solana', mults: c.mults, shares: c.shares }, { price: 1, stop: 0.75 }, 100, iso(T0), c, 1e6);
+  let r = manageLadder(p0, { priceUsd: '1.5', priceChange: { m5: 40 }, txns: { m5: { buys: 90, sells: 20 } } }, T0 + 300, c); ok(r.actions.length === 1 && /FOMO/.test(r.actions[0].why) && Math.abs(r.pos.remUnits / r.pos.units - 0.67) < 0.01 && r.pos.stop === r.pos.entry, 'second wave: a third sold into the FOMO, stop to break-even');
+  r = manageLadder({ ...r.pos, peak: 2.6 }, { priceUsd: '2.0', txns: {} }, T0 + 900, c); ok(r.actions.length === 0, 'no trail after the FOMO sale (the ladder carries on): 23% off the high is held');
+  r = manageLadder(r.pos, { priceUsd: '3.1', txns: {} }, T0 + 1500, c); ok(r.actions.length === 1 && /TP1/.test(r.actions[0].why) && r.pos.free && Math.abs(r.pos.remUnits / r.pos.units - 0.34) < 0.01, 'a third at 3x; the last third rides free');
+  r = manageLadder({ ...r.pos, moonPeak: 8 }, { priceUsd: '3.9', txns: {} }, T0 + 9000, c); ok(r.actions.length === 1 && /moonbag trail: 50%/.test(r.actions[0].why), 'the free third trails 50% off its high'); }
+
+// ---- the pack: one feed, shared web reads, the feed pruned once for all five
+{ const f = trenchFeed({ WS: null }); f.testing = true; let calls = 0, t = 0; const { deps, pruneAll } = trenchPackDeps(f, { getJsonFn: async (u) => { calls++; return { u }; }, now: () => t });
+  await deps.getJson('https://x/a'); await deps.getJson('https://x/a'); t = 31000; await deps.getJson('https://x/a'); ok(calls === 2, 'identical reads within 30 seconds are shared (one call for five trenchers), then read again');
+  f.push({ txType: 'create', mint: 'M1', symbol: 'M1' }, 1000); f.push({ txType: 'create', mint: 'M2', symbol: 'M2' }, 1000); deps.feed.prune(1000 + 3600); ok(f.tokens.size === 2, 'one trencher cannot prune the shared feed under the others');
+  t = (1000 + 3600) * 1000; pruneAll([{ positions: [{ pool: 'M1' }], setups: {} }, { positions: [], setups: {} }]); ok(f.tokens.has('M1') && !f.tokens.has('M2'), 'the pack prunes once, keeping what ANY trencher holds'); }
+
+// ---- the five on the same trending coin, side by side through the real cycle
+{ const f = trenchFeed({ WS: null }); f.testing = true; let px = 1;
+  const rep = { token: { supply: 1e9 }, topHolders: [3, 2, 2, 1].map((p, i) => ({ owner: 'W' + i, pct: p, insider: false })), insiderNetworks: [] };
+  const trendQ = (pool) => ({ chainId: 'solana', dexId: 'pumpswap', pairAddress: pool, baseToken: { address: pool + 'MINT', symbol: pool }, priceUsd: String(px), marketCap: 1e6, liquidity: { usd: 2e5 }, txns: { m5: { buys: 90, sells: 40 }, h1: { buys: 400, sells: 200 } }, volume: { h1: 3e5 }, priceChange: { m5: 4, h1: 45 }, pairCreatedAt: (T0 - 5 * 3600) * 1000 });
+  const base = { getJson: async (u) => (u.includes('rugcheck') ? rep : u.includes('So1111') ? { pairs: [{ baseToken: { address: 'So11111111111111111111111111111111111111112' }, quoteToken: { symbol: 'USDC' }, priceUsd: '200', liquidity: { usd: 1e7 } }] } : u.includes('trending_pools?duration=5m&page=1') ? { data: [{ id: 'solana_HOT', attributes: { name: 'HOT / SOL' }, relationships: { dex: { data: { id: 'pumpswap' } } } }] } : { data: [] }) };
+  const { deps } = trenchPackDeps(f, { getJsonFn: base.getJson });
+  const D = (sec) => ({ ...deps, now: sec * 1000, dsQuotes: async (items) => Object.fromEntries(items.map((i) => [i.pool.toLowerCase(), trendQ(i.pool)])), candles5: async () => null, notify: async () => {}, journal: () => {}, heartbeat: async () => {} });
+  const S = Object.fromEntries(TRENCH_PACK.map((n) => [n, newState(loadConfig(n))])), log0 = console.log;
+  const round = async (sec) => { console.log = () => {}; for (const n of TRENCH_PACK) S[n] = await cycle(S[n], { ...loadConfig(n), slipPct: 0 }, D(sec)); console.log = log0; };
+  await round(T0); await round(T0 + 60);
+  const has = (n) => S[n].positions.filter((p) => p.pool === 'HOT');
+  ok(has('trench').length === 1 && has('trenchshot').length === 1 && has('trenchx').length === 1 && has('trenchbonus').length === 1 && has('trenchlab').length >= 5, 'one trending coin: the OG, the shotgun, the extractor and the second wave each took it once, the lab its ways');
+  ok(Math.abs(has('trench')[0].costUsd - 100) < 1 && Math.abs(has('trenchshot')[0].costUsd - 100) < 1 && has('trenchlab').every((p) => Math.abs(p.costUsd - 50) < 1), '$100 a shot for the four, $50 a way in the lab');
+  ok(has('trench')[0].targets.length === 3 && has('trenchshot')[0].targets.length === 1 && has('trenchx')[0].targets.length === 0, 'each with its own exits: OG three clips, shotgun one at 2x, extractor none (it sells into the FOMO)');
+  ok(has('trench')[0].meta.holders === null && has('trenchx')[0].meta.holders.clean === true && has('trench')[0].meta.mkt.mcap === 1e6 && has('trench')[0].meta.mkt.b5 === 90, 'the OG never reads holders; the extractor read a clean table; every shot records the market at entry for the learning loop');
+  px = 2.05; await round(T0 + 120); const og = S.trench.positions.find((p) => p.pool === 'HOT'), sg = S.trenchshot.positions.find((p) => p.pool === 'HOT');
+  ok(og && og.hits === 1 && sg && sg.hits === 1 && sg.free && sg.stop === 0, 'at 2.05x: the OG has sold its 1.5x clip (2.2x not yet), the shotgun its half and rides free'); }
+
+// ---- the trench council
+{ const tr = (bot, i, pnl, o = {}) => ({ coin: 'C' + i, pool: 'P' + i, openedAt: iso(T0 + i * 600), closedAt: iso(T0 + i * 600 + 900), entry: 1, exitAvg: 1 + pnl / 100, peak: o.peak ?? Math.max(1, 1 + pnl / 100), costUsd: 100, pnl, R: pnl / 25, heldH: 0.25, why: o.why || (pnl > 0 ? 'moonbag trail: 50% off the high' : 'stop'), meta: { lane: o.lane || (i % 2 ? 'trend' : 'ds'), mkt: { mcap: 1e5, h1: 40, b5: 60, s5: 30, ageMin: 30 }, holders: null, variant: o.variant } });
+  const og = [...Array(40)].map((_, i) => tr('trench', i, i % 2 ? 30 : -40, { why: i % 2 ? 'TP3: 20%' : 'stop', peak: i % 4 === 0 ? 1.8 : null })), sh = [...Array(40)].map((_, i) => tr('trenchshot', i, i % 2 ? (i % 10 === 1 ? 900 : 20) : -8, { why: i % 2 ? 'moonbag trail: 50% off the high' : 'no pop: never up 15% in 10 minutes' }));
+  const recs = { trench: { bot: 'trench', closed: og, open: [], stats: { closed: 40 } }, trenchshot: { bot: 'trenchshot', closed: sh, open: [], stats: { closed: 40 } } };
+  const Lg = league(recs), O = Lg.find((x) => x.bot === 'trench'), Sx = Lg.find((x) => x.bot === 'trenchshot');
+  ok(O.per100 === -5 && Sx.per100 > 50 && Sx.x5 === 4 && Sx.x10 === 4 && Sx.topShare > 0.4 && Lg.find((x) => x.bot === 'trenchx').installed === false, 'league: OG -$5 per $100 shot, the shotgun well ahead with four 10x shots, the best 5% of trades making nearly half its winnings; the extractor not installed yet');
+  const H = headToHead(waysOf(recs)); ok(H[0].way === 'trenchshot' && H[0].n === 40 && H[0].diff > 0 && H[0].call === 'better on the same coins', 'head to head on the same 40 coins: the shotgun better than the OG, with the luck check');
+  const A = exitAutopsy(og), st = A.find((a) => a.exit === 'stop'); ok(st && st.n === 20 && st.usd === -800 && st.leftOnTable === 10, 'exit autopsy: the OG\'s stop cost $800 over 20, and 10 of those losers had been 1.8x up first (giving runners back)');
+  const lw = learnWay(og.map((t, i) => ({ ...t, meta: { ...t.meta, lane: i % 2 ? 'trend' : 'ds' } }))); ok(lw.some((l) => l.feat === 'lane' && l.best.k === 'trending coins' && /^confirmed/.test(l.status)), 'learning loop: trending beats DexScreener launches on both the older and the newer half: confirmed');
+  const m1 = remember({}, [{ way: 'trench', feat: 'lane', best: { k: 'trend' }, worst: { k: 'ds' }, status: 'confirmed', gap: 70 }], iso(T0)), m2 = remember(m1, [{ way: 'trench', feat: 'lane', best: { k: 'trend' }, worst: { k: 'ds' }, status: 'confirmed', gap: 70 }], iso(T0 + 3600)), m3 = remember(m2, [], iso(T0 + 20 * 86400));
+  ok(m2['trench|lane|trend>ds'].seen === 2 && m2['trench|lane|trend>ds'].firstSeen === iso(T0) && !Object.keys(m3).length, 'the loop remembers a lesson across scans (seen twice since the first sighting) and forgets one not seen for two weeks');
+  const tc1 = trenchCouncil({ recs, now: (T0 + 86400) * 1000 }), tc2 = trenchCouncil({ recs, prev: tc1, now: (T0 + 90000) * 1000 }), tc = trenchCouncil({ recs, prev: tc2, now: (T0 + 93600) * 1000 });
+  ok(!tc1.forOthers.length && !tc2.forOthers.length && tc2.waiting.some((t) => /2 of 3/.test(t)) && tc.forOthers.some((t) => /confirmed 3 scans running.*trending coins/.test(t)), 'a lesson only reaches the main council after 3 scans running confirmed (1 and 2: kept back and shown as waiting; 3: passed up)');
+  const tcR = trenchCouncil({ recs: { trench: { ...recs.trench, closed: og.map((t, i) => ({ ...t, pnl: (i < 20) === (i % 2 === 0) ? 30 : -40 })) }, trenchshot: recs.trenchshot }, prev: tc, now: (T0 + 97200) * 1000 });
+  ok(!tcR.forOthers.some((t) => /running, trench\)/.test(t)) && tcR.memory['trench|lane|trending coins>DexScreener launches'].confirmed === 0, 'a lesson that stops holding on both halves drops out straight away and starts its count again');
+  ok(/Shotgun leads/.test(tc.headline) && tc.points.length >= 3 && tc.forOthers.every((t) => !/leads/.test(t)) && tc.actions.every((a) => a.kind === 'ask'), 'the chair: the shotgun leads (that stays in here: who leads is about the trenchers, not the coins); every action needs your OK');
+  // the main council no longer reads the trenchers' records, only the trench council's findings
+  const c = council({ botRecs: { trench: { bot: 'trench', closed: og, stats: { closed: 40, avgR: -0.2 } }, breakout: { bot: 'breakout', closed: [], stats: { closed: 0 } } }, trench: tc }), live = c.hats.find((h) => h.key === 'live'), scout = c.hats.find((h) => h.key === 'scout');
+  ok(live.points.every((p) => !/^trench/.test(p)) && scout.points.some((p) => /trenchers|Trench council/.test(p)), 'main council: the trenchers are judged by their own council only; the main council gets the trench findings about coins and crowds'); }
+
+// ---- the holder read's proof: a real gap, the same way on both halves, 10 trades a side
+{ const { holderProof, proveStreaks } = await import('../docs/trenchcouncil.mjs'); const mk = (i, clean, pnl) => ({ openedAt: new Date((T0 + i * 600) * 1000).toISOString(), costUsd: 100, pnl, meta: { variant: 'S-shotgun', holders: { clean } } });
+  const good = { closed: [...Array(40)].map((_, i) => mk(i, i % 2 === 0, i % 2 === 0 ? 40 + (i % 5) : -30 - (i % 3))) }, noise = { closed: [...Array(40)].map((_, i) => mk(i, i % 2 === 0, (i * 37) % 11 - 5)) };
+  const g = holderProof(good), n = holderProof(noise); ok(g.proven && g.gap > 60 && /did worse than clean coins/.test(g.text) && n && !n.proven && holderProof({ closed: good.closed.slice(0, 12) }) === null, 'holder read proof: a clear gap on both halves is proven; noise is not; under 10 trades a side is not tested');
+  const p1 = proveStreaks({}, { holder: g }, 'a'), p2 = proveStreaks(p1, { holder: g }, 'b'), p3 = proveStreaks(p2, { holder: n }, 'c'); ok(p2.holder.streak === 2 && p2.holder.firstProven === 'a' && p3.holder.streak === 0, 'the proof streak counts scans running and starts again the first time the test fails'); }
+
+// ---- 24 Oct: no paper money from markets nobody could trade (the +$6.2m Cash Cat trade: a painted chart in a thin pool)
+{ const { poolExit, marketProblem } = await import('../bot/manage.mjs'); const { equity } = await import('../bot/run.mjs');
+  ok(Math.abs(poolExit(100, 500000) - 99.96) < 0.01 && Math.abs(poolExit(6159358, 40000) - 19935) < 5 && poolExit(100, 0) === 100, 'pool cap: $100 into a $500k pool is barely touched; a $6.2m bag in a $40k pool fetches about $19.9k, never more than the pool holds');
+  const painted = { priceUsd: '18.91', txns: { h1: { buys: 300, sells: 120 } }, volume: { h1: 2.1 }, liquidity: { usd: 40000 } }, honey = { priceUsd: '1', txns: { h1: { buys: 80, sells: 2 } }, volume: { h1: 30000 }, liquidity: { usd: 40000 } }, fine = { priceUsd: '1', txns: { h1: { buys: 80, sells: 60 } }, volume: { h1: 30000 }, liquidity: { usd: 40000 } };
+  ok(/dust trades: 420 trades in the hour averaging \$0.01/.test(marketProblem(painted)) && /almost nobody has sold: 2 sells vs 80 buys/.test(marketProblem(honey)) && marketProblem(fine) === null && marketProblem({ ...fine, liquidity: { usd: 5000, estimated: true }, dexId: 'raydium' }) && marketProblem({ ...fine, liquidity: { usd: 5000, estimated: true }, dexId: 'pumpfun' }) === null, 'real-market check: a painted chart, a coin nobody sells and a pool with no real liquidity figure are refused; a pump.fun curve estimate is fine');
+  // through the bot: the painted coin is never bought; a held bag that runs 1000x in a $40k pool books what the pool would pay
+  const mkq = (px, o = {}) => ({ chainId: 'solana', dexId: 'pumpswap', pairAddress: 'HOT', baseToken: { address: 'HOTMINT', symbol: 'HOT' }, priceUsd: String(px), marketCap: 1e6, liquidity: { usd: 40000 }, txns: { m5: { buys: 90, sells: 40 }, h1: { buys: 400, sells: 200 } }, volume: { h1: 3e5 }, priceChange: { m5: 4, h1: 45 }, pairCreatedAt: (T0 - 5 * 3600) * 1000, ...o });
+  const f = trenchFeed({ WS: null }); f.testing = true; let Q = mkq(1); const G = async (u) => (u.includes('So1111') ? { pairs: [{ baseToken: { address: 'So11111111111111111111111111111111111111112' }, quoteToken: { symbol: 'USDC' }, priceUsd: '200', liquidity: { usd: 1e7 } }] } : u.includes('trending_pools?duration=5m&page=1') ? { data: [{ id: 'solana_HOT', attributes: { name: 'HOT / SOL' }, relationships: { dex: { data: { id: 'pumpswap' } } } }] } : { data: [] });
+  const D = (sec) => ({ now: sec * 1000, feed: f, getJson: G, dsQuotes: async (items) => Object.fromEntries(items.map((i) => [i.pool.toLowerCase(), Q])), candles5: async () => null, notify: async () => {}, journal: () => {}, heartbeat: async () => {} }), log0 = console.log;
+  const run = async (st, sec, n = 'trenchshot') => { console.log = () => {}; await cycle(st, { ...loadConfig(n), slipPct: 0 }, D(sec)); console.log = log0; };
+  Q = mkq(1, { txns: { m5: { buys: 90, sells: 40 }, h1: { buys: 400, sells: 200 } }, volume: { h1: 1.5 } }); const sp = newState(loadConfig('trenchshot')); await run(sp, T0); await run(sp, T0 + 60); ok(!sp.positions.length, 'a painted chart (600 trades in the hour, $1.50 of volume) is never bought');
+  Q = mkq(1); const st = newState(loadConfig('trenchshot')); await run(st, T0); await run(st, T0 + 60); ok(st.positions.length === 1, 'a real one is bought');
+  Q = mkq(1000, { maxTick: 0 }); await run(st, T0 + 120); await run(st, T0 + 180); const all = [...st.positions, ...st.closed].flatMap((p) => p.sells), capped = all.filter((a) => a.poolCap);
+  ok(capped.length >= 1 && all.reduce((a, x) => a + x.usd, 0) < 40000 && /paper fill capped by the pool/.test(capped[0].why) && equity(st, { hot: Q }) < 10000 + 40000, 'a 1000x on paper in a $40k pool books what the pool would pay (under $40k), not $50k+ of make-believe; the pot is valued the same way');
+  // a coin nobody can sell: 30+ buys, no sells, for an hour: booked at zero
+  Q = mkq(1); const hp = newState(loadConfig('trenchshot')); await run(hp, T0); await run(hp, T0 + 60); Q = mkq(1.3, { txns: { m5: { buys: 20, sells: 0 }, h1: { buys: 120, sells: 0 } } });
+  await run(hp, T0 + 120); ok(hp.positions.length === 1, 'no sells for a few minutes: still held'); await run(hp, T0 + 120 + 3600); const hc = hp.closed[0]; ok(hc && /honeypot, booked at zero/.test(hc.sells.at(-1).why) && hc.pnl < 0, 'no sells at all for an hour: booked at zero as a honeypot (paper only)'); }
+
+process.exit(f);

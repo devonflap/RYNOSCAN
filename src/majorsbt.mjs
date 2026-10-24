@@ -50,7 +50,7 @@ export function simulate(h1, m15, cfg, { costPct = BT.costPct, borrowPctH = BT.b
     const fill = m15[fillI][0]; let exitPx = null, exitAt = null, exitWhy = null;
     if (m15[fillI][3] <= stop) { exitPx = stop; exitAt = fill; exitWhy = 'stop'; }
     for (let k = fillI + 1; exitPx == null && k < m15.length; k++) { const c = m15[k];
-      if (c[3] <= stop) { exitPx = stop; exitAt = c[0]; exitWhy = 'stop'; } else if (c[2] >= target) { exitPx = target; exitAt = c[0]; exitWhy = 'target (Monday high)'; } else if (c[0] + 900 >= fill + (cfg.maxHoldH || 120) * 3600) { exitPx = c[4]; exitAt = c[0] + 900; exitWhy = 'time limit'; } }
+      if (c[3] <= stop) { exitPx = Math.min(c[1], stop); exitAt = c[0]; exitWhy = 'stop'; } else if (c[2] >= target) { exitPx = target; exitAt = c[0]; exitWhy = 'target (Monday high)'; } else if (c[0] + 900 >= fill + (cfg.maxHoldH || 120) * 3600) { exitPx = c[4]; exitAt = c[0] + 900; exitWhy = 'time limit'; } }
     if (exitPx == null) { trades.push({ setupAt: t, fillAt: fill, filled: true, open: true, entry, stop, target, rr: r.rr }); break; }
     const borrow = entry * (borrowPctH / 100) * Math.max(0, exitAt - fill) / 3600, Rr = (exitPx - entry - 2 * cost - borrow) / R; trades.push({ setupAt: t, sweepAt: r.sweepAt, fillAt: fill, exitAt, filled: true, entry: +entry.toPrecision(7), stop: +stop.toPrecision(7), target: +target.toPrecision(7), exitPx, rr: r.rr, stopPct: r2((1 - stop / entry) * 100), R: r2(Rr), why: exitWhy });
     t = Math.ceil(exitAt / 3600) * 3600; // one trade at a time: the scan resumes after the exit

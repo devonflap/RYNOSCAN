@@ -18,7 +18,7 @@ function fakeIo(o = {}) { const calls = []; const outFor = (wei, px) => BigInt(M
     postJson: async (u, b) => { calls.push(['post', u]); if (u.includes('kyberswap.com')) return { data: { routerAddress: RH.kyberRouter, amountOut: b.routeSummary.amountOut, data: '0xkyber', gas: '160000' } };
       if (u.includes('uniswap.org') && u.endsWith('/quote')) { const r = await venues.uniswap(b.tokenIn, b.tokenOut, BigInt(b.amount)); return { quote: { output: { amount: String(r.out) } }, permitData: null }; }
       if (u.includes('uniswap.org') && u.endsWith('/swap')) return { swap: { to: o.uniTo || RH.universalRouter, data: '0xuni', value: '0', gasLimit: 170000 } }; throw new Error('unknown post ' + u); },
-    ethBalance: async () => BigInt(Math.floor((o.eth ?? 1) * 1e18)), tokenBalance: async () => BigInt(Math.floor((o.held ?? 0) * 1e18)),
+    ethBalance: async () => BigInt(Math.floor((o.eth ?? 1) * 1e18)), tokenBalance: async () => { calls.tb = (calls.tb || 0) + 1; return BigInt(Math.floor((calls.tb === 1 ? o.before ?? 0 : o.held ?? 0) * 1e18)); },
     tokenInfo: async () => (o.info || { decimals: 18, symbol: 'MEME' }), baseFee: async () => 100000000n, // 0.1 gwei
     simulate: async (tx) => (o.revert && o.revert.includes(tx.data) ? { ok: false, error: 'execution reverted' } : { ok: true }),
     v3Quote: async ({ tokenIn, fee, amountIn }) => { if (!o.v3) throw new Error('no pool'); return fee === 3000 ? (tokenIn === RH.weth ? outFor(amountIn, 0.103) : sellOut(amountIn, 0.095)) : 0n; }, v3Encode: async () => '0xv3', urEncode: o.noUr ? undefined : async (plan) => { calls.push(['ur', plan.commands.join(',')]); return '0xur'; },

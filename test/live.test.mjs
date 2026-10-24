@@ -33,13 +33,14 @@ const mk = (o = {}) => { const calls = []; const io = { calls,
   quote: async (inMint, outMint, amount, slip) => { calls.push(['quote', inMint === SOL ? 'buy' : 'sell', amount, slip]); if (o.noRoute) throw new Error('no route'); if (inMint === SOL) { const sol = amount / 1e9, usd = sol * 200, px = o.buyPx ?? 0.1; return { inAmount: String(amount), outAmount: String(Math.floor((usd / px) * 1e6)), priceImpactPct: String(o.impact ?? 0.005), routePlan: [{ swapInfo: { label: 'Raydium' } }] }; }
     const units = amount / 1e6, px = o.sellPx ?? 0.098; return { inAmount: String(amount), outAmount: String(Math.floor((units * px / 200) * 1e9)), priceImpactPct: '0.006', routePlan: [{ swapInfo: { label: 'Raydium' } }] }; },
   swapTx: async (q, pk) => { calls.push(['swapTx', pk]); return 'dGVzdA=='; }, send: async (tx, kf) => { calls.push(['send', kf]); if (o.sendFail) throw new Error('transaction failed on chain'); return 'SIG' + calls.length; },
-  tokenBalance: async () => o.held ?? null }; return io; };
+  tokenBalance: async () => (io.tbN = (io.tbN || 0) + 1) === 1 ? (o.before ?? 0) : o.held ?? null }; return io; }; // the first read is the balance before the buy
 const base = { cfg: { ...LIVE }, mint: 'M'.repeat(44), usd: 50, expectedPx: 0.1, solUsd: 200, keyFile: '/k', pubkey: 'P'.repeat(44) };
 
 // buys
 { const io = mk(); const r = await buy({ ...base, io, mode: 'quote' }); ok(r.fill && r.fill.rehearsal && r.fill.sig === null && r.fill.usd === 50 && Math.abs(r.fill.units - 500) < 1e-6 && /rehearsal/.test(r.why) && !io.calls.some((c) => c[0] === 'send'), 'quote mode: the real quote is booked as the fill, nothing is sent');
   ok(io.calls.filter((c) => c[0] === 'quote' && c[1] === 'sell').length === 1, 'every buy also asks for a sell quote (honeypot test)');
-  const r2 = await buy({ ...base, io: mk({ held: 498 }), mode: 'live' }); ok(r2.fill && /^SIG/.test(r2.fill.sig) && r2.fill.units === 498 && /tx SIG/.test(r2.why), 'live: sent, confirmed, and the wallet balance is what the position holds');
+  const r2 = await buy({ ...base, io: mk({ held: 498 }), mode: 'live' }); ok(r2.fill && /^SIG/.test(r2.fill.sig) && r2.fill.units === 498 && /tx SIG/.test(r2.why), 'live: sent, confirmed, and what the wallet gained is what the position holds');
+  const r3 = await buy({ ...base, io: mk({ before: 120, held: 618 }), mode: 'live' }); ok(r3.fill && r3.fill.units === 498, 'a wallet already holding 120 (dust, or an earlier entry): the fill is the 498 this buy added, not all 618');
   ok(/freeze authority/.test((await buy({ ...base, io: mk({ mint: { freezeAuthority: 'F', decimals: 6 } }), mode: 'live' })).refused), 'a token with a freeze authority is refused');
   ok(/honeypot/.test((await buy({ ...base, io: mk({ sellPx: 0.03 }), mode: 'live' })).refused), 'a token that sells back for less than half: refused as a honeypot');
   ok(/worse than expected/.test((await buy({ ...base, io: mk({ buyPx: 0.105 }), mode: 'live' })).refused), 'a quote 5% worse than the expected price is refused (limit 3%)');
@@ -116,4 +117,15 @@ const base = { cfg: { ...LIVE }, mint: 'M'.repeat(44), usd: 50, expectedPx: 0.1,
 // the SOL price is never read off a pair quoted in USDC (that would size a $50 order as 50 SOL)
 { const now = Date.now(), usdcPair = { priceUsd: '100000', priceNative: '100000', quoteToken: { symbol: 'USDC', address: USDC_MINT } }, solPair = { priceUsd: '0.002', priceNative: '0.00001', quoteToken: { symbol: 'SOL', address: SOL } };
   ok(nativeUsd(solPair, {}, false, now) === 200 && nativeUsd(usdcPair, {}, false, now) === null && nativeUsd(usdcPair, { solUsd: 180, solUsdAt: now - 60e3 }, false, now) === 180 && nativeUsd(usdcPair, { solUsd: 180, solUsdAt: now - 3600e3 }, false, now) === null, 'SOL price: from a SOL-quoted pair, or the bot\'s own fresh SOL price; never 1 from a USDC pair; a stale price refuses the order'); }
+// a refused sell changes nothing (review 24 Oct): TP1 is tried again next check, the stop stays put, earlier sells are kept
+{ const cfg = { ...loadConfigFor('runner'), mode: 'quote', setupsEveryMin: 0, slipPct: 0, liveScan: false }, st = newState(cfg); st.execMode = 'quote'; st.solUsd = 200; st.solUsdAt = Date.now();
+  const earlier = { why: 'an earlier sell', units: 1, usd: 2, px: 2, all: false, at: iso(T0) };
+  st.positions.push({ id: 'R@1', mode: 'ladder', coin: 'RFS', chain: 'solana', pool: 'RF', token: 'M'.repeat(44), decimals: 6, execMode: 'quote', openedAt: iso(T0), entry: 1, stop0: 0.8, stop: 0.8, R: 0.2, targets: [2, 3, 4, 5], shares: [0.2, 0.2, 0.2, 0.2], hits: 0, units: 100, remUnits: 100, costUsd: 100, bankedUsd: 0, peak: 1, sells: [earlier], riskUsd: 20, lastPx: 1.9 });
+  const log0 = console.log; console.log = () => {}; let refuse = true;
+  const deps = { now: (T0 + 60) * 1000, getJson: async () => [], quotes: async () => ({ rf: { priceUsd: '2.05', priceNative: '0.01025', quoteToken: { symbol: 'SOL', address: SOL }, liquidity: { usd: 1e6 }, txns: {} } }), candles5: async () => null, notify: async () => {}, journal: () => {}, heartbeat: async () => {},
+    liveSell: async (o) => (refuse ? { refused: 'exit quote 40% worse than the live price' } : { fill: { usd: o.units * 2.05, px: 2.05, sig: null }, why: 'quoted' }) };
+  await cycle(st, cfg, deps); const p = st.positions[0]; console.log = log0;
+  ok(p && p.hits === 0 && p.remUnits === 100 && p.stop === 0.8 && p.sells.length === 1 && p.sells[0] === earlier || (p && p.sells.length === 1 && p.sells[0].why === 'an earlier sell'), 'TP1 refused: nothing changed (no clip counted, units and stop as they were, the earlier sell still in the history)');
+  refuse = false; console.log = () => {}; await cycle(st, cfg, { ...deps, now: (T0 + 120) * 1000 }); console.log = log0; const p2 = st.positions[0];
+  ok(p2 && p2.hits === 1 && Math.abs(p2.remUnits - 80) < 1e-9 && p2.sells.length === 2, 'next check the quote is fine: TP1 is taken then, as it should be'); }
 process.exit(f);

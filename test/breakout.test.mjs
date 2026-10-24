@@ -6,7 +6,7 @@ import { keeps, split, tune, forwardTrades, labelOf, TUNE } from '../docs/tuner.
 import { dossier } from '../src/analyst.mjs';
 import { FEATS } from '../docs/features.mjs';
 import { decideLimit, openLadder, manageLadder, BOT } from '../bot/manage.mjs';
-import { cycle, newState, loadConfig, BOTS, DEFAULTS } from '../bot/run.mjs';
+import { cycle, newState, loadConfig, BOTS, RETIRED, DEFAULTS } from '../bot/run.mjs';
 import { realityCheck } from '../bot/reality.mjs';
 import { decide, message, botsIn } from '../src/botwatch.mjs';
 const out = console.log; let f = 0; const ok = (c, m) => { out((c ? 'PASS ' : 'FAIL ') + m); if (!c) f = 1; };
@@ -74,7 +74,7 @@ const T0 = Date.parse('2026-10-22T00:00:00Z'), H = 3600e3, iso = (ms) => new Dat
   const loss = (() => { const p = st.positions[0]; return p.remUnits * (p.entry - p.stop); })(); ok(Math.abs(loss - 10) < 0.01, 'risk at the stop is 1% of the account');
   council = { botTuning: { breakout: { active: ['Reward to risk (TP2)|3R+|only', 'Chain|Robinhood|only'] } } }; await cycle(st, cfg, deps(T0 + 3 * H, 1.1));
   console.log = out; ok(msgs.length === 1 && /RynoBot Breakout: filters changed/.test(msgs[0]) && /On: only when chain is Robinhood/.test(msgs[0]) && jr.some((j) => j.type === 'filters'), 'the tuner switched a filter on: one phone note saying what changed (sizing untouched)');
-  ok(Object.keys(BOTS).join() === 'runner,breakout,lab,minute,trench,rider,btc,eth,ignition' && DEFAULTS.name === 'rules' && cfg.name === 'breakout' && cfg.maxStopPct === 35 && cfg.minOpp === 50, 'seven bots (the retired rules book stays as the defaults)'); }
+  ok(Object.keys(BOTS).join() === 'breakout,lab,trench,trenchlab,trenchshot,trenchx,trenchbonus,rider' && ['runner', 'minute', 'ignition'].every((k) => RETIRED[k]) && DEFAULTS.name === 'rules' && cfg.name === 'breakout' && cfg.maxStopPct === 35 && cfg.minOpp === 50, 'eight bots (five of them trenchers); the runner, minute bot and ignition retired (the retired rules book stays as the defaults)'); }
 
 // reality check against the Breakout bot's paper twin
 { const paper = [], closed = [];

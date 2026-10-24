@@ -76,7 +76,21 @@ export function managePosition(pos0, q, closes5, nowSec, cfg = BOT) {
 }
 // what an open position is worth now: spot = units times the price; a perp = its margin plus the profit or loss on the full size, less
 // the fees and borrow so far (never under zero: that is a liquidation). A closed position is worth nothing more (it is all in bankedUsd).
-export const posValue = (p, price) => { if (p.mode !== 'perp') return p.remUnits * (price > 0 ? price : 0); if (!(p.remUnits > 0)) return 0; const px = price > 0 ? price : p.entry; return Math.max(0, p.costUsd + (p.side === 'short' ? -1 : 1) * (px - p.entry) * p.units - (p.feesUsd || 0) - (p.borrowUsd || 0)); };
+// THE POOL CAP (24 Oct: the desk showed +$6.2m from one coin, Cash Cat, whose chart was painted by sub-cent trades in a thin pool; nobody
+// could ever have sold that bag). A paper sale can never fetch more than the pool would really pay: on a constant-product pool holding
+// liq/2 dollars on the buy side, selling a bag worth V at the quoted price returns (liq/2) x V / (liq/2 + V) before fees. Small sales
+// barely move; a bag the size of the pool gets about half; a bag 100x the pool gets the pool and no more. Unknown liquidity: no cap.
+export function poolExit(usdAtSpot, liq, feePct = 0) { if (!(usdAtSpot > 0)) return 0; if (!(liq > 0)) return usdAtSpot * (1 - feePct / 100); const Q = liq / 2; return ((Q * usdAtSpot) / (Q + usdAtSpot)) * (1 - feePct / 100); }
+// is this a market anyone could really trade? (every spot bot, before every buy; null = fine). Painted charts: the hour's trades average
+// under minAvgTradeUsd (sub-cent trades walking the price up); a coin almost nobody can sell: 30+ buys in the hour and sells under 5% of
+// them; no real liquidity figure on a pool that is not a pump.fun bonding curve (the curve itself is the liquidity there)
+export function marketProblem(q, cfg = {}) {
+  if (!q || cfg.marketCheck === false) return null; const t1 = (q.txns && q.txns.h1) || {}, b = +t1.buys || 0, s = +t1.sells || 0, v1 = +(q.volume && q.volume.h1) || 0, n = b + s, minAvg = cfg.minAvgTradeUsd ?? 5;
+  if (n >= 40 && q.volume && q.volume.h1 != null && v1 / n < minAvg) return `dust trades: ${n} trades in the hour averaging $${(v1 / n).toFixed(2)} (the chart is being painted, not traded)`;
+  if (b >= 30 && s < b * 0.05) return `almost nobody has sold: ${s} sells vs ${b} buys in the hour (a coin you may not be able to sell)`;
+  if (q.liquidity && q.liquidity.estimated && q.dexId && !/^pump/.test(String(q.dexId)) && !q.pump) return 'no real liquidity figure for this pool';
+  return null; }
+export const posValue = (p, price) => { if (p.mode !== 'perp') return p.remUnits * (price > 0 ? price : 0) * (1 - (p.slipOut || 0) / 100); /* what selling now would fetch */ if (!(p.remUnits > 0)) return 0; const px = price > 0 ? price : p.entry; return Math.max(0, p.costUsd + (p.side === 'short' ? -1 : 1) * (px - p.entry) * p.units - (p.feesUsd || 0) - (p.borrowUsd || 0)); };
 export const pnlOf = (pos, price) => pos.bankedUsd + posValue(pos, price) - pos.costUsd;
 // open risk of a position (what hitting its stop would cost now): perps carry it in riskUsd; spot from the units left and the stop
 export const riskOf = (p, slipPct = 0) => (p.mode === 'perp' ? (p.remUnits > 0 ? p.riskUsd || 0 : 0) : p.free ? 0 : Math.max(0, p.remUnits * (p.entry - p.stop * (1 - (p.slipOut ?? slipPct) / 100))));
@@ -115,7 +129,7 @@ export function managePerp(pos0, q, nowSec, cfg) {
 // the short-side limit: rests at the bottom of the bearish order block; a price through the stop (above) first cancels it
 export function decideLimitShort(setup, price, nowSec, cfg = BOT) {
   if (!(price > 0)) return null; const age = nowSec - Date.parse(setup.at) / 1000, eh = setup.expireH || 48;
-  if (age > eh * 3600) return { act: 'drop', why: `expired (no fill in ${eh} hours)` }; if (price >= setup.stop) return { act: 'drop', why: 'cancelled (price went through the stop before the limit filled)' };
+  if (age > eh * 3600) return { act: 'drop', why: `expired (no fill in ${eh} hours)` }; if (price >= setup.stop) return setup.prevPx > 0 && setup.prevPx < setup.zoneLow ? { act: 'buy', price: setup.zoneLow, stop: setup.stop, stopPct: +((setup.stop / setup.zoneLow - 1) * 100).toFixed(2), kind: 'short filled on the way through', why: ['the price went through the short and its stop between two checks: filled, stopped at the next check'] } : { act: 'drop', why: 'cancelled (price went through the stop before the limit filled)' };
   if (price < setup.zoneLow) return null; const fillPx = setup.zoneLow, stopPct = (setup.stop / fillPx - 1) * 100; if (stopPct > (cfg.maxStopPct || 35)) return { act: 'drop', why: `stop would be ${stopPct.toFixed(0)}% away: too wide` };
   return { act: 'buy', price: fillPx, stop: setup.stop, stopPct: +stopPct.toFixed(2), kind: 'short limit at the bottom of the order block', why: [price > setup.zoneHigh ? 'price went through the zone: the short filled at the bottom of it' : 'price came back up into the order block'] };
 }
@@ -126,10 +140,12 @@ export function decideLimitShort(setup, price, nowSec, cfg = BOT) {
 export function decideLimit(setup, price, nowSec, cfg = BOT) {
   if (!(price > 0)) return null; const age = nowSec - Date.parse(setup.at) / 1000, eh = setup.expireH || 48;
   if (age > eh * 3600) return { act: 'drop', why: `expired (no fill in ${eh} hours)` };
-  if (price <= setup.stop) return { act: 'drop', why: 'cancelled (price fell through the stop before the limit filled)' };
+  // a resting limit fills at the limit price on the first touch, however much lower the price is by the time the bot looks (anything else
+  // flatters the bot). If the price went from above the limit straight to under the stop between two checks, the limit filled on the way
+  // down: it is booked, and the stop takes it out at the next check (a cancel here would hide a real loss)
+  if (price <= setup.stop) return setup.prevPx > setup.zoneHigh ? { act: 'buy', price: setup.zoneHigh, stop: setup.stop, stopPct: +((1 - setup.stop / setup.zoneHigh) * 100).toFixed(1), kind: 'limit filled on the way through', why: ['the price went through the limit and the stop between two checks: filled at the limit, stopped at the next check'] } : { act: 'drop', why: 'cancelled (price fell through the stop before the limit filled)' };
   if (price > setup.zoneHigh) return null; // the limit is still resting
-  // a resting limit fills at the limit price on the first touch; if the bot only sees the price once it is lower, the fill was still the limit (anything else flatters the bot)
-  const fillPx = price >= setup.zoneLow ? price : setup.zoneHigh, stopPct = (1 - setup.stop / fillPx) * 100; if (stopPct > (cfg.maxStopPct || 35)) return { act: 'drop', why: `stop would be ${stopPct.toFixed(0)}% away: too wide` };
+  const fillPx = setup.zoneHigh, stopPct = (1 - setup.stop / fillPx) * 100; if (stopPct > (cfg.maxStopPct || 35)) return { act: 'drop', why: `stop would be ${stopPct.toFixed(0)}% away: too wide` };
   return { act: 'buy', price: fillPx, stop: setup.stop, stopPct: +stopPct.toFixed(1), kind: 'limit at the top of the retest zone', why: [price < setup.zoneLow ? 'price fell through the zone: the limit filled at the top of it' : 'price came back into the retest zone'] };
 }
 export function openLadder(setup, buy, usd, nowIso, cfg = BOT, liq = 0) {
@@ -144,15 +160,23 @@ export function manageLadder(pos0, q, nowSec, cfg = BOT) {
   pos.peak = Math.max(pos.peak, price); pos.trough = Math.min(pos.trough ?? price, price);
   if (price <= pos.stop) { sell(pos.remUnits, pos.stop > pos.entry * 1.002 ? 'trailing stop (in profit)' : pos.hits ? 'break-even stop' : 'stop', true); return { pos, actions }; }
   // the dump cut (degen runner): sellers plainly in control and the price already well off its high, at any stage, in profit or not: everything out
-  if (cfg.dumpCut && pos.remUnits > 0) { const t1 = (q.txns && q.txns.h1) || {}, t5 = (q.txns && q.txns.m5) || {}, b1 = +t1.buys || 0, s1 = +t1.sells || 0, b5 = +t5.buys || 0, s5 = +t5.sells || 0, D = cfg.dumpCut;
+  if (cfg.dumpCut && pos.remUnits > 0 && !(pos.free && cfg.freeRide) && !pos.rideFree) { const t1 = (q.txns && q.txns.h1) || {}, t5 = (q.txns && q.txns.m5) || {}, b1 = +t1.buys || 0, s1 = +t1.sells || 0, b5 = +t5.buys || 0, s5 = +t5.sells || 0, D = cfg.dumpCut;
     if (s5 >= (D.min5 || 8) && s5 >= (D.sellX5 || 1.5) * Math.max(1, b5) && s1 >= (D.sellX1 || 1.2) * Math.max(1, b1) && price <= pos.peak * (1 - (D.offHighPct || 0.15))) { sell(pos.remUnits, `sellers dumping (${s5} sells vs ${b5} buys in 5 minutes, ${Math.round((1 - price / pos.peak) * 100)}% off the high)`, true); return { pos, actions }; } }
   // the giveback rule (HOOKR, 22 Oct: up well over 30%, dumped back to the entry and the bot sat through it): once the trade has shown armPct,
   // giving back keep (half) of the best gain is the exit, before the clips or the stop ever get a say. Off once the moonbag is free.
-  if (cfg.peakGiveback && !pos.free && pos.remUnits > 0) { const G = cfg.peakGiveback, gain = pos.peak / pos.entry - 1; if (gain >= (G.armPct ?? 0.3) && price <= pos.entry * (1 + gain * (1 - (G.keep ?? 0.5)))) { sell(pos.remUnits, `gave back ${Math.round((G.keep ?? 0.5) * 100)}% of a +${Math.round(gain * 100)}% gain`, true); return { pos, actions }; } }
+  if (cfg.peakGiveback && !pos.free && !pos.rideFree && pos.remUnits > 0) { const G = cfg.peakGiveback, gain = pos.peak / pos.entry - 1; if (gain >= (G.armPct ?? 0.3) && price <= pos.entry * (1 + gain * (1 - (G.keep ?? 0.5)))) { sell(pos.remUnits, `gave back ${Math.round((G.keep ?? 0.5) * 100)}% of a +${Math.round(gain * 100)}% gain`, true); return { pos, actions }; } }
   // a dead chart (the trencher): no trade at all for deadMin minutes means the buyers are gone; out at whatever the curve pays
   if (cfg.deadMin > 0 && q.lastTradeSec > 0 && nowSec - q.lastTradeSec >= cfg.deadMin * 60) { sell(pos.remUnits, `dead chart: no trades for ${Math.round((nowSec - q.lastTradeSec) / 60)} minutes`, true); return { pos, actions }; }
   // the same on DexScreener's numbers (the trencher's DexScreener lanes): not one trade in the last 5 minutes, after deadMin minutes held
   if (cfg.deadMin > 0 && !(q.lastTradeSec > 0) && q.txns && q.txns.m5 && (+q.txns.m5.buys || 0) + (+q.txns.m5.sells || 0) === 0 && (nowSec - Date.parse(pos.openedAt) / 1000) >= cfg.deadMin * 60) { sell(pos.remUnits, 'dead chart: no trades in the last 5 minutes', true); return { pos, actions }; }
+  // the FOMO fade: the first 5-minute spike of spikePct% or more with buyers piling in (buyX the sells), while in profit, sells share of
+  // the position into the crowd's excitement; the rest is then protected at break-even or better and trails trail% off its high
+  if (cfg.spikeSell && pos.remUnits > 0) { const K = cfg.spikeSell; if (!pos.spiked) { const c5 = n(q.priceChange && q.priceChange.m5), t5 = (q.txns && q.txns.m5) || {}, b5 = +t5.buys || 0, s5 = +t5.sells || 0;
+      const spike = c5 != null && c5 >= (K.spikePct ?? 30) && b5 >= (K.buyX ?? 2) * Math.max(1, s5) && price > pos.entry, slow = price >= pos.entry * (K.atX ?? 2);
+      if (spike || slow) { sell(pos.remUnits * (K.share ?? 0.5), spike ? `sold into the FOMO: +${Math.round(c5)}% in 5 minutes, ${b5} buys vs ${s5} sells` : `${K.atX ?? 2}x without a FOMO spike: half sold anyway`); pos.spiked = true; pos.spikePeak = price; pos.stop = Math.max(pos.stop, pos.entry); (pos.moves ||= []).push({ at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z', stop: pos.stop, why: 'after the FOMO sale: stop to break-even' }); return { pos, actions }; } }
+    else if (K.trail != null) { pos.spikePeak = Math.max(pos.spikePeak || price, price); if (price <= pos.spikePeak * (1 - K.trail)) { sell(pos.remUnits, `FOMO fade: the rest out ${Math.round(K.trail * 100)}% off its high`, true); return { pos, actions }; } } } /* no trail: the ladder and the free ride take it from here */
+  // the shotgun's cheap miss: a shot that has not been up noPopPct% within noPopMin minutes (and has sold nothing) is out, before it costs the full stop
+  if (cfg.noPopMin > 0 && !pos.hits && pos.remUnits > 0 && (nowSec - Date.parse(pos.openedAt) / 1000) >= cfg.noPopMin * 60 && pos.peak < pos.entry * (1 + (cfg.noPopPct ?? 15) / 100)) { sell(pos.remUnits, `no pop: never up ${cfg.noPopPct ?? 15}% in ${cfg.noPopMin} minutes`, true); return { pos, actions }; }
   // the seller cut (from the Degen cut-on-sellers book): underwater by sellersLoss and sellers lead the hour and the last 5 minutes: out
   if (cfg.flowCut && !pos.hits && price <= pos.entry * (1 - cfg.sellersLoss)) { const t1 = (q.txns && q.txns.h1) || {}, t5 = (q.txns && q.txns.m5) || {}, b1 = +t1.buys || 0, s1 = +t1.sells || 0;
     if (s1 > 0 && s1 >= cfg.sellersX * b1 && (+t5.sells || 0) > (+t5.buys || 0)) { sell(pos.remUnits, `sellers took over (${s1} sells vs ${b1} buys in the hour)`, true); return { pos, actions }; } }
@@ -165,7 +189,8 @@ export function manageLadder(pos0, q, nowSec, cfg = BOT) {
   const N = pos.targets.length, share = (i) => (pos.shares && pos.shares[i] != null ? pos.shares[i] : 1 / N), moon = pos.shares ? +(1 - pos.shares.reduce((a, x) => a + x, 0)).toFixed(4) : 0, hasMoon = moon > 0.001;
   while (pos.hits < N && price >= pos.targets[pos.hits] && pos.remUnits > 0) {
     const last = pos.hits === N - 1 && !hasMoon; sell(last ? pos.remUnits : pos.units * share(pos.hits), `TP${pos.hits + 1}: ${last ? 'the rest' : N === 3 && !pos.shares ? 'a third' : Math.round(share(pos.hits) * 100) + '%'}`, last);
-    pos.hits++; if (pos.hits === 1 && cfg.beAfterFirst !== false) { pos.tp1Done = true; pos.stop = Math.max(pos.stop, pos.entry); (pos.moves ||= []).push({ at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z', stop: pos.stop, why: 'break-even after TP1' }); }
+    pos.hits++; if (pos.hits === 1 && cfg.freeAfterFirst) { pos.rideFree = true; pos.stop = 0; (pos.moves ||= []).push({ at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z', stop: 0, why: 'initials out: the rest rides free (no stop, no dump cut, no giveback)' }); }
+    if (pos.hits === 1 && cfg.beAfterFirst !== false && !cfg.freeAfterFirst) { pos.tp1Done = true; pos.stop = Math.max(pos.stop, pos.entry); (pos.moves ||= []).push({ at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z', stop: pos.stop, why: 'break-even after TP1' }); }
     if (pos.hits === N && hasMoon && pos.remUnits > 0) { pos.free = true; pos.stop = 0; pos.moonPeak = price; (pos.moves ||= []).push({ at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z', stop: 0, why: cfg.ticketExit ? `${Math.round(moon * 100)}% giant ticket: no stop, no trail; sold only when the coin is dead (${cfg.ticketExit.days || 7}-day volume under ${cfg.ticketExit.deadVolPct ?? 5}% of its best week) or after ${cfg.ticketExit.maxDays || 120} days` : `${Math.round(moon * 100)}% moonbag: no stop, trails ${Math.round((cfg.moonTrail || 0.45) * 100)}% off its high` }); } }
   // the giant ticket (the rider; from the giants study, 22 Oct: the five complete giants fell 92-99% on the way to 85x-3,549x, so no price
   // trail survives them and "hold" beat every trail 16 to 1): the moonbag is never sold on price. It is sold when the coin is dead:

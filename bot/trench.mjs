@@ -1,3 +1,4 @@
+import { solanaHolderGate } from '../docs/overlays.mjs';
 // THE TRENCHER (paper only, never live): a pump.fun "trench extractor". New launches on the pump.fun bonding curve, watched live from the
 // free PumpPortal feed (wss://pumpportal.fun/api/data: every new token and every buy and sell on it, no key, no account). The play: get in
 // in the first minutes once real buyers have shown up, then sell INTO the buyers as the bids come (clips at 1.5x, 2.2x and 3.5x), dump the
@@ -36,7 +37,7 @@ export function dsLaunchSetup(q, ageMin, cfg = DSLAUNCH) {
   return { price: +q.priceUsd, why: [`${ageMin.toFixed(0)} minutes old, ${b} buys vs ${s} sells in 5 minutes`, `$${Math.round(v5 / 1000)}k traded in 5 minutes`, `market cap $${Math.round(mc / 1000)}k${c5 != null ? `, ${c5 >= 0 ? '+' : ''}${c5}% in 5 minutes` : ''}`] };
 }
 export function trendSetup(q, nowMs, cfg = TREND) {
-  if (!q || !(+q.priceUsd > 0)) return null; const ageH = q.pairCreatedAt ? (nowMs - +q.pairCreatedAt) / 3600e3 : null; if (ageH != null && ageH > cfg.maxAgeH) return null;
+  if (!q || !(+q.priceUsd > 0)) return null; const ageH = q.pairCreatedAt ? (nowMs - +q.pairCreatedAt) / 3600e3 : null; if (ageH != null && ageH > cfg.maxAgeH) return null; if (cfg.minAgeH > 0 && (ageH == null || ageH < cfg.minAgeH)) return null; /* too young for this trencher: looked at again next round */
   const { b, s } = m5of(q), vh = +(q.volume && q.volume.h1) || 0, mc = +(q.marketCap || q.fdv) || 0, pc = q.priceChange || {}, c5 = n(pc.m5), c1 = n(pc.h1);
   if (b < cfg.minBuys5 || b < cfg.buySellX5 * Math.max(1, s) || vh < cfg.minVolH1) return null; if (c1 == null || c1 < cfg.minH1Pct) return null; if (c5 != null && c5 <= 0) return null;
   if (c1 > cfg.maxH1Pct) return { dead: `up ${Math.round(c1)}% in the hour: vertical` }; if (mc < cfg.minMcapUsd || mc > cfg.maxMcapUsd) return null;
@@ -83,7 +84,7 @@ export function trenchFeed({ url = 'wss://pumpportal.fun/api/data', cfg = TRENCH
     ws.onclose = () => { if (!stopped) setTimeout(connect, 5000); }; ws.onerror = (e) => { log('trench feed error: ' + (e && e.message || 'socket error')); }; };
   // forget tokens past the watch window that we are not in; mark quiet ones dead
   const prune = (nowSec, held = new Set()) => { for (const [k, t] of tokens) { if (held.has(k)) continue; if (nowSec - t.createdAt > cfg.watchMin * 60 || (t.migrated && nowSec - t.lastAt > 600)) { tokens.delete(k); unsub(k); } } };
-  return { tokens, push, connect, prune, stop: () => { stopped = true; try { ws && ws.close(); } catch { /* closed */ } }, stats: (nowSec = Math.floor(Date.now() / 1000)) => ({ tokens: tokens.size, msgs, lastMsgAt, lastTradeAt, connected: !!(ws && ws.readyState === 1), creates1h: seen.create.filter((t) => nowSec - t <= 3600).length, trades1h: seen.trade.filter((t) => nowSec - t <= 3600).length }), quotes: (items, nowSec, solUsd) => { const out = {}; for (const it of items) { const t = tokens.get(it.pool); if (t && solUsd > 0) out[String(it.pool).toLowerCase()] = quoteFor(t, nowSec, solUsd); } return out; } };
+  return { tokens, push, connect, prune, stop: () => { stopped = true; try { ws && ws.close(); } catch { /* closed */ } }, stats: (nowSec = Math.floor(Date.now() / 1000)) => ({ tokens: tokens.size, msgs, lastMsgAt, lastTradeAt, connected: !!(ws && ws.readyState === 1), creates1h: seen.create.filter((t) => nowSec - t <= 3600).length, trades1h: seen.trade.filter((t) => nowSec - t <= 3600).length }), quotes: (items, nowSec, solUsd) => { const out = {}; for (const it of items) { const t = tokens.get(it.pool); if (t && solUsd > 0 && !t.migrated && t.trades.length && nowSec - t.lastAt < 600) out[String(it.pool).toLowerCase()] = quoteFor(t, nowSec, solUsd); } return out; } }; // the feed prices a launch only while its own trades keep arriving (after a migration, or with no trades, DexScreener prices it)
 }
 // setups for the engine, from all three lanes. The feed lane needs the feed's trades; the DexScreener lanes need G (getJson) and Q (quotes).
 export async function trenchSetupsIn(st, cfg, feed, { J, now, nowIso, solUsd, G = null, Q = null }) {
@@ -92,21 +93,23 @@ export async function trenchSetupsIn(st, cfg, feed, { J, now, nowIso, solUsd, G 
   for (const s of Object.values(st.setups)) if (!s.dropped && s.src === 'feed' && !feed.tokens.has(s.pool)) { s.dropped = true; s.dropWhy = 'launch gone from the feed'; J({ type: 'drop', coin: s.coin, pool: s.pool, why: 'launch gone from the feed' }); }
   const add = (key, o, lane) => { st.setups[key] = { chain: 'solana', kind: lane === 'trend' ? 'trend' : 'trench', opp: null, mults: cfg.mults, shares: cfg.shares, expireH: cfg.signalMaxAgeH || 0.1, at: nowIso, src: lane, ...o, zoneLow: o.price, zoneHigh: o.price, stop: +(o.price * (1 - ((lane === 'trend' ? cfg.trendCfg && cfg.trendCfg.fixedStopPct : null) || cfg.fixedStopPct || 35) / 100)).toPrecision(6) }; delete st.setups[key].price; T[lane === 'trend' ? 'trendSetups' : lane === 'ds' ? 'dsSetups' : 'feedSetups']++; newN++;
     J({ type: 'setup', coin: o.coin, pool: o.pool, kind: st.setups[key].kind, lane, zoneLow: o.price, zoneHigh: o.price, stop: st.setups[key].stop, why: o.why }); };
+  const L = new Set(cfg.lanes || ['feed', 'ds', 'trend']); /* each trencher's own lanes */
   // 1. the feed lane (only launches whose trades arrive)
-  for (const t of feed.tokens.values()) { if (newN >= maxNew) break; if (st.setups[t.mint] || (st.seen || {})[t.mint] || !t.trades.length) continue; const r = trenchSetup(t, nowSec, cfg); if (!r) continue;
+  for (const t of L.has('feed') ? feed.tokens.values() : []) { if (newN >= maxNew) break; if (st.setups[t.mint] || (st.seen || {})[t.mint] || !t.trades.length) continue; const r = trenchSetup(t, nowSec, cfg); if (!r) continue;
     (st.seen ||= {})[t.mint] = now; if (r.dead) { if (/past the window/.test(r.dead)) T.expired++; else J({ type: 'skip', coin: t.symbol, pool: t.mint, why: r.dead }); continue; }
     add(t.mint, { pool: t.mint, coin: t.symbol, token: t.mint, price: r.price * solUsd, why: r.why, buyers: r.buyers, mcapSol: r.mcapSol, devPct: r.devPct, liq0: t.vSol * solUsd, url: 'https://pump.fun/coin/' + t.mint }, 'feed'); }
   for (const t of feed.tokens.values()) if (!t.trades.length && !(st.seen || {})[t.mint] && nowSec - t.createdAt > cfg.maxAgeMin * 60) { (st.seen ||= {})[t.mint] = now; T.expired++; }
   // 2. the DexScreener launch lane: launches 2-20 minutes old with no feed trades, checked in batches of 30, each at most once a minute
-  const D = cfg.dsLaunch; if (D && G && newN < maxNew) { const due = [...feed.tokens.values()].filter((t) => !t.trades.length && !st.setups[t.mint] && !(st.dsSeen || {})[t.mint] && (nowSec - t.createdAt) / 60 >= D.minAgeMin && (nowSec - t.createdAt) / 60 <= D.maxAgeMin && nowSec - (t.dsAt || 0) >= D.everySec).sort((a, b) => b.createdAt - a.createdAt);
+  const D = cfg.dsLaunch; if (D && L.has('ds') && G && newN < maxNew) { const due = [...feed.tokens.values()].filter((t) => !t.trades.length && !st.setups[t.mint] && !(st.dsSeen || {})[t.mint] && (nowSec - t.createdAt) / 60 >= D.minAgeMin && (nowSec - t.createdAt) / 60 <= D.maxAgeMin && nowSec - (t.dsAt || 0) >= D.everySec).sort((a, b) => b.createdAt - a.createdAt);
     for (let c = 0; c < D.callsPerCycle && c * D.perCall < due.length && newN < maxNew; c++) { const batch = due.slice(c * D.perCall, (c + 1) * D.perCall); for (const t of batch) t.dsAt = nowSec;
       let j = null; try { j = await G('https://api.dexscreener.com/latest/dex/tokens/' + batch.map((t) => t.mint).join(',')); } catch (e) { console.log('trench dexscreener: ' + e.message); break; }
       for (const t of batch) { if (newN >= maxNew) break; const q = ((j && j.pairs) || []).filter((p) => p.chainId === 'solana' && p.baseToken && p.baseToken.address === t.mint).sort((a, b) => (+(b.volume && b.volume.m5) || 0) - (+(a.volume && a.volume.m5) || 0))[0]; if (!q) continue; fixLiq(q);
         const r = dsLaunchSetup(q, (nowSec - t.createdAt) / 60, D); if (!r) continue; (st.dsSeen ||= {})[t.mint] = now; if (r.dead) continue;
         add(q.pairAddress, { pool: q.pairAddress, coin: t.symbol, token: t.mint, price: r.price, why: r.why, liq0: q.liquidity.usd, url: q.url || 'https://pump.fun/coin/' + t.mint }, 'ds'); } } }
   // 3. the trending lane: GeckoTerminal's trending and new pools on pump.fun and PumpSwap, judged on DexScreener
-  const R = cfg.trend; if (R && G && Q && newN < maxNew && now - (st.trendAt || 0) >= R.everySec * 1000) { st.trendAt = now; st.trendSeen ||= {}; const cands = new Map();
+  const R = cfg.trend; if (R && L.has('trend') && G && Q && newN < maxNew && now - (st.trendAt || 0) >= R.everySec * 1000) { st.trendAt = now; st.trendSeen ||= {}; const cands = new Map();
     for (const p of R.pages) { try { const j = await G('https://api.geckoterminal.com/api/v2/networks/solana/' + p); for (const d of (j && j.data) || []) { const dex = d.relationships && d.relationships.dex && d.relationships.dex.data && d.relationships.dex.data.id; if (R.dexes.length && !R.dexes.includes(dex)) continue; const pool = (d.id || '').split('_').slice(1).join('_') || (d.attributes || {}).address; if (pool && !cands.has(pool)) cands.set(pool, { pool, chain: 'solana', coin: String((d.attributes || {}).name || '').split(' / ')[0] || pool.slice(0, 6) }); } } catch (e) { console.log('trench trending ' + p + ': ' + e.message); } }
+    st.trendCands = [...cands.values()].slice(0, 120); /* the random control's pool: what was trending at this moment */
     const fresh = [...cands.values()].filter((c) => !st.setups[c.pool] && !st.positions.some((p) => p.pool === c.pool) && now - (st.trendSeen[c.pool] || 0) >= R.coolH * 3600e3);
     const qs = fresh.length ? await Q(fresh).catch(() => ({})) : {}; T.trendChecked = fresh.length;
     for (const c of fresh) { if (newN >= maxNew) break; const q = qs[String(c.pool).toLowerCase()]; if (!q) continue; fixLiq(q); const r = trendSetup(q, now, R); if (!r || r.dead) continue;
@@ -115,4 +118,27 @@ export async function trenchSetupsIn(st, cfg, feed, { J, now, nowIso, solUsd, G 
   for (const [k, t] of Object.entries(st.dsSeen || {})) if (now - t > 3600e3) delete st.dsSeen[k];
   // once an hour, the bot says what it saw (so a silent feed shows up on the desk, not as a mystery)
   if (now - (T.hourAt || 0) >= 3600e3) { const fs = feed.stats(nowSec); J({ type: 'feed', why: `last hour: ${fs.creates1h} launches and ${fs.trades1h} trades from PumpPortal; ${T.feedSetups} setups from the feed, ${T.dsSetups} from DexScreener launches, ${T.trendSetups} trending; ${T.expired} launches aged out without qualifying` }); st.trench = { expired: 0, feedSetups: 0, dsSetups: 0, trendSetups: 0, hourAt: now, last: { ...fs, ...T, at: nowIso } }; }
+}
+
+// THE HOLDER READ (24 Oct, from the pump.fun extractor research: devs and their bundled wallets took $579M against $31.5M for the snipers,
+// so who already holds the supply matters more than who is buying). One RugCheck report per shot: the top 10 wallets (pools left out)
+// over 30%, the wallets RugCheck tags as insiders over 10% (the median dev bundle), or one linked wallet network over 15% (Bubblemaps'
+// MYSTERY/LIBRA pattern: the supply split across fresh wallets) marks the coin as held by the extractors. Every way records it; B-clean
+// trades only the clean ones, so the shotgun on flagged coins vs clean coins is the filter's real cost or saving.
+export const HOLD = { top10MaxPct: 30, insiderMaxPct: 10, networkMaxPct: 15 };
+export function trenchHolderRead(rep, cfg = HOLD) {
+  const g = solanaHolderGate(rep, { top10MaxPct: cfg.top10MaxPct, insiderMaxPct: cfg.insiderMaxPct, taxMaxPct: 5 });
+  if (g.top10 == null) return { clean: null, why: ['RugCheck has no holder table yet'], top10: null, insider: null, net: null };
+  const why = [...g.danger], sup = +(rep.token && rep.token.supply) || 0, nets = Array.isArray(rep.insiderNetworks) ? rep.insiderNetworks : [];
+  const pcts = sup > 0 ? nets.map((x) => ((+x.tokenAmount || 0) / sup) * 100).filter((x) => x >= 0 && x <= 100) : [], net = pcts.length ? +Math.max(...pcts).toFixed(1) : null;
+  if (net != null && net > cfg.networkMaxPct) why.push(`one linked wallet network holds ${net}% (gate ${cfg.networkMaxPct}%)`);
+  return { clean: !why.length, why, top10: g.top10, insider: g.insider, net, insiders: +rep.graphInsidersDetected || 0 };
+}
+// the extractors leaving (rule 11 of the research: out when the insiders or the top cluster start selling): the insider wallets' share
+// down a fifth or more since the entry, or the top 10's share down a fifth or more (they only fall when the big holders sell or split)
+export function holdersLeaving(h0, h) {
+  if (!h0 || !h || h.top10 == null) return null;
+  if (h0.insider >= 2 && h.insider != null && h.insider <= h0.insider * 0.8) return `insider wallets sold: ${h0.insider}% of the supply at the entry, ${h.insider}% now`;
+  if (h0.top10 >= 10 && h.top10 <= h0.top10 * 0.8) return `the top 10 holders are selling: ${h0.top10}% of the supply at the entry, ${h.top10}% now`;
+  return null;
 }

@@ -93,8 +93,9 @@ export async function buy({ cfg, io, mint, usd, expectedPx, solUsd, mode, keyFil
   try { const back = await io.quote(mint, B.mint, Math.floor(f.units * 10 ** safe.decimals * 0.5), slipBps); const s = quotedSell(back, B.px, safe.decimals, B.dec); if (!s || s.px < f.px * 0.5) return { refused: 'honeypot check: selling back would lose more than half (' + (s ? s.px.toPrecision(4) : 'no route') + ')' }; } catch (e) { return { refused: 'honeypot check: cannot get a sell quote (' + e.message + ')' }; }
   const a = acceptable(expectedPx, f.px, 'buy', cfg); if (!a.ok) return { refused: `quoted fill ${a.worsePct}% worse than expected (limit ${a.tolPct}%)`, quoted: f };
   if (mode === 'quote') return { fill: { ...f, decimals: safe.decimals, px: +f.px.toPrecision(8), sig: null, rehearsal: true }, why: `rehearsal: quoted ${f.units.toPrecision(6)} at ${f.px.toPrecision(6)} via ${f.route || 'Jupiter'}, impact ${f.impactPct}%, tolerance ${f.tolPct}%, not sent` };
+  let before = 0; try { before = await io.tokenBalance(pubkey, mint) || 0; } catch { /* unknown: assume none */ }
   const tx = await io.swapTx(q, pubkey), sig = await io.send(tx, keyFile);
-  let units = f.units; try { const held = await io.tokenBalance(pubkey, mint); if (held > 0) units = held; } catch (e) { log('could not read the token balance after the buy: ' + e.message); }
+  let units = f.units; try { const held = await io.tokenBalance(pubkey, mint); if (held - before > 0) units = held - before; } catch (e) { log('could not read the token balance after the buy: ' + e.message); } /* only what this buy added (dust or an earlier entry is not this fill) */
   return { fill: { ...f, decimals: safe.decimals, units, px: +(f.usd / units).toPrecision(8), sig }, why: `bought ${units.toPrecision(6)} via ${f.route || 'Jupiter'}, impact ${f.impactPct}%, tolerance ${f.tolPct}%, tx ${sig}` };
 }
 // sell: units of mint. Exits get more slippage room; a stop that cannot fill is journaled loudly so you can act.
