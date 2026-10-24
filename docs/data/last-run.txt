@@ -1,3 +1,5 @@
-Hourly refresh 17:10 Brisbane: 3 tracked coins refreshed, 3 scored, 2 above 65. On-chain volume Strong (1.41x 7-day avg).
+Full scan 18:11 Brisbane: 72 scanned, 64 scored, 5 above 65. On-chain volume Strong (1.47x 7-day avg).
+NEW watch: DACITY (Solana) Breakout retest, opp 69, checks 4/6, stop 17.9% away, upside 84.6%; more sellers than buyers in the last hour; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: ANTFUN (Single holder ownership), SPCX (Mint Authority still enabled), ORE (Mint Authority still enabled), NOTE (owner can mint more), ANSEM (Single holder ownership), DJT (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
