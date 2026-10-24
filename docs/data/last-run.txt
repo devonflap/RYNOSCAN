@@ -1,4 +1,7 @@
-Full scan 15:11 Brisbane: 83 scanned, 71 scored, 4 above 65. On-chain volume Strong (1.41x 7-day avg).
+Hourly refresh 16:10 Brisbane: 5 tracked coins refreshed, 5 scored, 3 above 65. On-chain volume Strong (1.41x 7-day avg).
+NEW watch: CATE (Solana) Falling wedge, opp 76, checks 5/6, stop 14.6% away, upside 75.7%; more sellers than buyers in the last hour.
+Signal HMM: stopped out, result -1.08R.
+Signal CASHCAT: stopped out, result -1.08R.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: SPCX (Mint Authority still enabled), NOTE (owner can mint more), ANTFUN (Single holder ownership), DJT (Mint Authority still enabled), DUCAT (owner can mint more), PONS (top 10 wallets hold 52.3% (gate 30%)).
+Removed for token safety: CASHCAT (top 10 wallets hold 36.1% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
