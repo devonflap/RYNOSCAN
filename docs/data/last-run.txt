@@ -1,8 +1,4 @@
-Full scan 06:11 Brisbane: 72 scanned, 62 scored, 7 above 65. On-chain volume Strong (1.51x 7-day avg).
-NEW watch: NEET (Solana) Liquidity sweep reclaim, opp 76, checks 4/6, stop 9.5% away, upside 24.3%; volume figures disagree; volume fading.
-NEW watch: SWORDCAT (Solana) Volume breakout, opp 74, checks 5/6, stop 72.3% away, upside 216.9%; volume fading.
-NEW watch: BATON (Solana) Liquidity sweep reclaim, opp 68, checks 4/6, stop 30.1% away, upside 89.6%; more sellers than buyers in the last hour; volume fading.
-NEW watch: SI (Solana) Bottom reversal, opp 66, checks 5/6, stop 25.4% away, upside 120.7%; volume fading.
+Hourly refresh 07:11 Brisbane: 7 tracked coins refreshed, 6 scored, 4 above 65. On-chain volume Strong (1.51x 7-day avg).
+NEW watch: DACITY (Solana) Bottom reversal, opp 68, checks 4/6, stop 46.6% away, upside 139.7%; more sellers than buyers in the last hour; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: USELESS (top 10 wallets hold 36.4% (gate 30%)), ANSEM (Single holder ownership), NOTE (owner can mint more), PUMP (top 10 wallets hold 60.3% (gate 30%)), GYAT (top 10 wallets hold 44.4% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
