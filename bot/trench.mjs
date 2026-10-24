@@ -29,7 +29,7 @@ export const TREND = { maxAgeH: 72, minBuys5: 30, buySellX5: 1.3, minVolH1: 5000
   pages: ['trending_pools?duration=5m&page=1', 'trending_pools?duration=5m&page=2', 'trending_pools?duration=1h&page=1', 'new_pools?page=1', 'new_pools?page=2'] };
 // a bonding-curve pair on DexScreener often has no liquidity figure; a fifth of the market cap is about what the curve holds early on
 // (marked as an estimate: it only feeds the cost model, the gates use the market cap)
-export function fixLiq(q) { if (q && !(q.liquidity && +q.liquidity.usd > 0)) { const mc = +(q.marketCap || q.fdv) || 0; if (mc > 0) q.liquidity = { usd: mc * 0.2, estimated: true }; } return q; }
+export function fixLiq(q) { if (q && !(q.liquidity && +q.liquidity.usd > 0) && (!q.dexId || String(q.dexId) === 'pumpfun')) { /* only a bonding curve is estimated: a traded pool showing $0 really is empty (Rockstar, 24 Oct) */ const mc = +(q.marketCap || q.fdv) || 0; if (mc > 0) q.liquidity = { usd: mc * 0.2, estimated: true }; } return q; }
 const m5of = (q) => { const t = (q && q.txns && q.txns.m5) || {}; return { b: +t.buys || 0, s: +t.sells || 0 }; };
 export function dsLaunchSetup(q, ageMin, cfg = DSLAUNCH) {
   if (!q || !(+q.priceUsd > 0)) return null; if (ageMin < cfg.minAgeMin || ageMin > cfg.maxAgeMin) return null; const { b, s } = m5of(q), v5 = +(q.volume && q.volume.m5) || 0, mc = +(q.marketCap || q.fdv) || 0, c5 = n(q.priceChange && q.priceChange.m5);
