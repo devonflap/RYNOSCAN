@@ -186,6 +186,7 @@ export async function candlesGT(chain, pool, { tf = 'hour', agg = 1, limit = 100
 }
 // GeckoTerminal 5-minute candles (free, about 30 calls a minute): [[t, o, h, l, c, v]] oldest first
 let gtCalls = [];
+const GTPOOL = new Map(); /* GeckoTerminal's read of each held pool (the second opinion), shared by the bots in one process */
 async function candles5(chain, pool, cfg) {
   const now = Date.now(); gtCalls = gtCalls.filter((t) => now - t < 60e3); if (gtCalls.length >= cfg.maxGtPerMin) return null; gtCalls.push(now);
   const net = GT[String(chain).toLowerCase()]; if (!net) return null;
@@ -324,7 +325,20 @@ export async function cycle(st, cfg, deps = {}) {
   // 3. manage open positions first (exits never wait behind entries)
   const pc0 = (p) => { let c = (p.kind === 'trend' || (p.meta && p.meta.signal === 'trend')) && cfg.trendCfg ? { ...cfg, ...cfg.trendCfg } : cfg; if (p.vcfg) c = { ...c, ...p.vcfg }; return c; };
   for (let i = 0; i < st.positions.length; i++) {
-    let pos = st.positions[i]; const qq = q[String(pos.pool).toLowerCase()], pos0 = pos; let r = null;
+    let pos = st.positions[i]; let qq = q[String(pos.pool).toLowerCase()]; const pos0 = pos; let r = null;
+    // A SECOND OPINION and THE DEAD-POOL RULE (24 Oct, the third make-believe win: $2.4m on paper again). Paper only, spot only.
+    // (1) Any held coin quoted at 3x+ its entry, or every 10 minutes anyway, is checked against GeckoTerminal's own read of the same pool;
+    //     the lower of the two prices and the lower of the two liquidities are what the bot acts on, and a big win with no second opinion
+    //     waits for one. (2) Ryan's rule: a pool with no real liquidity left (under deadLiqUsd on either source) is a rug: the position is
+    //     booked at zero, whatever price the screen shows.
+    if (qq && deps.secondOpinion !== false && (pos.execMode || 'dry') === 'dry' && pos.mode !== 'perp' && pos.remUnits > 0) { const px0 = +qq.priceUsd, big = px0 >= pos.entry * (cfg.confirmX || 3), Ld = +(qq.liquidity && qq.liquidity.usd) || 0, deadL = cfg.deadLiqUsd ?? 1000;
+      const GP = deps.gtCache || GTPOOL, key = String(pos.pool).toLowerCase(), c = GP.get(key); let g = c && now - c.at < (big ? 30e3 : 1800e3) ? c : null; /* shared by every bot in the process: one read per pool, every 30 minutes, every 30 seconds on a big move */
+      if (!g && GT[String(pos.chain).toLowerCase()]) { try { const j = await (deps.gtPool || G)(`https://api.geckoterminal.com/api/v2/networks/${GT[String(pos.chain).toLowerCase()]}/pools/${pos.pool}`), a = (j && j.data && j.data.attributes) || {}; g = { at: now, px: +a.base_token_price_usd || 0, liq: a.reserve_in_usd != null ? +a.reserve_in_usd : null }; GP.set(key, g); } catch (e) { g = null; } }
+      const liqMin = Math.min(Ld > 0 ? Ld : Infinity, g && g.liq != null ? g.liq : Infinity);
+      if ((Ld > 0 || (g && g.liq != null)) && liqMin < deadL) { const a = { why: `no liquidity left in the pool ($${Math.round(liqMin)}): a rug, booked at zero`, units: pos.remUnits, usd: 0, px: 0, all: true, at: nowIso }; r = { pos: { ...pos, remUnits: 0, sells: [...(pos.sells || []), a] }, actions: [a] }; }
+      else if (big && !(g && g.px > 0)) { J({ type: 'skip', coin: pos.coin, pool: pos.pool, why: `quoted at ${(px0 / pos.entry).toFixed(1)}x the entry: waiting for a second opinion on the price before booking anything` }); continue; }
+      else if (g && g.px > 0 && (g.px < px0 * 0.7 || (g.liq != null && g.liq < Ld))) { qq = { ...qq, priceUsd: String(Math.min(px0, g.px)), liquidity: { ...(qq.liquidity || {}), usd: Number.isFinite(liqMin) ? liqMin : Ld } }; if (g.px < px0 * 0.7) J({ type: 'skip', coin: pos.coin, pool: pos.pool, why: `DexScreener says ${px0}, GeckoTerminal ${g.px}: the lower price is used` }); } }
+    if (GTPOOL.size > 3000) for (const [k, g] of GTPOOL) if (now - g.at > 3600e3) GTPOOL.delete(k);
     if (!qq) { pos.noQuoteSince ||= now; const lim = Math.max(6, pc0(pos).maxHoldH || 0) * 3600e3; if ((pos.execMode || 'dry') !== 'dry' || !Object.keys(q || {}).length || now - pos.noQuoteSince < lim) continue;
       const a = { why: `no market for ${Math.round((now - pos.noQuoteSince) / 3600e3)} hours (the pool is gone from the price feeds): written off at zero`, units: pos.remUnits, usd: 0, px: 0, all: true, at: nowIso }; r = { pos: { ...pos, remUnits: 0, sells: [...(pos.sells || []), a] }, actions: [a] }; }
     else pos.noQuoteSince = null;
