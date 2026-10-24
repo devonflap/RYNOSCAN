@@ -1,5 +1,3 @@
-Full scan 21:11 Brisbane: 77 scanned, 65 scored, 5 above 65. On-chain volume Strong (1.53x 7-day avg).
-NEW watch: JEANPHIL (Solana) Bottom reversal, opp 67, checks 5/6, stop 13.2% away, upside 224.7%; more sellers than buyers in the last hour.
+Hourly refresh 22:10 Brisbane: 5 tracked coins refreshed, 5 scored, 3 above 65. On-chain volume Strong (1.53x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: ANTFUN (Single holder ownership), SPCX (Mint Authority still enabled), NOTE (owner can mint more), ANSEM (Single holder ownership), ZEREBRO (Top 10 holders high ownership), PUMP (top 10 wallets hold 60.3% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
