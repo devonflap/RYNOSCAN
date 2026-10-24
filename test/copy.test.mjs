@@ -34,4 +34,10 @@ ok(bestPair({ pairs: [{ chainId: 'robinhood', baseToken: { address: TK }, liquid
   const deps = (sec) => ({ now: sec * 1000, getJson: G, quotes: async () => ({ '0xthin': thin }), candles5: async () => null, notify: async () => {}, journal: () => {}, heartbeat: async () => {} }), log0 = console.log;
   const st = newState(cfg); console.log = () => {}; await cycle(st, cfg, deps(T0)); items = [tr('buy', TK, 'X', T0 + 50, 'n')]; await cycle(st, cfg, deps(T0 + 60)); await cycle(st, cfg, deps(T0 + 120)); console.log = log0;
   ok(!st.positions.length, 'a proven wallet buying an $8k pool: not copied (under the $30k liquidity floor)'); }
+// the scorecard's list decides who is followed: a newly proven wallet is added at the next hourly read, one that drops off is no longer copied
+{ const { copySetupsIn } = await import('../bot/copy.mjs'); let list = [{ w: W, n: 11, wins: 6, copyPct: 18.5 }]; const W2 = '0x0ec4e45f9ce3020024c0418a74cd31fbc487038f', jr = [];
+  const G = async (u) => (u.includes('walletscore') ? { proven: list } : { items: [] }), st = { positions: [], setups: {} }, go = (t) => copySetupsIn(st, { site: '', copy: {} }, { G, J: (o) => jr.push(o), now: t * 1000, nowIso: iso(t) });
+  await go(T0); list = [...list, { w: W2, n: 7, wins: 3, copyPct: 18.8 }]; await go(T0 + 600); ok(st.proven.length === 1, 'between the hourly reads the list stays as it was');
+  await go(T0 + 3700); ok(st.proven.map((x) => x.w).join() === [W, W2].join() && jr.some((j) => j.side === 'added' && /newly proven/.test(j.why)), 'a wallet the scorecard newly proves is followed from the next hourly read, and the journal says so');
+  list = [list[1]]; await go(T0 + 7400); ok(st.proven.length === 1 && st.proven[0].w === W2 && jr.some((j) => j.side === 'dropped'), 'a wallet that drops off the proven list is no longer copied'); }
 process.exit(f);

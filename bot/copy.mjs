@@ -29,7 +29,9 @@ const short = (w) => w.slice(0, 6) + '…' + w.slice(-4);
 // each cycle: refresh the proven list hourly, read each wallet's latest moves, turn fresh buys into setups and remember sells (for the mirror exit)
 export async function copySetupsIn(st, cfg, { G, rpc, J, now, nowIso }) {
   const C = { ...COPY, ...(cfg.copy || {}) }; if (now - (st.copyAt || 0) < C.everySec * 1000) return; st.copyAt = now;
-  if (!st.proven || now - (st.provenAt || 0) > C.provenEveryMin * 60e3) { try { st.proven = provenFrom(await G(cfg.site + 'walletscore.json'), C); st.provenAt = now; } catch (e) { console.log('copy: walletscore ' + e.message); } }
+  if (!st.proven || now - (st.provenAt || 0) > C.provenEveryMin * 60e3) { try { const before = new Set((st.proven || []).map((x) => x.w)), had = !!st.proven; st.proven = provenFrom(await G(cfg.site + 'walletscore.json'), C); st.provenAt = now;
+      /* the scorecard's list decides: a newly proven wallet is followed from now on, one that drops off is no longer copied (open copies run their exits) */
+      const after = new Set(st.proven.map((x) => x.w)); if (had) { for (const x of st.proven) if (!before.has(x.w)) J({ type: 'copy', wallet: short(x.w), side: 'added', why: `newly proven by the scorecard (ran on ${x.wins} of ${x.n} coins, ${x.copyPct >= 0 ? '+' : ''}${x.copyPct}% a copy): followed from now on` }); for (const w of before) if (!after.has(w)) J({ type: 'copy', wallet: short(w), side: 'dropped', why: 'no longer proven by the scorecard: not copied any more' }); } } catch (e) { console.log('copy: walletscore ' + e.message); } }
   const P = st.proven || [], cur = (st.copyCursor ||= {}), sells = (st.walletSells ||= {}), fresh = [];
   for (const p of P) { const w = p.w, chain = chainOfWallet(w); let ev = [];
     try { if (chain === 'robinhood') ev = evmEvents(w, await G(`https://robinhoodchain.blockscout.com/api/v2/addresses/${w}/token-transfers?type=ERC-20`), C);
