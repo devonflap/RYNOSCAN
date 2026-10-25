@@ -140,3 +140,19 @@ export function riderSetup(q, daily, bars1h, nowSec, cfg = RIDER) {
   const pbLow = Math.min(...H.slice(-24).map((b) => b[3]), price), raw = (1 - (pbLow * 0.95) / price) * 100, stopPct = Math.min(cfg.stopMaxPct, Math.max(cfg.stopMinPct, raw)), stop = +(price * (1 - stopPct / 100)).toPrecision(6);
   return { price, stop, stopPct: +stopPct.toFixed(1), ageD: +ageD.toFixed(1), x: +x.toFixed(2), offHighPct: Math.round(off * 100), turnover: +(v24 / Math.max(1, liq)).toFixed(1), hi, c0, why: [`day ${ageD.toFixed(1)}: ${x.toFixed(1)}x its first day's close, ${Math.round(off * 100)}% off the high and turning (green hour above the last close)`, `24h volume ${(v24 / Math.max(1, liq)).toFixed(1)}x the liquidity, ${b} buys vs ${s} sells in the hour`, `stop ${stopPct.toFixed(0)}% under (5% under the pullback low)`] };
 }
+
+// THE BASE BREAKOUT (25 Oct, from the runner backtest, src/runnerbt.mjs: every base breakout of the last 40 days on 124 watched coins).
+// A coin builds a base (its last `boxH` closed hourly candles inside a range no taller than `maxRangePct`), then an hourly candle CLOSES
+// above the base's high on `volX` times the base's usual volume. Bought at the next check unless the price has already run `chasePct`
+// past that close; stop just under the base (never more than `maxStopPct` away). Backtest: 24h bases, held up to a week with the stop
+// only, averaged +17% a trade over 400 trades with about a quarter winning (small stopped losses, a few big runs), on both halves of the
+// period and both chains. bars1h: [[tSec, o, h, l, c, v]] oldest first.
+export const BASE = { boxH: 24, maxRangePct: 60, volX: 1.5, chasePct: 10, maxStopPct: 35, minLiqUsd: 30000 };
+export function baseBreakSetup(bars1h, q, nowSec, cfg = BASE) {
+  const C = { ...BASE, ...(cfg || {}) }, B = (bars1h || []).filter((b) => b && b[0] + 3600 <= nowSec && b[4] > 0); if (B.length < C.boxH + 1) return null;
+  const k = B[B.length - 1], box = B.slice(-1 - C.boxH, -1), hi = Math.max(...box.map((b) => b[2])), lo = Math.min(...box.map((b) => b[3])), vs = box.map((b) => b[5]).sort((a, b) => a - b), v = vs[Math.floor(vs.length / 2)];
+  if (!(lo > 0)) return null; const range = (hi / lo - 1) * 100; if (range > C.maxRangePct) return null; if (!(k[4] > hi) || !(k[5] >= C.volX * v)) return null;
+  const px = +(q && q.priceUsd) || k[4]; if (px > k[4] * (1 + C.chasePct / 100)) return { dead: `already ${Math.round((px / k[4] - 1) * 100)}% past the breakout close: no chasing` };
+  const stop = Math.max(lo * 0.98, px * (1 - C.maxStopPct / 100)); if (stop >= px) return null;
+  return { price: px, stop: +stop.toPrecision(6), boxHi: hi, boxLo: lo, rangePct: +range.toFixed(1), volX: v > 0 ? +(k[5] / v).toFixed(1) : null, trigAt: k[0], why: [`${C.boxH}-hour base ${lo.toPrecision(3)}-${hi.toPrecision(3)} (${range.toFixed(0)}% tall) broken on an hourly close of ${k[4].toPrecision(3)}`, `breakout candle on ${v > 0 ? (k[5] / v).toFixed(1) : '?'}x the base's usual volume`, `stop under the base, ${((1 - stop / px) * 100).toFixed(0)}% away`] };
+}
