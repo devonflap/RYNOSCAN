@@ -49,4 +49,7 @@ console.log('alts job OK (' + titles.length + ' alert(s) on first run)');
   // the same coin only 30% back is not a chill setup yet; the alt profile has no fib gate
   const shallow = bars.slice(0, 80).concat(bars.slice(80, 92).map((b, i) => { const k = 1 - i * 0.025; return [b[0], hi * k, hi * k * 1.02, hi * k * 0.98, hi * k, 2e5]; }));
   assert.ok(/not yet in the fib zone/.test(analyse('MEME', shallow, { p: P_MEME }).reasons[0])); assert.equal(analyse('ALT', shallow).fibLowAt, '<0.5');
+  // a 0.618 pullback scores like a deeper one; a coin still sliding on rising volume carries the "may run deeper" warning
+  const mid = bars.slice(0, 80); const hi2 = bars[79][2], lo2 = legLow, t618 = hi2 - (hi2 - lo2) * 0.64; for (let i = 0; i < 14; i++) { const t = i / 13, x = hi2 - (hi2 - t618) * Math.pow(t, 0.6), amp = (hi2 - t618) * 0.25 * (1 - t); mid.push([80 + i, x + amp * 0.5, Math.min(x + amp, hi2 * 0.995), x - amp * 0.3, x, 2e5 * (1 + i * 0.1)]); }
+  const m = analyse('MEME', mid, { p: P_MEME }); assert.equal(m.fibLowAt, '0.618'); assert.ok(m.score >= 60, 'score ' + m.score); assert.ok(m.deeper && /0\.786/.test(m.deeper), 'deeper warning: ' + m.deeper);
   console.log('chill method OK'); }

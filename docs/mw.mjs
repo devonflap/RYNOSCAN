@@ -84,6 +84,13 @@ export function analyse(symbol, bars, { basketRet = 0, btcRet = 0, p = P } = {})
   else if (Math.abs(dist) <= p.decisionZone || s.pctThrough >= 0.7) { s.state = 'DECISION'; s.reasons.push('pressing the upper trendline / near the apex'); }
   else { s.state = 'WATCH'; s.reasons.push(`${s.pattern} forming, ${corrBars}d into the correction`); }
 
+  // memes: a warning (not a gate) when the tape says the pullback may run deeper to 0.786 / 0.886 before it resolves
+  if (p.chill && retrace < 0.75 && s.state !== 'INVALIDATED') { const why = [];
+    if (hasVol && n >= 16) { const recent = v.slice(n - 5).reduce((a, b) => a + b, 0) / 5, before = v.slice(n - 15, n - 5).reduce((a, b) => a + b, 0) / 10; if (recent > before * 1.1 && c[n - 1] < c[n - 6]) why.push('volume still rising on the way down'); }
+    if (s.compression > 0.9) why.push('range not tightening yet');
+    if (c[n - 1] / s.lowerNow - 1 < 0.03) why.push('sitting on the low, no bounce yet');
+    if (l[n - 1] < s.fib.f618 * 1.01 && c[n - 1] < s.fib.f618 * 1.03) why.push('already testing 0.618');
+    if (why.length) s.deeper = `could run to 0.786 (${s.fib.f786}) or 0.886 (${s.fib.f886}): ${why.join(', ')}`; }
   // 6. levels: measured move off the breakout
   const entry = s.state === 'BID' ? c[n - 1] : s.upperNow; s.entry = r6(entry); const r = entry - s.invalidation; s.rPerUnit = r6(r);
   s.t1 = r6(impHigh); s.t2 = r6(entry + (impHigh - impLow) * 0.618); s.t3 = r6(entry + (impHigh - impLow));
@@ -91,7 +98,7 @@ export function analyse(symbol, bars, { basketRet = 0, btcRet = 0, p = P } = {})
   // score: the things he actually weights
   let sc = s.pattern === 'falling wedge' ? 20 : s.pattern === 'bull flag' ? 14 : 10;
   sc += Math.floor(Math.min(2, Math.max(0.5, gain)) / 2 * 15);
-  sc += p.chill ? (retrace >= 0.7 && retrace <= 0.886 ? 15 : retrace >= 0.6 ? 10 : retrace > 0.886 ? 4 : 6) : (retrace >= 0.3 && retrace <= 0.62 ? 15 : retrace < 0.3 ? 8 : 4);
+  sc += p.chill ? (retrace >= 0.6 && retrace <= 0.886 ? 15 : retrace > 0.886 ? 4 : 6) : (retrace >= 0.3 && retrace <= 0.62 ? 15 : retrace < 0.3 ? 8 : 4);
   sc += s.compression < p.compressRatio ? 15 : 5;
   sc += Math.floor((Math.min(10, Math.max(-10, s.rsBasket)) + 10) / 2) + 5;
   sc += s.pctThrough >= 0.6 ? 10 : 5;

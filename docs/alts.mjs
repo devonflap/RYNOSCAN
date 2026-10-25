@@ -31,6 +31,7 @@ export function mwCard(r, { meme = false } = {}) {
   const meta = el('div', 'mw-meta'); const m = (lab, val, cls) => { const s = el('span', null, lab + ' '); s.append(Object.assign(el('b', cls, val))); return s; };
   meta.append(m('impulse', '+' + r.impulseGainPct + '%'), m('corr', r.corrBars + 'd'), m('retrace', r.retracePct + '%'), m('ATR7/21', String(r.compression)), m('through', Math.round((r.pctThrough || 0) * 100) + '%'), m('RS vs basket', pc(r.rsBasket), r.rsBasket >= 0 ? 'mw-g' : 'mw-r')); if (meme && r.fibLowAt) meta.append(m('low at fib', r.fibLowAt, r.fibLowAt === '0.786' || r.fibLowAt === '0.618' || r.fibLowAt === '0.886' ? 'mw-o' : '')); card.append(meta);
   card.append(el('div', 'mw-why', (r.reasons || []).join(' · ')));
+  if (meme && r.deeper) card.append(el('div', 'caut', '⚠ ' + r.deeper));
   if (meme && r.pool) { const a = el('a', 'mw-link', 'DexScreener ↗'); a.href = `https://dexscreener.com/${r.net || r.chain}/${r.pool}`; a.target = '_blank'; a.rel = 'noopener'; card.append(a); }
   requestAnimationFrame(() => drawMwChart(cv, r));
   return card;
