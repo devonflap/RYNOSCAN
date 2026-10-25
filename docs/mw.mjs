@@ -7,7 +7,10 @@ export const P = {
   compressRatio: 0.85, decisionZone: 0.04, breakoutVolMult: 1.3, invalBuffer: 0.02, rsWindow: 14, minScore: 60,
 };
 // meme coins move more and correct deeper; same rules, looser numbers
-export const P_MEME = { ...P, impulseMinGain: 1.0, retraceMax: 0.8, corrMaxBars: 45, corrMinBars: 4, invalBuffer: 0.04 };
+// meme coins: the "chill" method. Same wedge / flag / base rules, but the correction is judged against the deep Fibonacci zone a meme
+// run usually retraces (0.618 / 0.786 / 0.886 of the leg) rather than the 30-62% an alt pulls back; invalidation is the next fib down.
+export const P_MEME = { ...P, chill: true, impulseMinGain: 1.0, retraceMin: 0.5, retraceMax: 0.92, corrMaxBars: 45, corrMinBars: 4, invalBuffer: 0.04 };
+export const FIBS = [0.5, 0.618, 0.786, 0.886];
 
 const sma = (x, n) => x.map((_, i) => (i + 1 < n ? NaN : x.slice(i + 1 - n, i + 1).reduce((a, b) => a + b, 0) / n));
 function atr(h, l, c, n) { const tr = h.map((_, i) => (i ? Math.max(h[i] - l[i], Math.abs(h[i] - c[i - 1]), Math.abs(l[i] - c[i - 1])) : h[i] - l[i])); return sma(tr, n); }
@@ -38,6 +41,9 @@ export function analyse(symbol, bars, { basketRet = 0, btcRet = 0, p = P } = {})
   if (corrBars > p.corrMaxBars) { s.reasons.push('correction too old, structure stale'); return s; }
   const corrLow = min(l, hiIdx, n), retrace = (impHigh - corrLow) / (impHigh - impLow); s.retracePct = +(retrace * 100).toFixed(1);
   if (retrace > p.retraceMax) { s.reasons.push(`retraced ${Math.round(retrace * 100)}%: the impulse is mostly undone`); return s; }
+  if (p.chill && retrace < p.retraceMin) { s.reasons.push(`only ${Math.round(retrace * 100)}% back: not yet in the fib zone (0.618-0.886)`); return s; }
+  s.fib = Object.fromEntries(FIBS.map((f) => ['f' + String(f).slice(2), r6(impHigh - (impHigh - impLow) * f)]));
+  { const near = FIBS.map((f) => [f, Math.abs(retrace - f)]).sort((a, b) => a[1] - b[1])[0]; s.fibLowAt = near[1] <= 0.06 ? String(near[0]) : retrace > 0.886 ? '>0.886' : retrace < 0.5 ? '<0.5' : 'between'; }
 
   // 3. trendlines, drawn on touches the way a chartist draws them
   //    upper: swing high -> the touch in the back 60% of the correction that keeps every later high under the line
@@ -67,6 +73,7 @@ export function analyse(symbol, bars, { basketRet = 0, btcRet = 0, p = P } = {})
   // 5. trigger
   const dist = c[n - 1] / s.upperNow - 1; s.distToUpperPct = +(dist * 100).toFixed(1);
   s.invalidation = r6(corrLow * (1 - p.invalBuffer));
+  if (p.chill) { const below = [...FIBS, 1].map((f) => impHigh - (impHigh - impLow) * f).filter((lv) => lv < corrLow * 0.995); const nextFib = below.length ? Math.max(...below) : impLow; s.invalidation = r6(Math.min(s.invalidation, Math.max(nextFib, impLow))); }
   let volOk = true; if (hasVol && n >= 21) { const avg = v.slice(n - 21, n - 1).reduce((a, b) => a + b, 0) / 20; volOk = v[n - 1] >= p.breakoutVolMult * avg; }
   if (c[n - 1] < s.invalidation) { s.state = 'INVALIDATED'; s.reasons.push('closed under the pattern low'); }
   else if (c[n - 1] > s.upperNow && volOk) { s.state = 'BID'; s.reasons.push('daily close through the upper trendline' + (hasVol ? ' on volume' : '')); }
@@ -81,7 +88,7 @@ export function analyse(symbol, bars, { basketRet = 0, btcRet = 0, p = P } = {})
   // score: the things he actually weights
   let sc = s.pattern === 'falling wedge' ? 20 : s.pattern === 'bull flag' ? 14 : 10;
   sc += Math.floor(Math.min(2, Math.max(0.5, gain)) / 2 * 15);
-  sc += retrace >= 0.3 && retrace <= 0.62 ? 15 : retrace < 0.3 ? 8 : 4;
+  sc += p.chill ? (retrace >= 0.7 && retrace <= 0.886 ? 15 : retrace >= 0.6 ? 10 : retrace > 0.886 ? 4 : 6) : (retrace >= 0.3 && retrace <= 0.62 ? 15 : retrace < 0.3 ? 8 : 4);
   sc += s.compression < p.compressRatio ? 15 : 5;
   sc += Math.floor((Math.min(10, Math.max(-10, s.rsBasket)) + 10) / 2) + 5;
   sc += s.pctThrough >= 0.6 ? 10 : 5;

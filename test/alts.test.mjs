@@ -40,3 +40,13 @@ posts.length = 0; res = await runAlts({ api: mockApi, log: () => {}, out, topic:
 const st = JSON.parse(fs.readFileSync(path.join(tmp, 'alts-state.json'))); const sym = res.results.find((r) => r.state === 'DECISION' || r.state === 'WATCH').symbol; st[sym] = 'NONE'; fs.writeFileSync(path.join(tmp, 'alts-state.json'), JSON.stringify(st));
 posts.length = 0; res = await runAlts({ api: mockApi, log: () => {}, out, topic: 'test-topic' }); const st2 = res.results.find((r) => r.symbol === sym).state; if (st2 === 'DECISION') assert.ok(posts.some((p) => p.init.headers.Title === sym + ' · decision time'), 'state change alerts');
 console.log('alts job OK (' + titles.length + ' alert(s) on first run)');
+
+// chill method for memes: a 10x run wedging down into the deep fib zone -> wedge, low tagged at its fib, invalidation at the next fib down
+{ const { P_MEME } = await import('../docs/mw.mjs'); const bars = []; let p = 0.001; for (let i = 0; i < 60; i++) { bars.push([i, p, p * 1.03, p * 0.98, p, 1e5]); p *= 1.01; }
+  for (let i = 0; i < 20; i++) { const q = p * (1 + i * 0.1); bars.push([60 + i, q, q * 1.08, q * 0.95, q * 1.05, 5e5]); }
+  const hi = bars.at(-1)[2], tgt = hi - (hi - 0.001) * 0.80; for (let i = 0; i < 30; i++) { const t = i / 29, x = hi - (hi - tgt) * Math.pow(t, 0.6), amp = (hi - tgt) * 0.25 * (1 - t); bars.push([80 + i, x + amp * 0.5, x + amp, x - amp * 0.3, x, 2e5]); }
+  const r = analyse('MEME', bars, { p: P_MEME }); assert.equal(r.pattern, 'falling wedge'); assert.equal(r.fibLowAt, '0.886'); assert.ok(Math.abs(r.invalidation - r.fib.f886) < 1e-9); assert.ok(r.score >= 85);
+  // the same coin only 30% back is not a chill setup yet; the alt profile has no fib gate
+  const shallow = bars.slice(0, 80).concat(bars.slice(80, 92).map((b, i) => { const k = 1 - i * 0.025; return [b[0], hi * k, hi * k * 1.02, hi * k * 0.98, hi * k, 2e5]; }));
+  assert.ok(/not yet in the fib zone/.test(analyse('MEME', shallow, { p: P_MEME }).reasons[0])); assert.equal(analyse('ALT', shallow).fibLowAt, '<0.5');
+  console.log('chill method OK'); }

@@ -7,12 +7,13 @@ const STATE_CLS = { WATCH: 'mw-watch', DECISION: 'mw-decision', BID: 'mw-bid', I
 export function drawMwChart(cv, r) {
   const dpr = window.devicePixelRatio || 1, W = cv.clientWidth || 320, H = cv.clientHeight || 190; cv.width = W * dpr; cv.height = H * dpr;
   const g = cv.getContext('2d'); g.scale(dpr, dpr); const c = r.candles || [], n = c.length; if (!n) return; const off = r.offset || 0, pad = { l: 6, r: 58, t: 10, b: 8 };
-  let lo = Math.min(...c.map((x) => x[3])), hi = Math.max(...c.map((x) => x[2])); [r.t1, r.t2, r.invalidation].forEach((v) => { if (v > 0) { lo = Math.min(lo, v); hi = Math.max(hi, v); } }); lo *= 0.985; hi *= 1.015;
+  let lo = Math.min(...c.map((x) => x[3])), hi = Math.max(...c.map((x) => x[2]));  [r.t1, r.t2, r.invalidation].forEach((v) => { if (v > 0) { lo = Math.min(lo, v); hi = Math.max(hi, v); } }); lo *= 0.985; hi *= 1.015;
   const x = (i) => pad.l + (i + 0.5) * (W - pad.l - pad.r) / n, y = (v) => pad.t + (hi - v) / (hi - lo) * (H - pad.t - pad.b), bw = Math.max(2, (W - pad.l - pad.r) / n * 0.62);
   g.fillStyle = '#141414'; g.fillRect(0, 0, W, H); g.strokeStyle = '#2a2a2a'; g.lineWidth = 1;
   for (let k = 0; k < 5; k++) { const yy = pad.t + k * (H - pad.t - pad.b) / 4; g.beginPath(); g.moveTo(pad.l, yy); g.lineTo(W - pad.r, yy); g.stroke(); g.fillStyle = '#6a6a6a'; g.font = '10px sans-serif'; g.textAlign = 'left'; g.fillText(fmt(hi - (hi - lo) * k / 4), W - pad.r + 6, yy + 3); }
   const lvl = (v, col, lab) => { if (!(v > 0)) return; g.strokeStyle = col; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(pad.l, y(v)); g.lineTo(W - pad.r, y(v)); g.stroke(); g.setLineDash([]); g.fillStyle = col; g.font = 'bold 9.5px sans-serif'; g.textAlign = 'right'; g.fillText(lab, W - pad.r - 4, y(v) - 3); };
   lvl(r.invalidation, '#f8717199', 'INVAL'); lvl(r.t1, '#a8a8a899', 'T1'); lvl(r.t2, '#a8a8a899', 'T2');
+  if (r.fib) for (const [k, v] of Object.entries(r.fib)) if (v > lo && v < hi) lvl(v, '#a78bfa66', '0.' + k.slice(1));
   c.forEach((k, i) => { const up = k[4] >= k[1]; g.strokeStyle = g.fillStyle = up ? '#34d399' : '#f87171'; g.beginPath(); g.moveTo(x(i), y(k[2])); g.lineTo(x(i), y(k[3])); g.stroke(); const t = y(Math.max(k[1], k[4])), b = y(Math.min(k[1], k[4])); g.fillRect(x(i) - bw / 2, t, bw, Math.max(1, b - t)); });
   const line = (pts, col) => { if (!pts || pts.length < 2) return; const [a, b] = pts, m = (b[1] - a[1]) / (b[0] - a[0]), xa = a[0] - off, xb = n - 1 + 6; g.strokeStyle = col; g.lineWidth = 1.6; g.beginPath(); g.moveTo(x(xa), y(a[1])); g.lineTo(x(xb), y(a[1] + m * (xb - xa))); g.stroke(); g.lineWidth = 1; };
   line(r.upperPts, '#f87171'); line(r.lowerPts, '#34d399');
@@ -28,7 +29,7 @@ export function mwCard(r, { meme = false } = {}) {
   const lv = el('div', 'mw-lv'); const box = (lab, val, cls) => { const d = el('div'); d.append(el('span', null, lab), Object.assign(el('b', cls, val))); return d; };
   lv.append(box('bid above', fmt(r.upperNow), 'mw-o'), box('invalidation', fmt(r.invalidation), 'mw-r'), box('T1 / T2', `${fmt(r.t1)} / ${fmt(r.t2)}`, 'mw-g'), box('R:R to T2', rrv)); card.append(lv);
   const meta = el('div', 'mw-meta'); const m = (lab, val, cls) => { const s = el('span', null, lab + ' '); s.append(Object.assign(el('b', cls, val))); return s; };
-  meta.append(m('impulse', '+' + r.impulseGainPct + '%'), m('corr', r.corrBars + 'd'), m('retrace', r.retracePct + '%'), m('ATR7/21', String(r.compression)), m('through', Math.round((r.pctThrough || 0) * 100) + '%'), m('RS vs basket', pc(r.rsBasket), r.rsBasket >= 0 ? 'mw-g' : 'mw-r')); card.append(meta);
+  meta.append(m('impulse', '+' + r.impulseGainPct + '%'), m('corr', r.corrBars + 'd'), m('retrace', r.retracePct + '%'), m('ATR7/21', String(r.compression)), m('through', Math.round((r.pctThrough || 0) * 100) + '%'), m('RS vs basket', pc(r.rsBasket), r.rsBasket >= 0 ? 'mw-g' : 'mw-r')); if (meme && r.fibLowAt) meta.append(m('low at fib', r.fibLowAt, r.fibLowAt === '0.786' || r.fibLowAt === '0.618' || r.fibLowAt === '0.886' ? 'mw-o' : '')); card.append(meta);
   card.append(el('div', 'mw-why', (r.reasons || []).join(' · ')));
   if (meme && r.pool) { const a = el('a', 'mw-link', 'DexScreener ↗'); a.href = `https://dexscreener.com/${r.net || r.chain}/${r.pool}`; a.target = '_blank'; a.rel = 'noopener'; card.append(a); }
   requestAnimationFrame(() => drawMwChart(cv, r));
