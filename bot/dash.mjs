@@ -3,8 +3,10 @@
 // Open https://<your desk address> and sign in with the desk password chosen at install (any user name).
 // Security posture: the password gate protects the VIEW. The desk process runs as a separate user with no access to the bot keys,
 // the ntfy topic or the GitHub token (its environment file holds only the desk passwords). Nothing secret is ever in the page or a URL.
-// Controls (close a paper position, cancel a watched setup, pause or resume a bot) are OFF unless a second, separate control password
-// is set; each control needs that password in a header plus a confirm click, and DASH_CONTROLS=local limits them to the server itself
+// Controls (close a position, write a scam off, cancel a watched setup, pause or resume a bot): on a PAPER bot (dry run, config mode dry)
+// they need only the desk password and a confirm click (26 Oct, Ryan: the control password can take effect once we go live). On a bot in
+// rehearsal or live they are OFF unless a second, separate control password is set; each such control needs that password in a header
+// plus a confirm click, and DASH_CONTROLS=local limits them to the server itself
 // (an SSH tunnel). Wrong passwords slow down per address and are logged as "desk: wrong password from <ip>" for fail2ban.
 // Charts come from DexScreener's embedded chart (fast, in the browser) or the server's cached GeckoTerminal candles (12 a minute).
 import http from 'node:http';
@@ -39,6 +41,8 @@ export async function balance(chain, address, fetcher = fetch, now = Date.now())
   } catch (e) { return hit ? hit.v : { error: 'balance unavailable (' + e.message + ')' }; }
 }
 // commands from the desk: appended to bot/cmd-<name>.jsonl for the bot to act on at its next check; pause/resume are the STOP files
+// is this bot paper only right now? (its state's execMode and its config's mode both dry)
+export function isPaper(name) { try { const cfg = loadConfig(name), st = JSON.parse(fs.readFileSync(filesFor(name).state, 'utf8')); return (st.execMode || 'dry') === 'dry' && (cfg.mode || 'dry') === 'dry'; } catch { return (loadConfig(name).mode || 'dry') === 'dry'; } }
 export function command(name, type, pool) {
   if (!BOTS[name]) return { error: 'unknown bot' }; const F = filesFor(name), at = new Date().toISOString().slice(0, 19) + 'Z';
   if (type === 'pause') { fs.writeFileSync(F.stop, at, { mode: 0o664 }); return { ok: true, did: 'paused new entries' }; }
@@ -79,10 +83,12 @@ export function server(pass, { fetcher = fetch, controlPass = '', controls = 'on
     fails.delete(ip);
     const u = new URL(req.url, 'http://x');
     if (req.method === 'POST' && u.pathname === '/api/cmd') { let body = ''; req.on('data', (c) => { body += c; if (body.length > 2000) req.destroy(); }); await new Promise((r) => req.on('end', r));
-      if (mode === 'off') return send(403, '{"error":"controls are off: this desk is read only (set a control password on the server to turn them on)"}');
-      if (mode === 'local' && !LOOPBACK.test(sock)) return send(403, '{"error":"controls only work from the server itself (SSH tunnel)"}');
-      const given = String(req.headers['x-control'] || ''); if (!given || !same(given, controlPass)) { if (given) wrong(); return send(403, '{"error":"control password wrong or missing"}'); }
-      try { const j = JSON.parse(body || '{}'); if (String(req.headers['x-desk'] || '') !== '1') return send(403, '{"error":"refused"}'); const r = command(j.bot, j.type, j.pool); if (r.ok) log(`desk: ${j.type} ${j.bot} ${j.pool || ''} by ${ip}`); return send(r.error ? 400 : 200, JSON.stringify(r)); } catch { return send(400, '{"error":"bad request"}'); } }
+      let j0 = null; try { j0 = JSON.parse(body || '{}'); } catch { return send(400, '{"error":"bad request"}'); } const paper = j0 && j0.bot && BOTS[j0.bot] ? isPaper(j0.bot) : false;
+      if (!paper) { /* rehearsal or live: the control password, and the local-only rule, stand */
+        if (mode === 'off') return send(403, '{"error":"controls on a live or rehearsal bot are off: set a control password on the server to turn them on"}');
+        if (mode === 'local' && !LOOPBACK.test(sock)) return send(403, '{"error":"controls only work from the server itself (SSH tunnel)"}');
+        const given = String(req.headers['x-control'] || ''); if (!given || !same(given, controlPass)) { if (given) wrong(); return send(403, '{"error":"control password wrong or missing"}'); } }
+      try { const j = j0; if (String(req.headers['x-desk'] || '') !== '1') return send(403, '{"error":"refused"}'); const r = command(j.bot, j.type, j.pool); if (r.ok) log(`desk: ${j.type} ${j.bot} ${j.pool || ''} by ${ip}`); return send(r.error ? 400 : 200, JSON.stringify(r)); } catch { return send(400, '{"error":"bad request"}'); } }
     if (req.method !== 'GET') return send(405, '{"error":"not allowed"}');
     if (u.pathname === '/' || u.pathname === '/index.html') return send(200, fs.readFileSync(PAGE), 'text/html; charset=utf-8');
     if (u.pathname === '/logo.png') { try { return send(200, fs.readFileSync(LOGO), 'image/png'); } catch { return send(404, ''); } }

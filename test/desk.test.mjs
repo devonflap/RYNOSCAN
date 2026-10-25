@@ -34,13 +34,17 @@ const T0 = Date.parse('2026-10-22T00:00:00Z'), H = 3600e3, iso = (ms) => new Dat
   ok((await fetch(U + '/api/desk', { method: 'POST', headers: { authorization: auth } })).status === 405, 'the server accepts nothing but reads');
   ok(authorised({ headers: { authorization: auth } }, 'correct horse battery') && !authorised({ headers: {} }, 'correct horse battery'), 'password check');
   const cmd = await fetch(U + '/api/cmd', { method: 'POST', headers: { authorization: auth, 'x-desk': '1', 'content-type': 'application/json' }, body: '{"bot":"breakout","type":"pause"}' });
-  ok(cmd.status === 403 && /read only/.test((await cmd.json()).error) && j.controls === 'off', 'with no control password the desk is read only: controls refused and the page told');
+  ok(cmd.status === 200 && (await cmd.json()).ok && j.controls === 'off', 'with no control password a PAPER bot still takes a control (26 Oct: the control password is for live); the page is told live controls are off'); command('breakout', 'resume');
+  { const sf = filesFor('breakout').state, st0 = fs.existsSync(sf) ? fs.readFileSync(sf, 'utf8') : null; fs.writeFileSync(sf, JSON.stringify({ ...newState(DEFAULTS), execMode: 'quote' }));
+    const c2 = await fetch(U + '/api/cmd', { method: 'POST', headers: { authorization: auth, 'x-desk': '1', 'content-type': 'application/json' }, body: '{"bot":"breakout","type":"pause"}' }); ok(c2.status === 403 && /live or rehearsal/.test((await c2.json()).error), 'the same control on a bot in REHEARSAL is refused without a control password');
+    if (st0 == null) fs.unlinkSync(sf); else fs.writeFileSync(sf, st0); }
   process.env.NTFY_TOPIC = 'zz-secret-topic-zz'; const leak = JSON.stringify(await (await fetch(U + '/api/desk', { headers: { authorization: auth } })).json()) + await (await fetch(U + '/', { headers: { authorization: auth } })).text();
   ok(!/zz-secret-topic-zz|correct horse battery|privateKey/.test(leak), 'no secret reaches the page or the API (ntfy topic, passwords, keys)'); delete process.env.NTFY_TOPIC;
   const csp = (await fetch(U + '/', { headers: { authorization: auth } })).headers.get('content-security-policy'); ok(/frame-src https:\/\/dexscreener\.com/.test(csp) && /default-src 'self'/.test(csp), 'the page may embed DexScreener charts and nothing else from outside');
   srv.close(); }
 // controls with their own password, logged for fail2ban, and locked to the server itself when asked
 { const lines = [], srv = server('correct horse battery', { controlPass: 'control phrase here', log: (l) => lines.push(l) }); await new Promise((r) => srv.listen(0, r)); const U = 'http://127.0.0.1:' + srv.address().port;
+  const sf = filesFor('breakout').state, st0 = fs.existsSync(sf) ? fs.readFileSync(sf, 'utf8') : null; fs.writeFileSync(sf, JSON.stringify({ ...newState(DEFAULTS), execMode: 'quote' })); /* a bot in rehearsal: the control password stands */
   const auth = 'Basic ' + Buffer.from('a:correct horse battery').toString('base64'), post = (h, body = '{"bot":"breakout","type":"pause"}') => fetch(U + '/api/cmd', { method: 'POST', headers: { authorization: auth, 'x-desk': '1', 'content-type': 'application/json', ...h }, body });
   ok((await post({})).status === 403 && (await post({ 'x-control': 'nope' })).status === 403 && lines.some((l) => /wrong password from 127\.0\.0\.1/.test(l)), 'a control without the control password is refused and the wrong try is logged with the address');
   const r = await post({ 'x-control': 'control phrase here' }); ok(r.status === 200 && (await r.json()).ok && lines.some((l) => /desk: pause breakout/.test(l)), 'the control password works and the action is logged'); command('breakout', 'resume');
@@ -50,6 +54,7 @@ const T0 = Date.parse('2026-10-22T00:00:00Z'), H = 3600e3, iso = (ms) => new Dat
   const srv2 = server('correct horse battery', { controlPass: 'control phrase here', controls: 'local', trustProxy: true, log: (l) => lines.push(l) }); await new Promise((r) => srv2.listen(0, r)); const U2 = 'http://127.0.0.1:' + srv2.address().port;
   const r2 = await fetch(U2 + '/api/cmd', { method: 'POST', headers: { authorization: auth, 'x-desk': '1', 'x-control': 'control phrase here', 'content-type': 'application/json' }, body: '{"bot":"breakout","type":"pause"}' }); ok(r2.status === 200, 'controls=local: accepted from the server itself'); command('breakout', 'resume');
   await fetch(U2 + '/', { headers: { authorization: 'Basic ' + Buffer.from('x:bad').toString('base64'), 'x-forwarded-for': '203.0.113.9' } }); ok(lines.some((l) => /wrong password from 203\.0\.113\.9/.test(l)), 'behind a proxy the real address is logged (fail2ban bans the right one)');
+  if (st0 == null) fs.unlinkSync(sf); else fs.writeFileSync(sf, st0);
   ok((await (await fetch(U2 + '/api/desk', { headers: { authorization: auth } })).json()).controls === 'local', 'the page is told controls are local only');
   srv2.close(); }
 
