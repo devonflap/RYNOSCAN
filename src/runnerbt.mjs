@@ -18,10 +18,10 @@ export const ENTRIES = {
   retest24: (B, i0, c) => retest(B, i0, 24, c),
 };
 // the base (box) the coin built over the last n hours: an hourly CLOSE above its high on 1.5x the box's usual volume, bought at the next open; stop under the box
-export function boxBreak(B, i0, n, c = RBT) {
-  for (let i = Math.max(i0, n); i < B.length - 1 && B[i][0] < B[i0][0] + c.windowH * H; i++) { const box = B.slice(i - n, i), hi = Math.max(...box.map((b) => b[2])), lo = Math.min(...box.map((b) => b[3])), v = med(box.map((b) => b[5]));
-    if (!(lo > 0) || (hi / lo - 1) * 100 > c.boxMaxRangePct) continue; if (B[i][4] > hi && B[i][5] >= c.volX * v) { const px = B[i + 1][1], stop = Math.max(lo * 0.98, px * (1 - c.maxStopPct / 100)); if (stop >= px) continue; return { i: i + 1, px, stop, boxHi: hi, boxLo: lo, why: `${n}h base broken ($${hi.toPrecision(3)}), bought at the next open` }; } }
-  return null; }
+export function boxAt(B, i, n, c = RBT) { if (i < n || i >= B.length - 1) return null; const box = B.slice(i - n, i), hi = Math.max(...box.map((b) => b[2])), lo = Math.min(...box.map((b) => b[3])), v = med(box.map((b) => b[5]));
+  if (!(lo > 0) || (hi / lo - 1) * 100 > c.boxMaxRangePct) return null; if (!(B[i][4] > hi && B[i][5] >= c.volX * v)) return null; const px = B[i + 1][1], stop = Math.max(lo * 0.98, px * (1 - c.maxStopPct / 100)); if (!(px > 0) || stop >= px) return null;
+  return { i: i + 1, px, stop, boxHi: hi, boxLo: lo, why: `${n}h base broken ($${hi.toPrecision(3)}), bought at the next open` }; }
+export function boxBreak(B, i0, n, c = RBT) { for (let i = Math.max(i0, n); i < B.length - 1 && B[i][0] < B[i0][0] + c.windowH * H; i++) { const e = boxAt(B, i, n, c); if (e) return e; } return null; }
 // the retest: after the breakout, the first hour that dips back to the old box top (within 5%) and closes above it, bought at the next open
 export function retest(B, i0, n, c = RBT) {
   const b = boxBreak(B, i0, n, c); if (!b) return null;
@@ -50,6 +50,18 @@ export function exit(B, e, X, c = RBT) {
   if (rem > 1e-9) { const px = B[lastI] ? B[lastI][4] : e.px; why = out(rem, px, why || 'time'); }
   return { ret: (got / (1 + c.inPct / 100) / e.px - 1) * 100, why, heldH: (B[lastI][0] - B[e.i][0]) / H, peakX: Math.max(...B.slice(e.i, lastI + 1).map((b) => b[2])) / e.px };
 }
+// THE UNIVERSE STUDY: the same base-breakout entries anywhere in the last ~40 days of every coin the scanner watches (not only at a
+// runner-list signal), one trade at a time per coin and rule: hundreds of breakouts instead of a few dozen signals. Variants of the
+// base (12/24/48 hours; at most 30% or 60% tall; breakout volume 1.5x or 2.5x the base's usual) x every exit.
+export const UNI = { boxes: [12, 24, 48], ranges: [30, 60], vols: [1.5, 2.5] };
+export function universeTrades(B, c = RBT, U = UNI) { const out = {};
+  for (const n of U.boxes) for (const rg of U.ranges) for (const vx of U.vols) { const cc = { ...c, boxMaxRangePct: rg, volX: vx }, ek = `box${n} ≤${rg}% vol${vx}x`;
+    for (const [xk, X] of Object.entries(EXITS)) { const L = (out[ek + ' / ' + xk] = []); let i = n; while (i < B.length - 2) { const e = boxAt(B, i, n, cc); if (!e) { i++; continue; } const r = exit(B, e, X, cc); L.push({ ...r, t: B[e.i][0] }); i = e.i + Math.max(1, Math.round(r.heldH)) + 1; } } }
+  return out; }
+export function universeSummary(perPool) { const keys = [...new Set(perPool.flatMap((p) => Object.keys(p.res)))], all = perPool.flatMap((p) => Object.values(p.res).flat().map((x) => x.t)).sort((a, b) => a - b), cut = all[Math.floor(all.length / 2)] || 0, out = {};
+  for (const k of keys) { const T = perPool.flatMap((p) => (p.res[k] || []).map((x) => ({ ...x, chain: p.chain }))), a = record(T), o = record(T.filter((x) => x.t < cut)), nw = record(T.filter((x) => x.t >= cut)), rh = record(T.filter((x) => /robinhood/i.test(x.chain))), so = record(T.filter((x) => /solana/i.test(x.chain)));
+    out[k] = { ...a, olderAvg: o.avg ?? null, newerAvg: nw.avg ?? null, holds: o.n >= 20 && nw.n >= 20 && o.avg > 0 && nw.avg > 0, robinhood: rh.n ? { n: rh.n, avg: rh.avg } : null, solana: so.n ? { n: so.n, avg: so.avg } : null }; }
+  const ranked = Object.entries(out).filter(([, r]) => r.n >= 30).sort((a, b) => b[1].avg - a[1].avg); return { combos: out, best: ranked.slice(0, 10).map(([k, r]) => ({ combo: k, ...r })), worst: ranked.slice(-3).map(([k, r]) => ({ combo: k, ...r })) }; }
 // one signal through every entry x exit
 export function simulate(B, signalSec, c = RBT) {
   const i0 = B.findIndex((b) => b[0] >= Math.ceil(signalSec / H) * H); if (i0 < 0) return {}; const out = {};
@@ -68,10 +80,12 @@ export function summarise(sims) {
 // the fetch: one GeckoTerminal hourly history per pool (the last ~40 days), every signal in the runner log
 export async function runRunnerBt({ dir = 'docs/data', env = process.env, now = Date.now(), log = console.log } = {}) {
   const api = makeApi(env), rl = JSON.parse(fs.readFileSync(path.join(dir, 'runnerlog.json'), 'utf8')), sigs = rl.filter((x) => x && x.pool && x.net && x.signalAt && Date.parse(x.signalAt) < now - 6 * H * 1000);
-  const pools = [...new Map(sigs.map((s) => [s.net + ':' + s.pool, s])).values()], bars = new Map(); let k = 0;
+  let uni = []; try { uni = JSON.parse(fs.readFileSync(path.join(dir, 'universe.json'), 'utf8')).filter((x) => x && x.pool && x.net).map((x) => ({ pool: x.pool, net: x.net, chain: x.chain, coin: x.sym })); } catch { /* none */ }
+  const pools = [...new Map([...sigs, ...uni].map((s) => [s.net + ':' + s.pool, s])).values()], bars = new Map(); let k = 0;
   for (const p of pools) { try { const j = await api.get(`/networks/${p.net}/pools/${p.pool}/ohlcv/hour?aggregate=1&limit=1000&currency=usd&token=base`), raw = (j && j.data && j.data.attributes && j.data.attributes.ohlcv_list) || []; bars.set(p.net + ':' + p.pool, raw.map((b) => b.map(Number)).sort((a, b) => a[0] - b[0])); } catch (e) { log(`${p.coin}: ${e.message}`); } if (++k % 25 === 0) log(`candles ${k}/${pools.length}`); }
   const sims = sigs.map((s) => { const B = bars.get(s.net + ':' + s.pool) || []; return { coin: s.coin, chain: s.chain, signalAt: s.signalAt, passed: s.passed ?? 0, control: !!s.control, listed: !!s.listed, bars: B.length, res: B.length > 30 ? simulate(B, Date.parse(s.signalAt) / 1000) : {} }; }).filter((s) => Object.keys(s.res).length);
-  const sum = summarise(sims), outp = { at: new Date(now).toISOString().slice(0, 19) + 'Z', signals: sigs.length, simulated: sims.length, pools: pools.length, cfg: RBT, entries: Object.keys(ENTRIES), exits: EXITS, ...sum,
+  const perPool = pools.map((p) => ({ coin: p.coin, chain: p.chain, res: (bars.get(p.net + ':' + p.pool) || []).length > 60 ? universeTrades(bars.get(p.net + ':' + p.pool)) : {} })).filter((p) => Object.keys(p.res).length), universe = { pools: perPool.length, ...universeSummary(perPool) };
+  const sum = summarise(sims), outp = { universe, at: new Date(now).toISOString().slice(0, 19) + 'Z', signals: sigs.length, simulated: sims.length, pools: pools.length, cfg: RBT, entries: Object.keys(ENTRIES), exits: EXITS, ...sum,
     trades: sims.map((s) => ({ coin: s.coin, chain: s.chain, signalAt: s.signalAt, passed: s.passed, control: s.control, res: Object.fromEntries(Object.entries(s.res).map(([k2, v]) => [k2, v ? [r1(v.ret), r1(v.peakX), v.why, r1(v.heldH), r1(v.waitH)] : null])) })) };
-  fs.writeFileSync(path.join(dir, 'runner-bt.json'), JSON.stringify(outp)); log(`runner backtest: ${sims.length} signals simulated over ${pools.length} pools`); for (const b of sum.best) log(`  ${b.combo}: ${b.avg}% avg over ${b.n} (${b.win}% won; older half ${b.olderAvg}%, newer ${b.newerAvg}%)${b.holds ? ' HOLDS ON BOTH HALVES' : ''}`); return outp; }
+  fs.writeFileSync(path.join(dir, 'runner-bt.json'), JSON.stringify(outp)); log(`runner backtest: ${sims.length} signals simulated over ${pools.length} pools`); for (const b of universe.best) log(`  UNIVERSE ${b.combo}: ${b.avg}% avg over ${b.n} (${b.win}% won; older ${b.olderAvg}%, newer ${b.newerAvg}%)${b.holds ? ' HOLDS' : ''}`); for (const b of sum.best) log(`  ${b.combo}: ${b.avg}% avg over ${b.n} (${b.win}% won; older half ${b.olderAvg}%, newer ${b.newerAvg}%)${b.holds ? ' HOLDS ON BOTH HALVES' : ''}`); return outp; }
 if (process.argv[1] && process.argv[1].endsWith('runnerbt.mjs')) runRunnerBt().catch((e) => { console.log('runner backtest failed: ' + (e.stack || e.message)); process.exit(1); });
