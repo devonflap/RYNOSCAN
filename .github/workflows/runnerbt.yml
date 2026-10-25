@@ -1,0 +1,32 @@
+# The runner backtest: every coin the "High risk, high reward runners" section has tracked, replayed on hourly candles through a grid of
+# entries and exits (src/runnerbt.mjs). Weekly, or by hand: Actions -> "RynoScan runner backtest" -> Run workflow.
+name: RynoScan runner backtest
+on:
+  schedule:
+    - cron: "40 14 * * 0"   # Sundays (Brisbane Monday 12:40am)
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: rynoscan-runnerbt
+  cancel-in-progress: false
+jobs:
+  runnerbt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Replay the runner list's coins through every entry and exit
+        env:
+          CG_API_KEY: ${{ secrets.CG_API_KEY }}
+          CG_PLAN: ${{ vars.CG_PLAN }}
+        run: node src/runnerbt.mjs
+      - name: Save results
+        run: |
+          git config user.name "rynoscan-bot"
+          git config user.email "rynoscan-bot@users.noreply.github.com"
+          git add docs/data/runner-bt.json
+          git diff --cached --quiet && echo "no changes" || (git commit -m "runner backtest $(date -u +%Y-%m-%d)" && git pull --rebase -q && git push)
