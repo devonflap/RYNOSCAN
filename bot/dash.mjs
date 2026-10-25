@@ -43,7 +43,7 @@ export function command(name, type, pool) {
   if (!BOTS[name]) return { error: 'unknown bot' }; const F = filesFor(name), at = new Date().toISOString().slice(0, 19) + 'Z';
   if (type === 'pause') { fs.writeFileSync(F.stop, at, { mode: 0o664 }); return { ok: true, did: 'paused new entries' }; }
   if (type === 'resume') { try { fs.unlinkSync(F.stop); } catch { /* already */ } return { ok: true, did: 'resumed new entries' }; }
-  if ((type === 'close' || type === 'cancel') && /^[A-Za-z0-9]{20,90}$/.test(String(pool || ''))) { const id = crypto.randomBytes(6).toString('hex'); fs.appendFileSync(F.cmd, JSON.stringify({ id, type, pool, at }) + '\n', { mode: 0o664 }); /* group-writable: the desk runs as its own user, the bot truncates the file */ return { ok: true, did: type === 'close' ? 'close sent: the bot sells at its next check (within a minute)' : 'cancel sent: the bot drops it at its next check' }; }
+  if ((type === 'close' || type === 'cancel' || type === 'writeoff') && /^[A-Za-z0-9]{20,90}$/.test(String(pool || ''))) { const id = crypto.randomBytes(6).toString('hex'); fs.appendFileSync(F.cmd, JSON.stringify({ id, type, pool, at }) + '\n', { mode: 0o664 }); /* group-writable: the desk runs as its own user, the bot truncates the file */ return { ok: true, did: type === 'close' ? 'close sent: the bot sells at its next check (within a minute)' : type === 'writeoff' ? 'write-off sent: the bot books it at zero at its next check' : 'cancel sent: the bot drops it at its next check' }; }
   return { error: 'unknown command' };
 }
 // 5-minute candles for the analysis chart, shared by everyone viewing the page
