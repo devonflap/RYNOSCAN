@@ -1,8 +1,3 @@
-Full scan 10:11 Brisbane: 77 scanned, 62 scored, 7 above 65. On-chain volume Strong (1.52x 7-day avg).
-NEW watch: CATE (Solana) Liquidity sweep reclaim, opp 88, checks 6/6, stop 19.7% away, upside 64.7%.
-NEW watch: JEANPHIL (Solana) Liquidity sweep reclaim, opp 75, checks 5/6, stop 49.2% away, upside 147.5%; more sellers than buyers in the last hour.
-NEW watch: STONK (Solana) Liquidity sweep reclaim, opp 70, checks 5/6, stop 10.6% away, upside 27.6%; more sellers than buyers in the last hour.
-NEW watch: SI (Solana) Bottom reversal, opp 67, checks 5/6, stop 22.2% away, upside 129.2%; more sellers than buyers in the last hour.
+Hourly refresh 11:10 Brisbane: 7 tracked coins refreshed, 7 scored, 6 above 65. On-chain volume Strong (1.52x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: ANSEM (Single holder ownership), TTWO (Mint Authority still enabled), CASHCAT (top 10 wallets hold 36.1% (gate 30%)), GRIFFAIN (Single holder ownership), DUCAT (owner can mint more), PUMP (top 10 wallets hold 60.3% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
