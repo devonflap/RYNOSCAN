@@ -1,7 +1,7 @@
 // One bot per track (25 Oct): base breakout + proven-wallet copies, the bottomed-out (Chill) bot and the best-of bot.
 import fs0 from 'node:fs'; process.env.RYNOBOT_DIR = fs0.mkdtempSync('/tmp/rynofive-');
 import { cycle, newState, loadConfig, BOTS } from '../bot/run.mjs';
-import { rankWays, mirrorExit } from '../bot/bestof.mjs';
+import { buildRulebook, activeRulebook, rulebookLines } from '../docs/bestrules.mjs';
 import { freshLevels } from '../src/bottoms.mjs';
 import { regimeMap } from '../src/bottombt.mjs';
 const out = console.log; let f = 0; const ok = (c, m) => { out((c ? 'PASS ' : 'FAIL ') + m); if (!c) f = 1; };
@@ -40,25 +40,26 @@ const pairOf = ({ chain = 'solana', pool, token, sym, px, liq = 300000, quote = 
   const fresh = freshLevels(mk((i) => (i < 200 ? 1 : i < 297 ? 0.5 : 0.28)), reg), old = freshLevels(mk((i) => (i < 200 ? 1 : 0.28)), reg), small = freshLevels(mk((i) => (i < 200 ? 1 : i < 297 ? 0.5 : 0.28)).map((r) => [r[0], r[1], r[2], 5e5]), reg);
   ok(fresh && fresh.fresh.join() === '0.7' && !old && !small, 'the daily list: -70% reached in the last 3 days counts; reached months ago does not; under $1m market cap never'); }
 
-// 3. the best-of bot
-{ const c = loadConfig('bestof'); ok(BOTS.bestof && c.labOnly && c.best.minN === 15, 'the best-of bot: paper only, a way must earn it over 15+ trades');
-  const tr = (variant, pnl, d) => ({ id: variant + d, variant, costUsd: 100, pnl, closedAt: iso(T0 - (40 - d) * 3600) });
-  const R = rankWays({ basebreak: { closed: [] }, trench: { closed: [...Array.from({ length: 16 }, (_, d) => tr('-', d < 8 ? 10 : 5, d))] }, trenchbonus: { closed: Array.from({ length: 16 }, (_, d) => tr('-', d < 8 ? 30 : -10, d)) } });
-  const get = (b, v) => R.find((x) => x.bot === b && x.variant === v);
-  ok(get('trench', '-').ok && !get('trenchbonus', '-').ok && get('basebreak', 'H-hold').ok, 'earned on both halves: in; up overall but losing in the newer half: out; the base breakout held a week stands in on the backtest\'s word');
-  const TOK = 'BestMint11111111111111111111111111111111pump', POOL = 'BestPool1111111111111111111111111111111111'; let px = 1;
-  const src = { trench: { positions: [], closed: Array.from({ length: 16 }, (_, d) => tr('-', 10, d)) }, trenchbonus: { positions: [], closed: [] }, basebreak: { positions: [], closed: [] }, breakout: null, bottoms: null };
-  const deps = (sec) => ({ now: sec * 1000, getJson: async () => [], readState: (b) => (src[b] ? JSON.parse(JSON.stringify(src[b])) : null), quotes: async (its) => Object.fromEntries(its.map((i) => [String(i.pool).toLowerCase(), pairOf({ pool: POOL, token: TOK, sym: 'BEST', px })])), candles5: async () => null, notify: async () => {}, journal: () => {}, heartbeat: async () => {}, secondOpinion: false });
-  const cfg = { ...c, slipPct: 0 }, st = newState(cfg);
-  src.trench.positions = [{ id: 'old1', pool: 'OldPool', coin: 'OLD', chain: 'solana', entry: 1, stop: 0.75, units: 100, remUnits: 100, openedAt: iso(T0 - 30) }];
-  await quiet(() => cycle(st, cfg, deps(T0))); ok(!st.positions.length && !Object.keys(st.setups).length, 'first look: what the other bots already held is not copied');
-  src.trench.positions.push({ id: 'p1', pool: POOL, coin: 'BEST', chain: 'solana', token: TOK, entry: 1, stop: 0.75, units: 100, remUnits: 100, openedAt: iso(T0 + 50) });
-  src.trenchbonus.positions = [{ id: 'q1', pool: 'Other111', coin: 'NOPE', chain: 'solana', entry: 1, stop: 0.75, units: 100, remUnits: 100, openedAt: iso(T0 + 50) }];
-  await quiet(() => cycle(st, cfg, deps(T0 + 60))); await quiet(() => cycle(st, cfg, deps(T0 + 75)));
-  ok(st.positions.length === 1 && st.positions[0].pool === POOL && st.positions[0].meta.mirrorOf.bot === 'trench' && Math.abs(st.positions[0].costUsd - 100) < 1, 'an earned way buys: copied at $100; a way that has not earned it: not copied');
-  src.trench.positions[1].remUnits = 50; px = 1.5; await quiet(() => cycle(st, cfg, deps(T0 + 90)));
-  ok(Math.abs(st.positions[0].remUnits / st.positions[0].units - 0.5) < 0.01, 'the copied bot sells half: the copy sells the same share');
-  src.trench.closed.push({ ...src.trench.positions[1], sells: [{ why: 'TP2' }] }); src.trench.positions.splice(1, 1); await quiet(() => cycle(st, cfg, deps(T0 + 105)));
-  ok(!st.positions.length && st.closed.length === 1 && /trench - sold BEST \(TP2\)/.test(st.closed[0].sells.at(-1).why) && st.closed[0].pnl > 0, 'the copied bot sells the rest: the copy is out too');
-  ok(mirrorExit({ meta: {} }, {}) === null, 'a position that copies nobody is left alone'); }
+// 3. the best-of bot: its own rulebook, from everything found so far
+{ const c = loadConfig('bestof'); ok(BOTS.bestof && c.labOnly && c.source === 'bestof', 'the best-of bot: paper only, trades its own rulebook');
+  const combo = (o, n, avg, older, newer, holds = true) => ({ n, avg, olderAvg: older, newerAvg: newer, holds });
+  const runnerBt = { at: '2026-10-25T00:00:00Z', universe: { combos: { 'box24 ≤60% vol1.5x / hold7': combo(0, 428, 16.8, 5.6, 28.5), 'box24 ≤60% vol2.5x / giveback': combo(0, 370, 22.8, -2.7, 45.2, false), 'box12 ≤60% vol2.5x / hold7': combo(0, 557, 16.4, 3, 29.3), 'box12 ≤30% vol1.5x / trail20': combo(0, 300, 30, 10, 12), 'box12 ≤60% vol2.5x / giveback': combo(0, 572, 17.1, 1.2, 31.3) } } };
+  const bottomBt = { at: '2026-10-25T00:00:00Z', combos: { 'dca / riskoff': combo(0, 300, 8.5, 16.6, -7.1, false) }, best: [{ combo: 'dca / riskoff', avg: 8.5, olderAvg: 16.6, newerAvg: -7.1 }] };
+  const council = { books: [{ key: 'randomCtl', short: 'Random', n: 26, avgR: -0.04 }, { key: 'zone', short: 'Zone limit', n: 55, avgR: -0.16, lo: -0.22 }] };
+  const B = buildRulebook({ council, runnerBt, bottomBt, now: Date.parse('2026-10-25T06:00:00Z') });
+  ok(B.entries.length === 1 && B.entries[0].combo === 'box24 ≤60% vol1.5x / hold7' && B.entries[0].boxH === 24 && B.entries[0].volX === 1.5 && B.entries[0].exit.maxHoldH === 168, 'the rulebook takes the combination with the best worse half that held on both halves (not the biggest average that failed one half, not an exit the bot cannot run)');
+  ok(!B.entries.some((e) => e.type === 'dca') && B.looked.some((l) => /None beats random/.test(l)), 'nothing that failed a half gets in (the DCA), and no scanner book that loses to random');
+  const veto = buildRulebook({ runnerBt, botRecs: { basebreak: { closed: Array.from({ length: 30 }, (_, d) => ({ variant: 'H-hold', costUsd: 100, pnl: -10, closedAt: iso(T0 + d * 3600) })) } } });
+  ok(veto.entries[0].combo === 'box12 ≤60% vol2.5x / giveback', 'a way losing on both halves over 30+ live trades (the hold) is kept out, whatever its backtest said: the next best exit takes its place');
+  const first = activeRulebook(null, B), changed = activeRulebook({ active: first.active }, veto), approved = activeRulebook({ active: first.active }, veto, { version: veto.version });
+  ok(first.active.version === B.version && changed.active.version === B.version && changed.differs && approved.active.version === veto.version && !approved.differs, 'the first rulebook goes in; a changed one waits as a proposal until Ryan approves its version');
+  ok(rulebookLines(changed).lines.some((l) => /needs Ryan's yes/.test(l)), 'the Councils tab shows the waiting change');
+  // the bot trades it: a base breakout under the rulebook's settings, opened with the rulebook's exits
+  const POOL = 'BasePool11111111111111111111111111111111111', TOK = 'BaseMint1111111111111111111111111111111pump', now0 = T0 + 3600 * 5 + 200, hr = Math.floor(now0 / 3600) * 3600;
+  const bars = [...Array.from({ length: 26 }, (_, k) => [hr - (27 - k) * 3600, 1, 1.05, 0.95, 1, 100]), [hr - 3600, 1, 1.22, 1, 1.2, 400]];
+  const file = { active: { ...first.active, entries: [{ ...first.active.entries[0], exit: { mults: [2, 4], shares: [1 / 3, 1 / 3], moonTrail: 0.5, maxHoldH: 168 } }] } };
+  const G = async (u) => (u.includes('bestof-rules.json') ? file : u.includes('universe.json') ? [{ pool: POOL, chain: 'solana', sym: 'BASE' }] : []);
+  const deps = (sec) => ({ now: sec * 1000, getJson: G, quotes: async (its) => Object.fromEntries(its.map((i) => [String(i.pool).toLowerCase(), pairOf({ pool: POOL, token: TOK, sym: 'BASE', px: 1.21 })])), candlesH: async () => bars, candles5: async () => null, notify: async () => {}, journal: () => {}, heartbeat: async () => {}, secondOpinion: false });
+  const cfg = { ...c, slipPct: 0 }, st = newState(cfg); for (const t of [now0, now0 + 60, now0 + 120]) await quiet(() => cycle(st, cfg, deps(t)));
+  const p = st.positions[0]; ok(p && p.pool === POOL && p.vcfg && p.vcfg.moonTrail === 0.5 && p.targets.length === 2 && p.meta.rule === first.active.version && Math.abs(p.costUsd - 100) < 1, 'a breakout under the rulebook: bought $100, with that rulebook\'s exits (kept even if the rulebook later changes)'); }
 process.exit(f);

@@ -5,6 +5,7 @@ import path from 'node:path';
 import { council, NEED } from '../docs/council.mjs';
 import { trenchCouncil } from '../docs/trenchcouncil.mjs';
 import { trackCouncils } from '../docs/trackcouncil.mjs';
+import { buildRulebook, activeRulebook } from '../docs/bestrules.mjs';
 import { tune, forwardTrades, tuneText, TUNE } from '../docs/tuner.mjs';
 const rd = (dir, f, d) => { try { const j = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')); return Array.isArray(d) ? (Array.isArray(j) ? j : d) : j && typeof j === 'object' ? j : d; } catch { return d; } };
 
@@ -46,7 +47,9 @@ export async function runCouncil(dir = process.env.OUT_DIR || 'docs/data', { now
   /* the trenchers' own council first: its findings about coins and crowds go to the main council, nothing else does */
   let tc = null; try { tc = trenchCouncil({ recs: Object.fromEntries(Object.entries(botRecs).filter(([k]) => /^trench/.test(k))), prev: rd(dir, 'trench-council.json', null), now }); fs.writeFileSync(path.join(dir, 'trench-council.json'), JSON.stringify(tc)); } catch (e) { console.log('trench council: ' + e.message); }
   /* the four research tracks and the head council (docs/trackcouncil.mjs) */
-  try { const bts = Object.fromEntries(['backtest.json', 'runner-bt.json', 'bottom-bt.json'].map((f) => [f, rd(dir, f, null)])), tk = trackCouncils({ recs: botRecs, backtests: bts, prev: rd(dir, 'councils.json', null), now }); fs.writeFileSync(path.join(dir, 'councils.json'), JSON.stringify(tk)); } catch (e) { console.log('track councils: ' + e.message); }
+  /* the best-of bot's rulebook: built from every book, bot and backtest; a changed one waits for Ryan's yes (docs/bestof-approve.json) */
+  try { const proposed = buildRulebook({ council: prev, runnerBt: rd(dir, 'runner-bt.json', null), bottomBt: rd(dir, 'bottom-bt.json', null), patternBt: rd(dir, 'backtest.json', null), botRecs, now }), rb = { at: proposed.at, ...activeRulebook(rd(dir, 'bestof-rules.json', null), proposed, rd(path.dirname(dir), 'bestof-approve.json', null)) }; fs.writeFileSync(path.join(dir, 'bestof-rules.json'), JSON.stringify(rb)); } catch (e) { console.log('best-of rulebook: ' + e.message); }
+  try { const bts = Object.fromEntries(['backtest.json', 'runner-bt.json', 'bottom-bt.json', 'bestof-rules.json'].map((f) => [f, rd(dir, f, null)])), tk = trackCouncils({ recs: botRecs, backtests: bts, prev: rd(dir, 'councils.json', null), now }); fs.writeFileSync(path.join(dir, 'councils.json'), JSON.stringify(tk)); } catch (e) { console.log('track councils: ' + e.message); }
   const c = council({ trench: tc, signals: rd(dir, 'signals.json', []), degen: rd(dir, 'degen.json', []), lab: rd(dir, 'lab.json', []), learned: rd(dir, 'learned.json', null), wscore: rd(dir, 'walletscore.json', null), since, history: prev.history || [], now, botRecs, giants: rd(dir, 'giants.json', null), majorsBt: rd(dir, 'majors-bt.json', null) });
   const send = post || (async (title, body, tags) => { const h = { Title: title, Priority: 'high', Tags: tags }; if (site) h.Click = site; await fetch('https://ntfy.sh/' + encodeURIComponent(topic), { method: 'POST', body, headers: h }); });
   // the books waiting for a RynoBot spot: their own alert, once each
