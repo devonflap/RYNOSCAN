@@ -1,4 +1,7 @@
-Hourly refresh 05:10 Brisbane: 6 tracked coins refreshed, 6 scored, 6 above 65. On-chain volume Normal (1.01x 7-day avg).
-NEW watch: CATE (Solana) Liquidity sweep reclaim, opp 79, checks 6/6, stop 25.6% away, upside 52.7%.
+Full scan 06:11 Brisbane: 61 scanned, 47 scored, 9 above 65. On-chain volume Normal (1.04x 7-day avg).
+NEW watch: TORCH (Robinhood) Trend pullback, opp 83, checks 5/6, stop 25.1% away, upside 111.7%; more sellers than buyers in the last hour.
+NEW watch: SWORDCAT (Solana) Inverse H&S, opp 69, checks 3/6, stop null% away, upside null%; more sellers than buyers in the last hour; volume fading; weak last 6h.
+NEW watch: FRONG (Robinhood) Breakout retest, opp 68, checks 5/6, stop 31.6% away, upside 94.7%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: BIRB (Top 10 holders high ownership), SPCX (Mint Authority still enabled), PUMP (top 10 wallets hold 60.3% (gate 30%)), ANSEM (Single holder ownership), CASHCAT (top 10 wallets hold 36.5% (gate 30%)), CARDS (Top 10 holders high ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
