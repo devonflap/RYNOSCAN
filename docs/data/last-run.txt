@@ -1,3 +1,3 @@
-Hourly refresh 07:10 Brisbane: 9 tracked coins refreshed, 9 scored, 9 above 65. On-chain volume Normal (1.04x 7-day avg).
+Hourly refresh 08:10 Brisbane: 9 tracked coins refreshed, 9 scored, 8 above 65. On-chain volume Normal (1.04x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
