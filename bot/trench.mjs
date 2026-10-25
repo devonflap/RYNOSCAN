@@ -38,6 +38,7 @@ export function dsLaunchSetup(q, ageMin, cfg = DSLAUNCH) {
 }
 export function trendSetup(q, nowMs, cfg = TREND) {
   if (!q || !(+q.priceUsd > 0)) return null; const ageH = q.pairCreatedAt ? (nowMs - +q.pairCreatedAt) / 3600e3 : null; if (ageH != null && ageH > cfg.maxAgeH) return null; if (cfg.minAgeH > 0 && (ageH == null || ageH < cfg.minAgeH)) return null; /* too young for this trencher: looked at again next round */
+  { const m5 = n(q.priceChange && q.priceChange.m5); if (cfg.maxM5Pct != null && m5 != null && m5 > cfg.maxM5Pct) return null; } /* no chasing: already up too much in 5 minutes; looked at again next round */
   const { b, s } = m5of(q), vh = +(q.volume && q.volume.h1) || 0, mc = +(q.marketCap || q.fdv) || 0, pc = q.priceChange || {}, c5 = n(pc.m5), c1 = n(pc.h1);
   if (b < cfg.minBuys5 || b < cfg.buySellX5 * Math.max(1, s) || vh < cfg.minVolH1) return null; if (c1 == null || c1 < cfg.minH1Pct) return null; if (c5 != null && c5 <= 0) return null;
   if (c1 > cfg.maxH1Pct) return { dead: `up ${Math.round(c1)}% in the hour: vertical` }; if (mc < cfg.minMcapUsd || mc > cfg.maxMcapUsd) return null;

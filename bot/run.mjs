@@ -51,9 +51,14 @@ export const TRENCH_WAYS = [
 // Shared on purpose: the market data and the signal judges. Not shared: every gate, size and exit. The market dial and the daily loss
 // limit are off for all five (they would stop a bot taking shots for reasons that have nothing to do with the trench).
 export const TRENCH_PACK = ['trench', 'trenchlab', 'trenchshot', 'trenchx', 'trenchbonus'];
+// 25 OCT, RYAN'S CALL, ON ALL FIVE (from the day's 258 trades on coins whose pool cannot be pulled): the trending lane only (DexScreener
+// launches lost $65 per $100), nothing under 30 minutes old (under 10 minutes lost $40 and a quarter rugged; over 2 hours lost $9-14,
+// none rugged), nothing under a $60k market cap (lost $60-99 per $100), and no chasing: not already up more than 15% in 5 minutes (those
+// lost $42 per $100, calmer entries $15) or 150% in the hour. One day of data: the trench council will say whether it holds.
+export const TRENCH_TREND = { ...TREND, minAgeH: 0.5, minMcapUsd: 60000, maxH1Pct: 150, maxM5Pct: 15 };
 const TRENCH_OG = { name: 'trench', label: 'RynoBot Trencher (OG)', engine: 'trench', source: 'trench', labOnly: true, entry: 'market', exit: 'ladder', realityBook: null, minOpp: 0, ...TRENCH, trenchMaxNew: 3, minLiqUsd: 3000, minAgeH: 0, fixedStopPct: 35, minStopPct: 0, maxStopPct: 45, mults: [1.5, 2.2, 3.5], shares: [0.3, 0.3, 0.2], moonTrail: 0.3, beAfterFirst: false, flowCut: true, sellersLoss: 0.1, sellersX: 1.1, noFollowH: 0.25, boostTighten: 0, maxLiqPct: 2, coolH: 24, maxHoldH: 1, maxOpen: 16, maxOpenRiskPct: 14, riskPct: 1, maxPosPct: 1, signalMaxAgeH: 0.1, chaseLimitPct: 25, dumpCut: { min5: 4, sellX5: 1.3, sellX1: 1.1, offHighPct: 0.12 }, peakGiveback: { armPct: 0.25, keep: 0.5 }, heartbeatMin: 120, dsLaunch: DSLAUNCH, trend: TREND,
   pollSec: 10, /* 25 Oct: checked every 10 seconds, not every minute (rugs and dumps take seconds; a minute let stops gap 30-90%) */ origin: ['pump', 'bonk'], /* launched on pump.fun or letsbonk, or a locked pool */
-  lanes: ['feed', 'ds', 'trend'], regimeDial: false, dailyLossPct: 100, holderRead: false, feedAlerts: true, minPoolLiqUsd: 20000, minLiqMcap: 0.05, organic: true, /* real-market floor for every trencher: a traded pool needs $20k+ of real liquidity and 5%+ of its market cap */
+  lanes: ['trend'], trend: TRENCH_TREND, regimeDial: false, dailyLossPct: 100, holderRead: false, feedAlerts: false, minPoolLiqUsd: 20000, minLiqMcap: 0.05, organic: true, /* real-market floor for every trencher: a traded pool needs $20k+ of real liquidity and 5%+ of its market cap */
   // the trending lane's coins are older and bigger: a 25% stop, 6 hours at most, out if no new high in 30 minutes while under the entry, dead after 6 quiet minutes
   trendCfg: { fixedStopPct: 25, maxHoldH: 6, noFollowH: 0.5, deadMin: 6 } };
 // THE EXTRACTOR (from the study: devs and their bundles took $579M out of pump.fun, the snipers $31.5M; copying KOL wallets loses money on
@@ -68,7 +73,7 @@ export const EXTRACTOR = { holderGate: true, insiderExit: true, fixedStopPct: 25
 // So: the trending lane only, nothing under 30 minutes old, a clean holder read; a cheap miss (out if not up 15% in 15 minutes, stop 25%);
 // a third sold into the first FOMO spike (or at 2x), a third at 3x, the last third a free ride with no stop trailing 50% for up to a week,
 // and everything out if the insiders or the top 10 start selling. Small losers, a paid initial, an uncapped tail.
-export const TRENCH_BONUS = { lanes: ['trend'], trend: { ...TREND, minAgeH: 0.5 }, holderGate: true, insiderExit: true, fixedStopPct: 25, noPopMin: 15, noPopPct: 15, mults: [3], shares: [0.33], moonTrail: 0.5, freeRide: true, peakGiveback: null, spikeSell: { spikePct: 30, buyX: 2, share: 0.33, atX: 2 }, deadMin: 15, noFollowH: 0, maxHoldH: 168 };
+export const TRENCH_BONUS = { lanes: ['trend'], trend: TRENCH_TREND, holderGate: true, insiderExit: true, fixedStopPct: 25, noPopMin: 15, noPopPct: 15, mults: [3], shares: [0.33], moonTrail: 0.5, freeRide: true, peakGiveback: null, spikeSell: { spikePct: 30, buyX: 2, share: 0.33, atX: 2 }, deadMin: 15, noFollowH: 0, maxHoldH: 168 };
 export const TRENCHERS = {
   trench: TRENCH_OG,
   trenchlab: { ...TRENCH_OG, name: 'trenchlab', label: 'RynoBot Trench lab (seven ways)', feedAlerts: false, holderRead: true, variants: TRENCH_WAYS, maxOpen: 120, maxOpenRiskPct: 40, riskPct: 3.5, maxPosPct: 0.5 },

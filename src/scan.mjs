@@ -207,6 +207,7 @@ let deadN = 0;
 // 4c. Degen desk (high-risk paper account): follows volume surges and price action, and checks who is trading (wallet counts, optional watch-list).
 // Tracks its own list in degen.json. Paper only: it never changes a score, a gate or the conservative desk.
 let degenNew = [];
+let runnersForAlert = null; /* the high-risk runners list, kept for the phone alert below */
 try {
   const dpath = path.join(OUT, 'degen.json'), smartCfg = loadSmart(readJson), nowIso = at;
   // wallet scorecard: wallets that keep buying coins before they run become "proven" and count as smart wallets everywhere below
@@ -242,7 +243,7 @@ try {
       for (const p of ex) { const w = await fetchWallets(api.get, p.net, p.pool, smart); if (!w) continue; wallets.set(p.pool, w); noteEp(p, w); const pi = SCO.provenIn(w, sc);
         earlyItems.push({ id: String(p.chain).slice(0, 3).toUpperCase() + ':' + p.sym, coin: p.sym, chain: C.CH[p.chain] || p.chain, pool: p.pool, net: p.net, price: p.price, liq: Math.round(p.liq || 0), v24: Math.round(p.v24 || 0), ch24: p.ch24, vacc: p.vacc, ageD: p.ageD, phase: L.lifecycle(p), provenIn: pi.in, provenOut: pi.out, buyers: w.buyers, sellers: w.sellers, veto: D.runnerVeto(p, w) }); }
       earlyItems.sort((a, b) => b.provenIn - a.provenIn || (b.vacc || 0) - (a.vacc || 0)); } } catch (e) { say('early movers skipped: ' + (e.message || e)); }
-    try { const paperIds = new Set(dout.filter(x => x.status === 'open' || x.status === 'waiting for entry').map(x => x.id)); const items = D.buildRunners(rc, wallets, paperIds, trends); runnerItems = items; const rowOf = new Map(allRows.map(p => [p.pool, p])); for (const it of items) { it.bars = barsMap.get(it.pool) || null; const p = rowOf.get(it.pool); it.phase = p ? L.lifecycle(p) : null; it.fresh = !!(p && p.fresh); it.proven = SCO.provenIn(wallets.get(it.pool), sc); } try { const skip = new Set(D.runnerCandidates(allRows, 100000).map(x => x.p.pool)); controlItems = D.buildRunners(D.controlSample(allRows, skip, 6, Date.parse(nowIso) / 36e5 | 0)); } catch { controlItems = []; } fs.writeFileSync(path.join(OUT, 'runners.json'), JSON.stringify({ at: nowIso, items, early: earlyItems })); say(`runners: ${items.length} high-risk high-reward coins listed${items[0] ? ' (top: ' + items[0].coin + ' ' + items[0].score + ')' : ''}`); } catch (e) { say('runners skipped: ' + (e.message || e)); }
+    try { const paperIds = new Set(dout.filter(x => x.status === 'open' || x.status === 'waiting for entry').map(x => x.id)); const items = D.buildRunners(rc, wallets, paperIds, trends); runnerItems = items; runnersForAlert = items; const rowOf = new Map(allRows.map(p => [p.pool, p])); for (const it of items) { it.bars = barsMap.get(it.pool) || null; const p = rowOf.get(it.pool); it.phase = p ? L.lifecycle(p) : null; it.fresh = !!(p && p.fresh); it.proven = SCO.provenIn(wallets.get(it.pool), sc); } try { const skip = new Set(D.runnerCandidates(allRows, 100000).map(x => x.p.pool)); controlItems = D.buildRunners(D.controlSample(allRows, skip, 6, Date.parse(nowIso) / 36e5 | 0)); } catch { controlItems = []; } fs.writeFileSync(path.join(OUT, 'runners.json'), JSON.stringify({ at: nowIso, items, early: earlyItems })); say(`runners: ${items.length} high-risk high-reward coins listed${items[0] ? ' (top: ' + items[0].coin + ' ' + items[0].score + ')' : ''}`); } catch (e) { say('runners skipped: ' + (e.message || e)); }
     degenNew = D.pickNew(cands, dout, nowIso, wallets); degenNew.forEach(x => { x.mkt = mktTag; }); dout.push(...degenNew);
     say(`degen desk: ${cands.length} runners met the volume and price rules, ${degenNew.length} new paper trades${degenNew.length ? ' (' + degenNew.map(x => x.coin).join(', ') + ')' : ''}`);
   }
@@ -464,6 +465,19 @@ if (topic && tradeAlerts && settings.degenAlert !== false && degenNew.length) { 
     say('degen alert sent: ' + r.status); if (r.ok) { const now = new Date().toISOString(); nd.forEach(x => sent['D|' + x.id] = now); }
   }
 } catch (e) { say('degen alert skipped: ' + (e.message || e)); } }
+
+// high-risk high-reward alert (Ryan, 25 Oct: so he can trade them by hand and add data): every coin newly listed in the "High risk,
+// high reward runners" section with 3+ of its 4 checks and no risk-rule veto, once per coin per day, up to 3 a scan. On even when the
+// other trade alerts are off ("phoneAlerts": "health"); "runnerAlert": false in config/settings.json turns it off.
+if (topic && settings.runnerAlert !== false && Array.isArray(runnersForAlert) && runnersForAlert.length) { try {
+  const sg = x => (x == null ? '' : String(Number(Number(x).toPrecision(5)))), k = (x) => (x.m && x.m.liq ? '$' + Math.round(x.m.liq / 1000) + 'k' : '?');
+  const nr = runnersForAlert.filter(x => x.tier === 'Runner' && (x.passed ?? 0) >= 3 && !(x.vetoed || []).length && fresh('R|' + x.id)).slice(0, 3);
+  if (nr.length) {
+    const body = nr.map(x => `${x.coin} (${x.chain}), ${x.passed} of 4 checks: ${(x.checks || []).filter(c => c.ok).map(c => c.k.toLowerCase()).join(', ')}. Price ${sg(x.price)}, ${x.m && x.m.ch24 != null ? (x.m.ch24 >= 0 ? '+' : '') + Math.round(x.m.ch24) + '% in 24h, ' : ''}liquidity ${k(x)}${x.phase ? ', ' + x.phase : ''}.${(x.flags || []).length ? ' Watch out: ' + x.flags.slice(0, 2).join('; ') + '.' : ''}\nhttps://dexscreener.com/${x.net}/${x.pool}`).join('\n\n');
+    const r = await fetch('https://ntfy.sh/' + encodeURIComponent(topic), { method: 'POST', body: body + '\n\nHigh risk, high reward: for trading by hand. Small size, your own stop. Not a bid-ready call.', headers: { Title: `High risk runner: ${nr.map(x => x.coin).join(', ')}`, Priority: 'default', Tags: 'rhinoceros,rocket', Click: `https://dexscreener.com/${nr[0].net}/${nr[0].pool}` } });
+    say('runner alert sent: ' + r.status); if (r.ok) { const now = new Date().toISOString(); nr.forEach(x => sent['R|' + x.id] = now); }
+  }
+} catch (e) { say('runner alert skipped: ' + (e.message || e)); } }
 
 // safeguard 2: daily check-in (proves the scanner is alive) and a bid-ready digest at most every 6 hours, so a missed alert never hides a chart
 if (topic && tradeAlerts) { try {
