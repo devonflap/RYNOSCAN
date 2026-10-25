@@ -21,10 +21,10 @@ function boot(xs, n = 2000, seed = 7) { if (xs.length < 2) return { lo: null, hi
 const xOf = (t) => (t.entry > 0 && t.exitAvg > 0 ? t.exitAvg / t.entry : t.costUsd > 0 ? 1 + t.pnl / t.costUsd : null), peakX = (t) => (t.entry > 0 && t.peak > 0 ? t.peak / t.entry : null);
 const per100 = (t) => (t.costUsd > 0 ? (t.pnl / t.costUsd) * 100 : null);
 // the record's trades, one "way" per trencher (the lab: one per variant)
-export function waysOf(recs) { const W = {}; for (const [bot, r] of Object.entries(recs || {})) { if (!r || !TRENCHERS[bot]) continue; for (const t of r.closed || []) { if (!(t.costUsd > 0) || t.pnl == null) continue; const k = bot === 'trenchlab' ? 'lab ' + ((t.meta && t.meta.variant) || '?') : bot; (W[k] ||= []).push(t); } } return W; }
+export function waysOf(recs, labels = TRENCHERS) { const W = {}; for (const [bot, r] of Object.entries(recs || {})) { if (!r || !labels[bot]) continue; for (const t of r.closed || []) { if (!(t.costUsd > 0) || t.pnl == null) continue; const v = t.meta && t.meta.variant, k = v ? (bot === 'trenchlab' ? 'lab ' : bot + ' ') + v : bot; /* a bot with ways (variants) is split into its ways */ (W[k] ||= []).push(t); } } return W; }
 // 1. the league
-export function league(recs) {
-  return Object.entries(TRENCHERS).map(([bot, label]) => { const r = recs && recs[bot]; if (!r) return { bot, label, installed: false };
+export function league(recs, labels = TRENCHERS) {
+  return Object.entries(labels).map(([bot, label]) => { const r = recs && recs[bot]; if (!r) return { bot, label, installed: false };
     const T = (r.closed || []).filter((t) => t.pnl != null && t.costUsd > 0), s = r.stats || {}, closed = s.closed ?? T.length, total = s.realised ?? T.reduce((a, t) => a + t.pnl, 0);
     const p = T.map(per100).filter((x) => x != null), Rs = T.map((t) => t.R).filter((x) => x != null), bs = boot(p), xs = T.map(xOf).filter((x) => x != null), wins = T.filter((t) => t.pnl > 0);
     const gains = wins.map((t) => t.pnl).sort((a, b) => b - a), top = gains.slice(0, Math.max(1, Math.ceil(T.length * 0.05))).reduce((a, x) => a + x, 0), grossWin = gains.reduce((a, x) => a + x, 0);
@@ -86,18 +86,18 @@ export function holderProof(rec) {
 export const PROVE_SCANS = 3;
 export function proveStreaks(prev = {}, results = {}, at) { const out = {}; for (const [k, r] of Object.entries(results)) { const m = (prev || {})[k] || {}; out[k] = r && r.proven ? { streak: (m.streak || 0) + 1, firstProven: m.streak ? m.firstProven : at, text: r.text } : { streak: 0, text: r ? r.text : null }; } return out; }
 // 6. the chair
-export function trenchCouncil({ recs = {}, prev = null, now = Date.now() } = {}) {
-  const at = new Date(now).toISOString().slice(0, 19) + 'Z', L = league(recs), W = waysOf(recs), installed = L.filter((x) => x.installed);
-  const h2h = headToHead(W), autopsy = Object.fromEntries(Object.entries(W).map(([k, T]) => [k, exitAutopsy(T)]));
+export function trenchCouncil({ recs = {}, prev = null, now = Date.now(), labels = TRENCHERS, base = 'trench', labBot = 'trenchlab', what = 'trencher' } = {}) {
+  const at = new Date(now).toISOString().slice(0, 19) + 'Z', L = league(recs, labels), W = waysOf(recs, labels), installed = L.filter((x) => x.installed);
+  const h2h = Object.keys(labels).length > 1 ? headToHead(W, base) : [], autopsy = Object.fromEntries(Object.entries(W).map(([k, T]) => [k, exitAutopsy(T)]));
   const lessons = Object.entries(W).flatMap(([way, T]) => learnWay(T).map((l) => ({ way, ...l }))), memory = remember(prev && prev.memory, lessons, at);
   for (const l of lessons) { const m = memory[`${l.way}|${l.feat}|${l.best.k}>${l.worst.k}`]; l.seen = m.seen; l.firstSeen = m.firstSeen; }
-  const lab = recs.trenchlab ? labVariants(recs.trenchlab) : [];
+  const lab = Object.keys(labels).flatMap((b) => (recs[b] ? labVariants(recs[b]).map((t) => (b === labBot ? t : `${labels[b]}: ${t}`)) : []));
   const ranked = installed.filter((x) => x.closed >= 10 && x.per100 != null).sort((a, b) => b.per100 - a.per100), lead = ranked[0];
-  const headline = !installed.length ? 'No trencher records yet (they publish hourly once the trench pack is running).' : !lead ? `Collecting: ${installed.map((x) => `${x.label} ${x.closed}`).join(', ')} closed shots so far; 10 each before anyone is ranked.`
+  const headline = !installed.length ? `No ${what} records yet (they publish hourly once the bots are running).` : !lead ? `Collecting: ${installed.map((x) => `${x.label} ${x.closed}`).join(', ')} closed shots so far; 10 each before anyone is ranked.`
     : `${lead.label} leads: ${fU(lead.per100)} per $100 shot over ${lead.closed}${ranked[1] ? `, then ${ranked[1].label} ${fU(ranked[1].per100)}` : ''}${ranked.length > 2 ? `; last ${ranked[ranked.length - 1].label} ${fU(ranked[ranked.length - 1].per100)}` : ''}.`;
   const actions = [], pts = [];
   for (const x of installed) pts.push(`${x.label}: ${x.closed} closed, ${x.winRate != null ? Math.round(x.winRate * 100) + '% won' : '—'}, ${fU(x.per100)} per $100 shot (range ${fU(x.lo100)} to ${fU(x.hi100)}), ${fU(x.totalUsd)} in all; ${x.x5} at 5x+, ${x.x10} at 10x+${x.topShare != null ? `; the best 5% of trades made ${Math.round(x.topShare * 100)}% of the winnings` : ''}. ${x.verdict}.`);
-  for (const h of h2h.filter((h) => h.call !== 'too few').slice(0, 6)) pts.push(`Same coins as the OG: ${h.way} ${fU(h.wayPer100)} vs OG ${fU(h.basePer100)} per $100 over ${h.n} shared coins (${h.diff >= 0 ? '+' : ''}${h.diff} a shot, better on ${Math.round(h.better * 100)}%): ${h.call}.`);
+  for (const h of h2h.filter((h) => h.call !== 'too few').slice(0, 6)) pts.push(`Same coins as the ${base === 'trench' ? 'OG' : labels[base]}: ${h.way} ${fU(h.wayPer100)} vs ${base === 'trench' ? 'OG' : labels[base]} ${fU(h.basePer100)} per $100 over ${h.n} shared coins (${h.diff >= 0 ? '+' : ''}${h.diff} a shot, better on ${Math.round(h.better * 100)}%): ${h.call}.`);
   for (const [way, A] of Object.entries(autopsy)) { const worst = A.filter((a) => a.n >= 5).sort((a, b) => a.usd - b.usd)[0], left = A.reduce((a, x) => a + x.leftOnTable, 0); if (worst && worst.usd < 0) pts.push(`${way}: the costliest exit is "${worst.exit}" (${worst.n} trades, ${fU(worst.usd)}, ${fU(worst.per100)} per $100)${left >= 3 ? `; ${left} losing trades had been 1.5x+ up first: the exits are giving runners back` : ''}.`); }
   for (const l of lessons.slice(0, 8)) pts.push(`Learning (${l.way}): ${l.feat}: ${l.best.k} ${fU(l.best.per100)} per $100 (${l.best.n}) vs ${l.worst.k} ${fU(l.worst.per100)} (${l.worst.n}); ${l.status}${l.seen > 1 ? `, seen in ${l.seen} scans since ${l.firstSeen.slice(0, 10)}` : ''}.`);
   for (const t of lab) pts.push('Lab: ' + t);
