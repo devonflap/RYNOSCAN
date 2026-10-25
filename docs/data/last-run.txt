@@ -1,7 +1,3 @@
-Full scan 02:11 Brisbane: 63 scanned, 52 scored, 7 above 65. On-chain volume Normal (1.01x 7-day avg).
-NEW watch: CATE (Solana) Liquidity sweep reclaim, opp 79, checks 6/6, stop 25.6% away, upside 52.7%.
-NEW watch: GATO (Solana) Liquidity sweep reclaim, opp 79, checks 6/6, stop 19.6% away, upside 77.8%; paid DexScreener boost active (promotion, not organic demand).
-NEW watch: TORCH (Robinhood) Bottom reversal, opp 76, checks 6/6, stop 27.4% away, upside 123.9%.
+Hourly refresh 03:10 Brisbane: 7 tracked coins refreshed, 7 scored, 6 above 65. On-chain volume Normal (1.01x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: SPCX (Mint Authority still enabled), BIRB (Top 10 holders high ownership), DACITYCOIN (top 10 wallets hold 39.2% (gate 30%)), CASHCAT (top 10 wallets hold 36.5% (gate 30%)), ANSEM (Single holder ownership), PUMP (top 10 wallets hold 60.3% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
