@@ -6,7 +6,7 @@
 // following at all, and how: every copy is traded three ways (out when the wallet sells; the scorecard's own 24-hour hold; half at 2x and a
 // free ride). Free data only: Robinhood-chain wallets through Blockscout's public API, Solana wallets through the public Solana RPC.
 // Nothing here can place an order.
-export const COPY = { everySec: 60, provenEveryMin: 60, maxEventAgeMin: 20, perWallet: 25, maxWallets: 12, minCopyPct: 0, majors: ['WETH', 'ETH', 'USDC', 'USDT', 'USDC.E', 'WSOL', 'SOL', 'USD1', 'PYUSD', 'USDS'] };
+export const COPY = { rhBlocks: 5000, everySec: 60, provenEveryMin: 60, maxEventAgeMin: 20, perWallet: 25, maxWallets: 12, minCopyPct: 0, majors: ['WETH', 'ETH', 'USDC', 'USDT', 'USDC.E', 'WSOL', 'SOL', 'USD1', 'PYUSD', 'USDS'] };
 const SOL_MINTS = new Set(['So11111111111111111111111111111111111111112', 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB']);
 export const chainOfWallet = (w) => (/^0x[0-9a-fA-F]{40}$/.test(w) ? 'robinhood' : /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(w) ? 'solana' : null);
 // Blockscout token transfers -> buys and sells (a token coming IN is a buy, going OUT a sell; dollar coins and ETH wrappers are the money, not the trade)
@@ -16,6 +16,14 @@ export function evmEvents(wallet, j, cfg = COPY) {
     const from = String((it.from && it.from.hash) || '').toLowerCase(), to = String((it.to && it.to.hash) || '').toLowerCase(), side = to === w ? 'buy' : from === w ? 'sell' : null; if (!side) continue;
     out.push({ wallet, chain: 'robinhood', token: addr, symbol: tk.symbol || null, side, at: it.timestamp || null, tx: it.transaction_hash || it.tx_hash || null }); }
   return out; }
+// THE FALLBACK (25 Oct: Blockscout started answering the server with HTTP 403): the same buys and sells read straight from the Robinhood
+// chain's own public RPC, as ERC-20 Transfer logs to or from the wallet in the last rhBlocks blocks (3 topics = ERC-20; NFTs have 4)
+export const TRANSFER = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+export function rpcEvents(wallet, logs) { const pad = '0x' + '0'.repeat(24) + wallet.toLowerCase().replace(/^0x/, ''), out = [];
+  for (const l of logs || []) { const t = (l && l.topics) || []; if (t.length !== 3 || String(t[0]).toLowerCase() !== TRANSFER) continue; const side = String(t[2]).toLowerCase() === pad ? 'buy' : String(t[1]).toLowerCase() === pad ? 'sell' : null; if (!side || !l.address) continue;
+    out.push({ wallet, chain: 'robinhood', token: l.address, symbol: null, side, at: null, tx: l.transactionHash || null }); } return out; }
+export async function rhLogs(wallet, erpc, cfg = COPY) { const head = parseInt(await erpc('eth_blockNumber', []), 16); if (!(head > 0)) return []; const fromBlock = '0x' + Math.max(0, head - cfg.rhBlocks).toString(16), pad = '0x' + '0'.repeat(24) + wallet.toLowerCase().replace(/^0x/, '');
+  const [a, b] = await Promise.all([erpc('eth_getLogs', [{ fromBlock, toBlock: 'latest', topics: [TRANSFER, pad] }]), erpc('eth_getLogs', [{ fromBlock, toBlock: 'latest', topics: [TRANSFER, null, pad] }])]); return rpcEvents(wallet, [...(a || []), ...(b || [])]); }
 // one parsed Solana transaction -> the wallet's token balance changes (up = buy, down = sell); failed transactions ignored
 export function solEvents(wallet, tx, sig, cfg = COPY) {
   const m = tx && tx.meta; if (!m || m.err) return []; const at = tx.blockTime ? new Date(tx.blockTime * 1000).toISOString() : null, bal = {};
@@ -27,14 +35,15 @@ export function bestPair(j, token, chain) { return ((j && j.pairs) || []).filter
 export function provenFrom(ws, cfg = COPY) { return ((ws && ws.proven) || []).filter((x) => x && x.w && chainOfWallet(x.w) && !x.cherry && !x.decayed && (x.copyPct ?? 0) > cfg.minCopyPct).slice(0, cfg.maxWallets); }
 const short = (w) => w.slice(0, 6) + '…' + w.slice(-4);
 // each cycle: refresh the proven list hourly, read each wallet's latest moves, turn fresh buys into setups and remember sells (for the mirror exit)
-export async function copySetupsIn(st, cfg, { G, rpc, J, now, nowIso }) {
+export async function copySetupsIn(st, cfg, { G, rpc, erpc, J, now, nowIso }) {
   const C = { ...COPY, ...(cfg.copy || {}) }; if (now - (st.copyAt || 0) < C.everySec * 1000) return; st.copyAt = now;
   if (!st.proven || now - (st.provenAt || 0) > C.provenEveryMin * 60e3) { try { const before = new Set((st.proven || []).map((x) => x.w)), had = !!st.proven; st.proven = provenFrom(await G(cfg.site + 'walletscore.json'), C); st.provenAt = now;
       /* the scorecard's list decides: a newly proven wallet is followed from now on, one that drops off is no longer copied (open copies run their exits) */
       const after = new Set(st.proven.map((x) => x.w)); if (had) { for (const x of st.proven) if (!before.has(x.w)) J({ type: 'copy', wallet: short(x.w), side: 'added', why: `newly proven by the scorecard (ran on ${x.wins} of ${x.n} coins, ${x.copyPct >= 0 ? '+' : ''}${x.copyPct}% a copy): followed from now on` }); for (const w of before) if (!after.has(w)) J({ type: 'copy', wallet: short(w), side: 'dropped', why: 'no longer proven by the scorecard: not copied any more' }); } } catch (e) { console.log('copy: walletscore ' + e.message); } }
   const P = st.proven || [], cur = (st.copyCursor ||= {}), sells = (st.walletSells ||= {}), fresh = [];
   for (const p of P) { const w = p.w, chain = chainOfWallet(w); let ev = [];
-    try { if (chain === 'robinhood') ev = evmEvents(w, await G(`https://robinhoodchain.blockscout.com/api/v2/addresses/${w}/token-transfers?type=ERC-20`), C);
+    try { if (chain === 'robinhood') { if (erpc && st.bsDownAt && now - st.bsDownAt < 3600e3) ev = await rhLogs(w, erpc, C); /* Blockscout refused within the hour: straight to the chain */
+        else { try { ev = evmEvents(w, await G(`https://robinhoodchain.blockscout.com/api/v2/addresses/${w}/token-transfers?type=ERC-20`), C); } catch (e) { if (!erpc) throw e; if (!st.bsDownAt) J({ type: 'skip', why: `Blockscout refused (${String(e.message).slice(0, 40)}): reading the Robinhood chain directly for the next hour` }); st.bsDownAt = now; ev = await rhLogs(w, erpc, C); } } }
       else if (chain === 'solana' && rpc) { const sigs = ((await rpc('getSignaturesForAddress', [w, { limit: C.perWallet }])) || []).filter((s) => !s.err); const seenSig = cur[w + ':sig'];
         for (const s of sigs) { if (s.signature === seenSig) break; if (!seenSig) continue; /* first look: just set the cursor */ const tx = await rpc('getTransaction', [s.signature, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }]); ev.push(...solEvents(w, tx, s.signature, C)); }
         if (sigs[0]) cur[w + ':sig'] = sigs[0].signature; } }
@@ -50,6 +59,7 @@ export async function copySetupsIn(st, cfg, { G, rpc, J, now, nowIso }) {
     if (now - ((st.seen || {})['copy:' + e.token] || 0) < (cfg.coolH || 24) * 3600e3) continue;
     let pair = null; try { pair = bestPair(await G('https://api.dexscreener.com/latest/dex/tokens/' + e.token), e.token, e.chain); } catch (err) { console.log('copy: pair ' + err.message); }
     if (!pair || !(+pair.priceUsd > 0)) { J({ type: 'skip', coin: e.symbol || e.token.slice(0, 6), why: `proven wallet ${short(e.wallet)} bought it, but no market for it on DexScreener` }); continue; }
+    if (C.majors.includes(String((pair.baseToken && pair.baseToken.symbol) || '').toUpperCase())) continue; /* the money side of a swap (ETH, a dollar coin), not a trade */
     (st.seen ||= {})['copy:' + e.token] = now; const px = +pair.priceUsd, p = e.p;
     st.setups[pair.pairAddress] = { pool: pair.pairAddress, coin: (pair.baseToken && pair.baseToken.symbol) || e.symbol, chain: e.chain, token: pair.baseToken.address, kind: 'copy', setup: 'Copy: proven wallet bought', opp: null, zoneLow: px, zoneHigh: px, stop: +(px * (1 - (cfg.fixedStopPct || 25) / 100)).toPrecision(6), mults: cfg.mults, shares: cfg.shares, expireH: cfg.signalMaxAgeH || 0.5, at: nowIso, liq0: +(pair.liquidity && pair.liquidity.usd) || 0, url: pair.url,
       copyOf: [e.wallet], why: [`proven wallet ${short(e.wallet)} bought ${(pair.baseToken && pair.baseToken.symbol) || ''}: ran on ${p.wins} of its ${p.n} coins, ${p.copyPct >= 0 ? '+' : ''}${p.copyPct}% a copy (in an hour late, out a day later)`] };
