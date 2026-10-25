@@ -106,7 +106,8 @@ const MAJOR_BASE = new Set(['SOL', 'WSOL', 'USDC', 'USDT', 'ETH', 'WETH', 'BNB',
 export function quoteProblem(q, { token = null, chain = 'solana', solUsd = 0, majors = false } = {}) {
   if (!q) return null; const bt = q.baseToken || {}, qt = q.quoteToken || {}, sym = String(qt.symbol || '').toUpperCase(), sol = !/robinhood|bsc|base|ethereum|eth/i.test(String(chain || q.chainId || 'solana'));
   if (q.pump) return null; /* the launch feed's own price from the bonding curve */
-  if (token && bt.address && bt.address !== token) return `the pair now shows a different coin (${bt.symbol || bt.address.slice(0, 6)})`;
+  const same = (a, b) => (/^0x/i.test(String(a)) ? String(a).toLowerCase() === String(b).toLowerCase() : a === b); /* EVM addresses come in any letter case (25 Oct: the Breakout bot ignored every Robinhood quote for a day over this); Solana's do not */
+  if (token && bt.address && !same(bt.address, token)) return `the pair now shows a different coin (${bt.symbol || bt.address.slice(0, 6)})`;
   if (!majors && MAJOR_BASE.has(String(bt.symbol || '').toUpperCase())) return `upside-down pair: the base coin is ${bt.symbol}`;
   if (sym && !(sol ? QUOTE_OK.solana : QUOTE_OK.evm).includes(sym)) return `priced against ${qt.symbol}, not SOL or a dollar coin`;
   /* a pool cannot hold more money than the whole coin is worth (Water Coin, 24 Oct: $240m of "liquidity" under a coin that was $34k a quarter of an hour earlier) */
