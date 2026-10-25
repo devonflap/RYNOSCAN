@@ -34,7 +34,9 @@ assert.equal(res.scored, 7); assert.equal(res.regime.label, 'BULL / CORRECTING')
 assert.ok(fs.existsSync(out) && JSON.parse(fs.readFileSync(out)).results.length === 7);
 // first run: ENA went to DECISION from nothing -> one alert (unless it's Sunday, when only the digest goes)
 const sunday = new Date().getUTCDay() === 0; const titles = posts.map((p) => p.init.headers.Title);
-assert.ok(sunday ? titles.includes('weekly close check') : titles.includes('ENA · decision time'), titles.join(' | '));
-// second run: nothing changed -> no new state alert
-posts.length = 0; res = await runAlts({ api: mockApi, log: () => {}, out, topic: 'test-topic' }); assert.ok(!posts.some((p) => p.init.headers.Title === 'ENA · decision time'));
+assert.deepEqual(titles, ['weekly close check'], 'first run sends only the digest: ' + titles.join(' | '));
+// second run: nothing changed -> no state alert; then fake a change (ENA was WATCH) -> one decision-time alert unless it's Sunday
+posts.length = 0; res = await runAlts({ api: mockApi, log: () => {}, out, topic: 'test-topic' }); assert.ok(!posts.some((p) => /decision time|BID/.test(p.init.headers.Title)));
+const st = JSON.parse(fs.readFileSync(path.join(tmp, 'alts-state.json'))); const sym = res.results.find((r) => r.state === 'DECISION' || r.state === 'WATCH').symbol; st[sym] = 'NONE'; fs.writeFileSync(path.join(tmp, 'alts-state.json'), JSON.stringify(st));
+posts.length = 0; res = await runAlts({ api: mockApi, log: () => {}, out, topic: 'test-topic' }); const st2 = res.results.find((r) => r.symbol === sym).state; if (st2 === 'DECISION') assert.ok(posts.some((p) => p.init.headers.Title === sym + ' · decision time'), 'state change alerts');
 console.log('alts job OK (' + titles.length + ' alert(s) on first run)');

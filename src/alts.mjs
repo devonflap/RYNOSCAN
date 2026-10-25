@@ -9,7 +9,7 @@ import path from 'node:path';
 import { makeApi } from './api.mjs';
 import { analyse, regime, basketIndex, managePositions, P, P_MEME } from '../docs/mw.mjs';
 
-const OUT = process.env.OUT_DIR || 'docs/data';
+const outDir = () => process.env.OUT_DIR || 'docs/data';
 const readJson = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
 const settings = readJson('config/settings.json', {});
 const STABLES = new Set(['USDT', 'USDC', 'FDUSD', 'TUSD', 'DAI', 'USDP', 'BUSD', 'USD1', 'USDE', 'PYUSD', 'XUSD', 'USDD', 'GUSD', 'EUR', 'TRY', 'BRL', 'WBTC', 'WBETH', 'STETH', 'WETH', 'PAXG', 'XAUT', 'BTC', 'ETH']);
@@ -43,7 +43,7 @@ export function scoreBook(bars, btcCloses, { p = P, keep = 90 } = {}) {
   return { results, basket, basketRet, btcRet };
 }
 
-export async function runAlts({ api = makeApi(), log = console.log, out = path.join(OUT, 'alts.json'), topic = process.env.NTFY_TOPIC } = {}) {
+export async function runAlts({ api = makeApi(), log = console.log, out = path.join(outDir(), 'alts.json'), topic = process.env.NTFY_TOPIC } = {}) {
   const t0 = Date.now(), nUni = settings.altsUniverse || 80, minScore = settings.altsMinScore || P.minScore;
   // ---- alts
   const uni = await gateUniverse(api, nUni); log(`alts: ${uni.length} pairs from Gate.io`);
@@ -52,7 +52,7 @@ export async function runAlts({ api = makeApi(), log = console.log, out = path.j
   const btc = btcBars.map((b) => b[4]), A = scoreBook(bars, btc), reg = A.basket.length >= 40 && btc.length >= 40 ? regime(btc.slice(-A.basket.length), A.basket) : { label: 'UNKNOWN', note: 'not enough history for a regime call' };
   // ---- memes: the scanner's universe on daily on-chain candles (needs the data key; skipped on the free feed)
   const memes = {}, memeNames = {}; let memeNote = '';
-  if (api.keyed) { const u = readJson(path.join(OUT, 'universe.json'), []).filter((x) => x && x.pool && x.net).slice(0, 60); let m = 0;
+  if (api.keyed) { const u = readJson(path.join(outDir(), 'universe.json'), []).filter((x) => x && x.pool && x.net).slice(0, 60); let m = 0;
     for (const x of u) { try { const b = await memeDaily(api, x.net, x.pool); if (b.length >= 40) { memes[x.id || x.sym] = b; memeNames[x.id || x.sym] = x; } } catch (e) { log(`${x.sym}: ${e.message}`); } if (++m % 20 === 0) log(`meme candles ${m}/${u.length}`); }
     memeNote = `${Object.keys(memes).length} of ${u.length} meme coins have 40+ days of history`; }
   else memeNote = 'meme setups need the CoinGecko key (CG_API_KEY) for daily on-chain candles';
@@ -61,18 +61,18 @@ export async function runAlts({ api = makeApi(), log = console.log, out = path.j
   const posPath = 'config/alts-positions.json', positions = readJson(posPath, []), events = managePositions(positions, A.results, reg);
   try { fs.writeFileSync(posPath, JSON.stringify(positions, null, 1)); } catch { /* read-only checkout: fine */ }
   // ---- alerts: only on a state change worth acting on; never a BID on a Sunday (the weekly close)
-  const statePath = path.join(OUT, 'alts-state.json'), prev = readJson(statePath, {}), next = {}, sunday = new Date().getUTCDay() === 0, sent = [];
-  const alertsOn = topic && settings.altsAlerts !== false;
+  const statePath = path.join(path.dirname(out), 'alts-state.json'), prev = readJson(statePath, {}), next = {}, sunday = new Date().getUTCDay() === 0, sent = [];
+  const firstRun = !Object.keys(prev).length, alertsOn = topic && settings.altsAlerts !== false;   // a first run (or a reset state file) would ping every coin at once: send only the digest
   const push = async (title, body, prio = 'default', tags = '') => { if (!alertsOn) return; try { const r = await fetch('https://ntfy.sh/' + encodeURIComponent(topic), { method: 'POST', body, headers: { Title: title, Priority: prio, Tags: tags } }); if (r.ok) sent.push(title); } catch (e) { log('ntfy: ' + e.message); } };
-  for (const r of A.results) { next[r.symbol] = r.state; const was = prev[r.symbol]; if (r.state === was || r.score < minScore) continue;
+  for (const r of A.results) { next[r.symbol] = r.state; const was = prev[r.symbol]; if (r.state === was || r.score < minScore || firstRun) continue;
     if (r.state === 'BID' && sunday) { r.reasons.push('weekly close: not trading into it, re-check Monday'); continue; }
     if (r.state === 'DECISION') await push(`${r.symbol} · decision time`, `${r.pattern}, ${r.distToUpperPct > 0 ? '+' : ''}${r.distToUpperPct}% from the line, ${Math.round(r.pctThrough * 100)}% through. bid on a daily close above ${fmt(r.upperNow)}. invalidation ${fmt(r.invalidation)}. score ${r.score}`, 'default', 'hourglass');
     else if (r.state === 'BID') await push(`${r.symbol} · BID, wedge resolved`, `close ${fmt(r.lastClose)} through ${fmt(r.upperNow)} (${r.pattern}). invalidation ${fmt(r.invalidation)} · T1 ${fmt(r.t1)} · T2 ${fmt(r.t2)} · T3 ${fmt(r.t3)}. regime ${reg.label}. spot only, a size you can sit with.`, 'high', 'rocket');
     else if (r.state === 'INVALIDATED' && was) await push(`${r.symbol} · invalidated`, 'closed under the pattern low. structure gone: no bid, do nothing.', 'low', 'x'); }
-  for (const r of M.results) { const key = 'M:' + r.symbol; next[key] = r.state; if (r.state === prev[key] || r.score < minScore || sunday) continue;
+  for (const r of M.results) { const key = 'M:' + r.symbol; next[key] = r.state; if (r.state === prev[key] || r.score < minScore || sunday || firstRun) continue;
     if (r.state === 'BID') await push(`${r.coin || r.symbol} (meme) · BID, ${r.pattern} resolved`, `daily close ${fmt(r.lastClose)} through ${fmt(r.upperNow)}. invalidation ${fmt(r.invalidation)} · T1 ${fmt(r.t1)} · T2 ${fmt(r.t2)}. meme rules: small size, clip 20% into strength, moonbag the rest.`, 'high', 'rocket'); }
   for (const [sym, kind, msg] of events) await push(`${sym} · ${kind}`, msg, kind === 'OUT' || kind === 'SL TO BE' ? 'high' : 'default', 'moneybag');
-  if (sunday) { const top = A.results.filter((r) => r.state !== 'NONE' && r.score >= minScore).slice(0, 6), rs = [...A.results].sort((a, b) => b.rsBasket - a.rsBasket).slice(0, 5);
+  if (sunday || firstRun) { const top = A.results.filter((r) => r.state !== 'NONE' && r.score >= minScore).slice(0, 6), rs = [...A.results].sort((a, b) => b.rsBasket - a.rsBasket).slice(0, 5);
     await push('weekly close check', `regime ${reg.label}. relative strength: ${rs.map((r) => `${r.symbol} ${r.rsBasket > 0 ? '+' : ''}${Math.round(r.rsBasket)}%`).join(', ')}. setups: ${top.map((r) => `${r.symbol} (${r.state.toLowerCase()})`).join(', ') || 'none'}. not trading into the close.`, 'default', 'calendar'); }
   fs.writeFileSync(statePath, JSON.stringify(next));
   const result = { at: new Date().toISOString().slice(0, 19) + 'Z', seconds: Math.round((Date.now() - t0) / 1000), regime: reg, basketRet14: +(A.basketRet * 100).toFixed(1), btcRet14: +(A.btcRet * 100).toFixed(1),
