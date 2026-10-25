@@ -1,0 +1,32 @@
+# The bottomed-out backtest (ChillTRD's risk-on / risk-off holds): a year of daily candles for Solana meme coins (src/bottombt.mjs).
+# Weekly, or by hand: Actions -> "RynoScan bottomed-out backtest" -> Run workflow.
+name: RynoScan bottomed-out backtest
+on:
+  schedule:
+    - cron: "55 14 * * 0"   # Sundays (Brisbane Monday 12:55am)
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: rynoscan-bottombt
+  cancel-in-progress: false
+jobs:
+  bottombt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Replay a year of Solana meme coins through the bottomed-out entries and exits
+        env:
+          CG_API_KEY: ${{ secrets.CG_API_KEY }}
+          CG_PLAN: ${{ vars.CG_PLAN }}
+        run: node src/bottombt.mjs
+      - name: Save results
+        run: |
+          git config user.name "rynoscan-bot"
+          git config user.email "rynoscan-bot@users.noreply.github.com"
+          git add docs/data/bottom-bt.json
+          git diff --cached --quiet && echo "no changes" || (git commit -m "bottomed-out backtest $(date -u +%Y-%m-%d)" && git pull --rebase -q && git push)
