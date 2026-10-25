@@ -297,7 +297,7 @@ export function manageMomentum(pos0, q, bars1h, nowSec, cfg = BOT) {
 export function closeNow(pos0, q, nowSec, cfg = BOT, why = 'closed by hand from the desk') {
   const pos = { ...pos0, sells: [...(pos0.sells || [])] }, price = n(q && q.priceUsd), actions = []; if (!(price > 0) || !(pos.remUnits > 0)) return { pos, actions };
   const px = price * (1 - (pos.slipOut ?? cfg.slipPct) / 100), u = pos.remUnits, usd = u * px; pos.remUnits = 0; pos.bankedUsd += usd;
-  const a = { why, units: u, usd: +usd.toFixed(2), px: +px.toPrecision(6), all: true, manual: true, at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z' }; pos.sells.push(a); actions.push(a); return { pos, actions };
+  const a = { why, units: u, usd: +usd.toFixed(2), px: +px.toPrecision(6), all: true, manual: why === 'closed by hand from the desk', at: new Date(nowSec * 1000).toISOString().slice(0, 19) + 'Z' }; pos.sells.push(a); actions.push(a); return { pos, actions };
 }
 
 // THE MINUTE BOT's entry and exit on 1-minute candles (bars1m: [[tSec, o, h, l, c, v], ...] oldest first; the last may still be forming).

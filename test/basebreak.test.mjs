@@ -20,4 +20,13 @@ ok(baseBreakSetup([...B, bar(31, 1.2, 1.25, 1.15, 1.22)], { priceUsd: '1.21' }, 
   const st = newState(cfg); console.log = () => {}; await cycle(st, cfg, deps(now)); await cycle(st, cfg, deps(now + 60)); console.log = log0;
   ok(st.positions.map((p) => p.variant).sort().join() === 'G-giveback,H-hold,R-ride' && st.positions.every((p) => Math.abs(p.costUsd - 100) < 1 && Math.abs(p.stop - 0.98) < 0.01), 'BTC breaks its base: bought three ways, $100 each, the stop under the base');
   px = 2.5; console.log = () => {}; await cycle(st, cfg, deps(now + 3600)); console.log = log0; const R = st.positions.find((p) => p.variant === 'R-ride'); ok(R && R.hits === 1 && R.free && st.positions.find((p) => p.variant === 'H-hold').hits === 0, 'at 2x the ride sells half and rides free; the hold keeps holding'); }
+// every coin on the list is read once per closed hour, in turn (25 Oct review: a cleanup line wiped the hour stamps every cycle, so the
+// same 12 coins were re-read every minute and the rest never)
+{ const cfg = { ...loadConfig('basebreak'), slipPct: 0, scanPerCycle: 12 }, pools = Array.from({ length: 30 }, (_, i) => 'P' + i), reads = {}, flat = base();
+  const pair = (p) => ({ chainId: 'solana', pairAddress: p, baseToken: { address: 'T' + p, symbol: p }, quoteToken: { symbol: 'SOL' }, priceUsd: '1.05', priceNative: '0.01', liquidity: { usd: 300000 }, marketCap: 3e6, txns: { m5: { buys: 30, sells: 20 }, h1: { buys: 200, sells: 150 } }, volume: { h1: 80000 }, pairCreatedAt: (T0 - 20 * 86400) * 1000 });
+  const G = async (u) => (u.includes('runners.json') ? { items: [] } : u.includes('universe.json') ? pools.map((p) => ({ pool: p, chain: 'solana', sym: p })) : []);
+  const deps = (sec) => ({ now: sec * 1000, getJson: G, quotes: async (its) => Object.fromEntries(its.map((i) => [String(i.pool).toLowerCase(), pair(i.pool)])), candlesH: async (c, p) => { reads[p] = (reads[p] || 0) + 1; return p === 'P0' ? null : flat; }, candles5: async () => null, secondOpinion: false, notify: async () => {}, journal: () => {}, heartbeat: async () => {} }), log0 = console.log;
+  const st = newState(cfg); console.log = () => {}; for (let k = 0; k < 5; k++) await cycle(st, cfg, deps(now + k * 60)); console.log = log0;
+  const n = Object.values(reads); ok(n.length === 30 && n.every((x) => x === 1), `30 coins, 12 a minute: all 30 read within the hour, each once (${n.length} read, max ${Math.max(...n)} times)`);
+  console.log = () => {}; await cycle(st, cfg, deps(now + 3600 + 60)); console.log = log0; ok(reads.P0 === 2 && reads.P1 === 2 && reads.P29 === 1, 'the next hour: read again, the coin with no candles first (one try an hour), the least recently read next'); }
 process.exit(f);

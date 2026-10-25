@@ -9,15 +9,19 @@ export const LEVELS = [0.7, 0.8, 0.9];
 export const BOTTOMS = { everyMin: 30, staleD: 3, stopPct: 40 };
 const short = (x) => Math.round(x * 100);
 // bottoms.json -> setups (one per coin and level, the first time the level shows up as reached); the market switch is remembered for the exit
-export async function bottomSetupsIn(st, cfg, { G, J, now, nowIso }) {
+export async function bottomSetupsIn(st, cfg, { G, J, now, nowIso, buy = true }) {
   const B = { ...BOTTOMS, ...(cfg.bottoms || {}) }; if (now - (st.bottomsAt || 0) < B.everyMin * 60e3) return; st.bottomsAt = now;
   let b; try { b = await G(cfg.site + 'bottoms.json'); } catch (e) { console.log('bottoms: ' + e.message); return; }
   if (!b || !Array.isArray(b.coins) || !b.at) return;
   if (now - Date.parse(b.at) > B.staleD * 86400e3) { if (!st.staleWarned || now - st.staleWarned > 86400e3) { st.staleWarned = now; J({ type: 'skip', why: `bottoms.json is from ${b.at.slice(0, 10)}: the daily GitHub job has not run, so no new buys and the market switch is not updated` }); } return; }
-  const was = st.regime && st.regime.riskOn; st.regime = { riskOn: b.riskOn === true, at: b.at, why: b.regimeWhy || null };
-  if (was != null && was !== st.regime.riskOn) J({ type: 'regime', riskOn: st.regime.riskOn, why: st.regime.riskOn ? 'SOL back over its 20-day average: risk-on' : 'SOL under its 20-day average two days running: risk-off (holds that have seen risk-on are sold)' });
-  const done = (st.dcaDone ||= {});
-  for (const c of b.coins) { if (!c || !c.token || !(c.dd > 0)) continue; const fresh = (c.fresh || LEVELS.filter((l) => c.dd >= l)).filter((l) => !done[c.token + '|' + l]); if (!fresh.length) continue;
+  if (st.regime && st.regime.at && b.at < st.regime.at) return; /* an older copy from the page cache: ignored */
+  if (typeof b.riskOn !== 'boolean') { if (!st.regime) return; } else { const was = st.regime && st.regime.riskOn; st.regime = { riskOn: b.riskOn, at: b.at, why: b.regimeWhy || null };
+  if (was != null && was !== st.regime.riskOn) J({ type: 'regime', riskOn: st.regime.riskOn, why: st.regime.riskOn ? 'SOL back over its 20-day average: risk-on' : 'SOL under its 20-day average two days running: risk-off (holds that have seen risk-on are sold)' }); }
+  if (!buy) return;
+  /* a level marked done whose setup never became a position (no price, dropped, expired) is retried while the list still shows it fresh */
+  const done = (st.dcaDone ||= {}), heldLvl = new Set([...st.positions, ...(st.closed || [])].filter((p) => p.meta && p.meta.level != null).map((p) => String(p.meta.token || p.token || '') + '|' + p.meta.level)), setupLvl = new Set(Object.values(st.setups).filter((x) => x.dca && !x.dropped).map((x) => x.token + '|' + x.level));
+  for (const k of Object.keys(done)) if (!heldLvl.has(k) && !setupLvl.has(k) && now - Date.parse(done[k]) > 10 * 60e3) delete done[k];
+  for (const c of b.coins) { if (!c || !(c.dd > 0)) continue; if (!c.token) { if (!(st.noTokenWarned ||= {})[c.id || c.symbol]) { st.noTokenWarned[c.id || c.symbol] = now; J({ type: 'skip', coin: c.symbol, why: `${short(c.dd)}% under its high, but CoinGecko lists no Solana address for it: not bought` }); } continue; } const fresh = (c.fresh || LEVELS.filter((l) => c.dd >= l)).filter((l) => !done[c.token + '|' + l]); if (!fresh.length) continue;
     for (const l of fresh) done[c.token + '|' + l] = nowIso;
     let pair = null; try { pair = bestPair(await G('https://api.dexscreener.com/latest/dex/tokens/' + c.token), c.token, 'solana'); } catch (e) { console.log('bottoms pair: ' + e.message); }
     if (!pair || !(+pair.priceUsd > 0)) { J({ type: 'skip', coin: c.symbol, why: `${short(c.dd)}% under its high, but no market for it on DexScreener` }); continue; }

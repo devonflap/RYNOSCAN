@@ -14,16 +14,21 @@ export function evmEvents(wallet, j, cfg = COPY) {
   const w = wallet.toLowerCase(), out = [];
   for (const it of (j && j.items) || []) { const tk = it.token || {}, sym = String(tk.symbol || '').toUpperCase(), addr = tk.address_hash || tk.address; if (!addr || cfg.majors.includes(sym) || (tk.type && tk.type !== 'ERC-20')) continue;
     const from = String((it.from && it.from.hash) || '').toLowerCase(), to = String((it.to && it.to.hash) || '').toLowerCase(), side = to === w ? 'buy' : from === w ? 'sell' : null; if (!side) continue;
-    out.push({ wallet, chain: 'robinhood', token: addr, symbol: tk.symbol || null, side, at: it.timestamp || null, tx: it.transaction_hash || it.tx_hash || null }); }
+    out.push({ wallet, chain: 'robinhood', token: String(addr).toLowerCase(), symbol: tk.symbol || null, side, at: it.timestamp || null, tx: it.transaction_hash || it.tx_hash || null }); } /* lower-case, so the same transfer seen through Blockscout and through the chain is one event */
   return out; }
 // THE FALLBACK (25 Oct: Blockscout started answering the server with HTTP 403): the same buys and sells read straight from the Robinhood
 // chain's own public RPC, as ERC-20 Transfer logs to or from the wallet in the last rhBlocks blocks (3 topics = ERC-20; NFTs have 4)
 export const TRANSFER = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
-export function rpcEvents(wallet, logs) { const pad = '0x' + '0'.repeat(24) + wallet.toLowerCase().replace(/^0x/, ''), out = [];
-  for (const l of logs || []) { const t = (l && l.topics) || []; if (t.length !== 3 || String(t[0]).toLowerCase() !== TRANSFER) continue; const side = String(t[2]).toLowerCase() === pad ? 'buy' : String(t[1]).toLowerCase() === pad ? 'sell' : null; if (!side || !l.address) continue;
-    out.push({ wallet, chain: 'robinhood', token: l.address, symbol: null, side, at: null, tx: l.transactionHash || null }); } return out; }
+export const RH_MAJORS = new Set(['0x0bd7d308f8e1639fab988df18a8011f41eacad73']); /* WETH on the Robinhood chain (bot/evm.mjs): the money side of a swap, never the trade. A dollar coin coming in is caught later: a token that is itself a quote currency has no DexScreener pair with it as the base */
+export function rpcEvents(wallet, logs, blockAt = {}) { const pad = '0x' + '0'.repeat(24) + wallet.toLowerCase().replace(/^0x/, ''), out = [];
+  for (const l of logs || []) { const t = (l && l.topics) || []; if (t.length !== 3 || String(t[0]).toLowerCase() !== TRANSFER) continue; const side = String(t[2]).toLowerCase() === pad ? 'buy' : String(t[1]).toLowerCase() === pad ? 'sell' : null; if (!side || !l.address) continue; const tk = String(l.address).toLowerCase(); if (RH_MAJORS.has(tk)) continue;
+    const bn = l.blockNumber != null ? parseInt(l.blockNumber, 16) : null, at = bn != null && blockAt[bn] ? new Date(blockAt[bn] * 1000).toISOString() : null;
+    out.push({ wallet, chain: 'robinhood', token: tk, symbol: null, side, at, tx: l.transactionHash || null }); } return out; }
+// each log is dated by its block (one eth_getBlockByNumber per distinct block), so the freshness rule works the same as with Blockscout
 export async function rhLogs(wallet, erpc, cfg = COPY) { const head = parseInt(await erpc('eth_blockNumber', []), 16); if (!(head > 0)) return []; const fromBlock = '0x' + Math.max(0, head - cfg.rhBlocks).toString(16), pad = '0x' + '0'.repeat(24) + wallet.toLowerCase().replace(/^0x/, '');
-  const [a, b] = await Promise.all([erpc('eth_getLogs', [{ fromBlock, toBlock: 'latest', topics: [TRANSFER, pad] }]), erpc('eth_getLogs', [{ fromBlock, toBlock: 'latest', topics: [TRANSFER, null, pad] }])]); return rpcEvents(wallet, [...(a || []), ...(b || [])]); }
+  const [a, b] = await Promise.all([erpc('eth_getLogs', [{ fromBlock, toBlock: 'latest', topics: [TRANSFER, pad] }]), erpc('eth_getLogs', [{ fromBlock, toBlock: 'latest', topics: [TRANSFER, null, pad] }])]), logs = [...(a || []), ...(b || [])], blockAt = {};
+  for (const bn of [...new Set(logs.map((l) => l.blockNumber).filter(Boolean))].slice(-40)) { try { const blk = await erpc('eth_getBlockByNumber', [bn, false]); if (blk && blk.timestamp) blockAt[parseInt(bn, 16)] = parseInt(blk.timestamp, 16); } catch { /* undated: treated as old news below */ } }
+  return rpcEvents(wallet, logs, blockAt).filter((e) => e.at); /* a log that could not be dated is not copied (it would otherwise look brand new) */ }
 // one parsed Solana transaction -> the wallet's token balance changes (up = buy, down = sell); failed transactions ignored
 export function solEvents(wallet, tx, sig, cfg = COPY) {
   const m = tx && tx.meta; if (!m || m.err) return []; const at = tx.blockTime ? new Date(tx.blockTime * 1000).toISOString() : null, bal = {};
@@ -43,7 +48,7 @@ export async function copySetupsIn(st, cfg, { G, rpc, erpc, J, now, nowIso }) {
   const P = st.proven || [], cur = (st.copyCursor ||= {}), sells = (st.walletSells ||= {}), fresh = [];
   for (const p of P) { const w = p.w, chain = chainOfWallet(w); let ev = [];
     try { if (chain === 'robinhood') { if (erpc && st.bsDownAt && now - st.bsDownAt < 3600e3) ev = await rhLogs(w, erpc, C); /* Blockscout refused within the hour: straight to the chain */
-        else { try { ev = evmEvents(w, await G(`https://robinhoodchain.blockscout.com/api/v2/addresses/${w}/token-transfers?type=ERC-20`), C); } catch (e) { if (!erpc) throw e; if (!st.bsDownAt) J({ type: 'skip', why: `Blockscout refused (${String(e.message).slice(0, 40)}): reading the Robinhood chain directly for the next hour` }); st.bsDownAt = now; ev = await rhLogs(w, erpc, C); } } }
+        else { try { ev = evmEvents(w, await G(`https://robinhoodchain.blockscout.com/api/v2/addresses/${w}/token-transfers?type=ERC-20`), C); st.bsDownAt = null; } catch (e) { if (!erpc) throw e; if (!st.bsDownAt) J({ type: 'skip', why: `Blockscout refused (${String(e.message).slice(0, 40)}): reading the Robinhood chain directly for the next hour` }); st.bsDownAt = now; ev = await rhLogs(w, erpc, C); } } }
       else if (chain === 'solana' && rpc) { const sigs = ((await rpc('getSignaturesForAddress', [w, { limit: C.perWallet }])) || []).filter((s) => !s.err); const seenSig = cur[w + ':sig'];
         for (const s of sigs) { if (s.signature === seenSig) break; if (!seenSig) continue; /* first look: just set the cursor */ const tx = await rpc('getTransaction', [s.signature, { encoding: 'jsonParsed', maxSupportedTransactionVersion: 0 }]); ev.push(...solEvents(w, tx, s.signature, C)); }
         if (sigs[0]) cur[w + ':sig'] = sigs[0].signature; } }
