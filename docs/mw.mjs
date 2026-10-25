@@ -30,7 +30,10 @@ export function analyse(symbol, bars, { basketRet = 0, btcRet = 0, p = P } = {})
   s.rsBasket = +((ret - basketRet) * 100).toFixed(1); s.rsBtc = +((ret - btcRet) * 100).toFixed(1);
 
   // 1. impulse: the highest high in the lookback and the lowest low before it
-  const lb = Math.min(p.impulseLookback, n), hiIdx = argmax(h, n - lb, n), loIdx = argmin(l, n - lb, hiIdx + 1);
+  const lb = Math.min(p.impulseLookback, n), hiIdx = argmax(h, n - lb, n); let loIdx = argmin(l, n - lb, hiIdx + 1);
+  if (p.chill) { // memes: the fib is of the LAST leg, not the run from launch. nearest swing low (3 bars each side) that still gives a full leg into the high
+    for (let i = hiIdx - 3; i >= Math.max(n - lb, 3); i--) { let piv = true; for (let k = i - 3; k <= i + 3; k++) if (k !== i && l[k] < l[i]) { piv = false; break; }
+      if (piv && h[hiIdx] / l[i] - 1 >= p.impulseMinGain) { loIdx = i; break; } } }
   const impLow = l[loIdx], impHigh = h[hiIdx], gain = impHigh / impLow - 1;
   Object.assign(s, { impulseLow: impLow, impulseHigh: impHigh, impulseGainPct: +(gain * 100).toFixed(1) });
   if (gain < p.impulseMinGain) { s.reasons.push(`no impulse leg (+${Math.round(gain * 100)}% < ${Math.round(p.impulseMinGain * 100)}%)`); return s; }
