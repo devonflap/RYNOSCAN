@@ -1,4 +1,6 @@
-Full scan 21:11 Brisbane: 72 scanned, 53 scored, 2 above 65. On-chain volume Normal (1.14x 7-day avg).
+Full scan 22:11 Brisbane: 68 scanned, 53 scored, 5 above 65. On-chain volume Normal (1.12x 7-day avg).
+NEW watch: AI (Robinhood) Bottom reversal, opp 71, checks 6/6, stop 38.9% away, upside 80.4%.
+NEW watch: TROLL (Solana) Liquidity sweep reclaim, opp 67, checks 5/6, stop 9.7% away, upside 25.7%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: BIRB (Top 10 holders high ownership), SPCX (Mint Authority still enabled), RUSH (Mint Authority still enabled), ANSEM (Single holder ownership).
+Removed for token safety: BIRB (Top 10 holders high ownership), SPCX (Mint Authority still enabled), RUSH (Mint Authority still enabled), ANSEM (Single holder ownership), CASHCAT (top 10 wallets hold 36.5% (gate 30%)), PUMP (top 10 wallets hold 60.3% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
