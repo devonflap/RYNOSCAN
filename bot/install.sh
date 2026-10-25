@@ -4,7 +4,7 @@
 #   bash bot/install.sh --https desk.yourdomain.com     also puts the desk behind HTTPS (Caddy + Let's Encrypt) and fail2ban
 #   bash bot/install.sh --passwords                     choose new desk and control passwords (the old ones are forgotten)
 # What it sets up, and why (see bot/SECURITY.md):
-#   - four bot services (breakout, rider, lab, and trench, which runs all five trenchers on one feed) running as you, with the secrets file /etc/rynobot.env (root only)
+#   - five bot services (breakout; trench, which runs the OG and second-wave trenchers on one feed; basebreak; bottoms; bestof) running as you, with the secrets file /etc/rynobot.env (root only)
 #   - the desk as its OWN user "rynodesk" with its own environment file holding only the desk passwords: it cannot read the bot keys,
 #     the ntfy topic or the GitHub token even if the page were ever broken into
 #   - a desk password (the view) and an optional, separate control password (close/cancel/pause); no control password = read only
@@ -56,10 +56,10 @@ if ! sudo grep -q '^DASH_CONTROL_B64=' /etc/rynobot-desk.env; then
   read -rsp "Control password (12+ characters, or blank for read only): " CP; echo
   if [ -n "$CP" ] && [ ${#CP} -ge 12 ]; then echo "DASH_CONTROL_B64=$(printf '%s' "$CP" | base64 -w0)" | sudo tee -a /etc/rynobot-desk.env >/dev/null; else echo "Desk stays read only (run the installer again to add a control password)."; fi
 fi
-BOTS="breakout rider trench copy basebreak"
+BOTS="breakout trench basebreak bottoms bestof"   # 25 Oct: one bot per research track (trench runs the OG and the second wave on one feed)
 # retired bots (rules, degen, range, btc, eth; runner, minute, ignition on 24 Oct): stop their services and tell the GitHub watchdog so it does not report them as gone quiet
 TOPIC_HB="$(sudo grep '^NTFY_TOPIC=' /etc/rynobot.env 2>/dev/null | cut -d= -f2-)"
-for old in rules degen range btc eth runner minute ignition lab; do sudo systemctl stop "rynobot@$old" >/dev/null 2>&1 || true; sudo systemctl mask "rynobot@$old" >/dev/null 2>&1 || true; if [ ! -f "/etc/rynobot/retired-$old" ]; then sudo touch "/etc/rynobot/retired-$old"; [ -n "$TOPIC_HB" ] && curl -fsS -o /dev/null -X POST -H "Priority: min" -d "quiet-alerted:$old retired" "https://ntfy.sh/${TOPIC_HB}-hb" || true; fi; if systemctl list-unit-files "rynobot@$old.service" >/dev/null 2>&1 && systemctl is-enabled "rynobot@$old" >/dev/null 2>&1; then sudo systemctl disable --now "rynobot@$old" >/dev/null 2>&1 || true; sudo systemctl mask "rynobot@$old" >/dev/null 2>&1 || true; echo "Retired the $old bot (its files are kept: bot/state-$old.json, bot/journal-$old.jsonl)."; [ -n "$TOPIC_HB" ] && curl -fsS -o /dev/null -X POST -H "Priority: min" -d "quiet-alerted:$old retired" "https://ntfy.sh/${TOPIC_HB}-hb" || true; fi; done
+for old in rules degen range btc eth runner minute ignition lab rider copy trenchlab trenchshot trenchx; do sudo systemctl stop "rynobot@$old" >/dev/null 2>&1 || true; sudo systemctl mask "rynobot@$old" >/dev/null 2>&1 || true; if [ ! -f "/etc/rynobot/retired-$old" ]; then sudo touch "/etc/rynobot/retired-$old"; [ -n "$TOPIC_HB" ] && curl -fsS -o /dev/null -X POST -H "Priority: min" -d "quiet-alerted:$old retired" "https://ntfy.sh/${TOPIC_HB}-hb" || true; fi; if systemctl list-unit-files "rynobot@$old.service" >/dev/null 2>&1 && systemctl is-enabled "rynobot@$old" >/dev/null 2>&1; then sudo systemctl disable --now "rynobot@$old" >/dev/null 2>&1 || true; sudo systemctl mask "rynobot@$old" >/dev/null 2>&1 || true; echo "Retired the $old bot (its files are kept: bot/state-$old.json, bot/journal-$old.jsonl)."; [ -n "$TOPIC_HB" ] && curl -fsS -o /dev/null -X POST -H "Priority: min" -d "quiet-alerted:$old retired" "https://ntfy.sh/${TOPIC_HB}-hb" || true; fi; done
 sed "s#__DIR__#$PWD#; s#__USER__#$RUN_AS#" "bot/rynobot@.service" | sudo tee "/etc/systemd/system/rynobot@.service" >/dev/null
 sudo systemctl disable --now rynobot 2>/dev/null || true   # an older single-bot install, if there is one
 sudo systemctl daemon-reload

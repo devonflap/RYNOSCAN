@@ -9,16 +9,17 @@ const out = console.log; let f = 0; const ok = (c, m) => { out((c ? 'PASS ' : 'F
 const T0 = 1800000000, iso = (t) => new Date(t * 1000).toISOString();
 
 // ---- the five, each with its own rules
-{ ok(TRENCH_PACK.join() === 'trench,trenchlab,trenchshot,trenchx,trenchbonus' && TRENCH_PACK.every((n) => BOTS[n] && BOTS[n].engine === 'trench' && BOTS[n].labOnly), 'five trenchers, all paper only (labOnly: live is refused)');
-  const C = Object.fromEntries(TRENCH_PACK.map((n) => [n, loadConfig(n)]));
-  ok(TRENCH_PACK.every((n) => C[n].regimeDial === false && C[n].dailyLossPct >= 100), 'no outside gate: the market dial and the daily loss limit are off for every trencher');
+const FIVE = ['trench', 'trenchlab', 'trenchshot', 'trenchx', 'trenchbonus']; /* the lab, shotgun and extractor were retired on 25 Oct but still load and run, so their rules stay tested */
+{ ok(TRENCH_PACK.join() === 'trench,trenchbonus' && TRENCH_PACK.every((n) => BOTS[n] && BOTS[n].engine === 'trench' && BOTS[n].labOnly) && FIVE.every((n) => loadConfig(n).engine === 'trench' && loadConfig(n).labOnly), 'the trench pack runs the OG and the second wave (25 Oct); all five trench rulebooks still load, paper only (labOnly: live is refused)');
+  const C = Object.fromEntries(FIVE.map((n) => [n, loadConfig(n)]));
+  ok(FIVE.every((n) => C[n].regimeDial === false && C[n].dailyLossPct >= 100), 'no outside gate: the market dial and the daily loss limit are off for every trencher');
   ok(!C.trench.variants && !C.trench.holderGate && C.trench.holderRead === false && C.trench.mults.join() === '1.5,2.2,3.5' && C.trench.fixedStopPct === 35 && C.trench.maxOpen === 16 && C.trench.maxPosPct === 1, 'the OG: its first rules exactly (clips at 1.5x/2.2x/3.5x, 35% stop, 16 open, $100), no holder read');
   ok(C.trenchlab.variants.length === 7 && C.trenchlab.maxPosPct === 0.5, 'the lab: seven ways, $50 each');
   ok(!C.trenchshot.variants && C.trenchshot.noPopMin === 10 && C.trenchshot.mults.join() === '2' && C.trenchshot.freeRide && !C.trenchshot.holderGate && C.trenchshot.maxPosPct === 1, 'the shotgun: the OG\'s shots with the shotgun\'s exits, $100, no holder gate');
   ok(C.trenchx.holderGate && C.trenchx.insiderExit && C.trenchx.spikeSell.atX === 1.8 && C.trenchx.maxHoldH === 24, 'the extractor: clean coins only, half into the FOMO or at 1.8x, out when insiders sell, a day at most');
   ok(C.trenchbonus.lanes.join() === 'trend' && C.trenchbonus.trend.minAgeH === 0.5 && C.trenchbonus.holderGate && C.trenchbonus.mults.join() === '3', 'the second wave: trending only, nothing under 30 minutes, clean coins, a third into the FOMO, a third at 3x, a free third');
   ok(C.trenchshot.trendCfg.maxHoldH === undefined && C.trenchx.trendCfg.deadMin === undefined, 'the OG\'s trending-lane overrides (6 hours, 6 quiet minutes) are not forced on the other trenchers');
-  ok(!('holderGate' in BOTS.breakout) && !('spikeSell' in BOTS.rider) && !('lanes' in BOTS.rider), 'and no trench rule leaks into the other bots'); }
+  ok(!('holderGate' in BOTS.breakout) && !('spikeSell' in BOTS.basebreak) && !('lanes' in BOTS.basebreak) && !('lanes' in BOTS.bottoms), 'and no trench rule leaks into the other bots'); }
 
 // ---- the second wave: too young is looked at again later, not thrown away
 { const q = (ageMin) => ({ priceUsd: '1', pairCreatedAt: (T0 - ageMin * 60) * 1000, txns: { m5: { buys: 90, sells: 40 } }, volume: { h1: 3e5 }, priceChange: { m5: 4, h1: 45 }, marketCap: 1e6, dexId: 'pumpswap' });
@@ -44,8 +45,8 @@ const T0 = 1800000000, iso = (t) => new Date(t * 1000).toISOString();
   const base = { getJson: async (u) => (u.includes('rugcheck') ? rep : u.includes('So1111') ? { pairs: [{ baseToken: { address: 'So11111111111111111111111111111111111111112' }, quoteToken: { symbol: 'USDC' }, priceUsd: '200', liquidity: { usd: 1e7 } }] } : u.includes('trending_pools?duration=5m&page=1') ? { data: [{ id: 'solana_HOT', attributes: { name: 'HOT / SOL' }, relationships: { dex: { data: { id: 'pumpswap' } } } }] } : { data: [] }) };
   const { deps } = trenchPackDeps(f, { getJsonFn: base.getJson });
   const D = (sec) => ({ ...deps, now: sec * 1000, dsQuotes: async (items) => Object.fromEntries(items.map((i) => [i.pool.toLowerCase(), trendQ(i.pool)])), candles5: async () => null, notify: async () => {}, journal: () => {}, heartbeat: async () => {} });
-  const S = Object.fromEntries(TRENCH_PACK.map((n) => [n, newState(loadConfig(n))])), log0 = console.log;
-  const round = async (sec) => { console.log = () => {}; for (const n of TRENCH_PACK) S[n] = await cycle(S[n], { ...loadConfig(n), slipPct: 0 }, D(sec)); console.log = log0; };
+  const S = Object.fromEntries(FIVE.map((n) => [n, newState(loadConfig(n))])), log0 = console.log;
+  const round = async (sec) => { console.log = () => {}; for (const n of FIVE) S[n] = await cycle(S[n], { ...loadConfig(n), slipPct: 0 }, D(sec)); console.log = log0; };
   await round(T0); await round(T0 + 60);
   const has = (n) => S[n].positions.filter((p) => p.pool === 'HOT');
   ok(has('trench').length === 1 && has('trenchshot').length === 1 && has('trenchx').length === 1 && has('trenchbonus').length === 1 && has('trenchlab').length >= 5, 'one trending coin: the OG, the shotgun, the extractor and the second wave each took it once, the lab its ways');

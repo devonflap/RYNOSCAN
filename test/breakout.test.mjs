@@ -74,7 +74,7 @@ const T0 = Date.parse('2026-10-22T00:00:00Z'), H = 3600e3, iso = (ms) => new Dat
   const loss = (() => { const p = st.positions[0]; return p.remUnits * (p.entry - p.stop); })(); ok(Math.abs(loss - 10) < 0.01, 'risk at the stop is 1% of the account');
   council = { botTuning: { breakout: { active: ['Reward to risk (TP2)|3R+|only', 'Chain|Robinhood|only'] } } }; await cycle(st, cfg, deps(T0 + 3 * H, 1.1));
   console.log = out; ok(msgs.length === 1 && /RynoBot Breakout: filters changed/.test(msgs[0]) && /On: only when chain is Robinhood/.test(msgs[0]) && jr.some((j) => j.type === 'filters'), 'the tuner switched a filter on: one phone note saying what changed (sizing untouched)');
-  ok(Object.keys(BOTS).join() === 'breakout,trench,trenchlab,trenchshot,trenchx,trenchbonus,basebreak,copy,rider' && ['runner', 'minute', 'ignition'].every((k) => RETIRED[k]) && DEFAULTS.name === 'rules' && cfg.name === 'breakout' && cfg.maxStopPct === 35 && cfg.minOpp === 50, 'eight bots (five of them trenchers); the runner, minute bot and ignition retired (the retired rules book stays as the defaults)'); }
+  ok(Object.keys(BOTS).join() === 'breakout,trench,trenchbonus,basebreak,bottoms,bestof' && ['runner', 'minute', 'ignition', 'rider', 'copy', 'trenchlab', 'trenchshot', 'trenchx'].every((k) => RETIRED[k]) && DEFAULTS.name === 'rules' && cfg.name === 'breakout' && cfg.maxStopPct === 35 && cfg.minOpp === 50, 'one bot per track (25 Oct): breakout, the OG and second-wave trenchers, base breakout + copies, bottomed-out and best-of; the rest retired (the retired rules book stays as the defaults)'); }
 
 // reality check against the Breakout bot's paper twin
 { const paper = [], closed = [];
