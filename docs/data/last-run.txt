@@ -1,3 +1,5 @@
-Hourly refresh 17:10 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Normal (1.13x 7-day avg).
+Full scan 18:11 Brisbane: 74 scanned, 57 scored, 3 above 65. On-chain volume Normal (1.09x 7-day avg).
+NEW watch: STONK (Solana) Bottom reversal, opp 67, checks 5/6, stop 15.7% away, upside 47.2%; more sellers than buyers in the last hour.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: BIRB (Top 10 holders high ownership), SPCX (Mint Authority still enabled), RUSH (Mint Authority still enabled), ANSEM (Single holder ownership), CASHCAT (top 10 wallets hold 36.1% (gate 30%)), VIRTUAL (owner can mint more).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
