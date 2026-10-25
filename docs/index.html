@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>RynoScan</title>
 <link rel="icon" href="logo.png">
-<link rel="stylesheet" href="style.css?v=20261021b">
+<link rel="stylesheet" href="style.css?v=20261026a">
 <style>html.locked .shell,html.locked .wrap{display:none!important}#gate{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#1a1a1a;color:#eee;font-family:system-ui,sans-serif}#gate form{display:flex;flex-direction:column;gap:12px;width:min(320px,86vw);text-align:center}#gate img{width:72px;height:72px;margin:0 auto}#gate input{padding:12px;border-radius:8px;border:1px solid #555;background:#2a2a2a;color:#eee;font-size:16px;text-align:center}#gate button{padding:12px;border:0;border-radius:8px;background:#D64227;color:#fff;font-size:16px;cursor:pointer}#gate p{margin:0;min-height:1.2em;color:#ee6a4b;font-size:14px}</style>
 <script>
 /* Access code. This is a screen lock for casual visitors, not real security: the page and its data files are still public to anyone who knows how to look. */
@@ -24,15 +24,19 @@ crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)).then(function(b){if(
 <body>
 <div class="shell">
 <aside class="side" id="side" aria-label="Features">
-  <div class="sgroup">Overview</div>
-  <button type="button" class="sitem vtab" data-tab="zone" title="Buy zone" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".8" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><span>Buy zone</span></button><button type="button" class="sitem vtab" data-tab="mkt" title="Market" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg><span>Market</span></button><button type="button" class="sitem vtab" data-tab="vol" title="Volume" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V11M10 20V5M16 20v-7M22 20H2"/></svg><span>Volume</span></button><button type="button" class="sitem vtab" data-tab="scan" title="Scan info" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 12l6-6"/><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></svg><span>Scan info</span></button>
-  <div class="sgroup">Trades</div>
-  <a class="sitem" href="#bid" data-sec="bid" title="Bid-ready"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/></svg><span>Bid-ready</span></a>
-  <a class="sitem" href="#runners" data-sec="runners" title="High risk runners"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3 4 4.5 4 8a4 4 0 0 1-8 0c0-1.5.6-2.4 1.4-3.4"/><path d="M12 21a6 6 0 0 0 6-6"/></svg><span>Runners</span></a>
-  <a class="sitem" href="#plans" data-sec="plans" title="Worth watching"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span>Worth watching</span></a>
-  <a class="sitem" href="#patterns" data-sec="patterns" title="Patterns"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg><span>Patterns</span></a>
-  <div class="sgroup">Results</div>
-  <a class="sitem" href="#paper" data-sec="paper" title="Paper trading"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12.5h2M3 10h18"/></svg><span>Paper trading</span></a><a class="sitem" href="#log" data-sec="log" title="Signal log"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Signal log</span></a><a class="sitem" href="#learn" data-sec="learn" title="What works"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0012 3z"/></svg><span>What works</span></a><a class="sitem" href="#backtest" data-sec="backtest" title="Backtest"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Backtest</span></a>
+  <div class="modes" role="tablist" aria-label="Desk"><button type="button" class="mode" data-mode="memes" role="tab">Memes</button><button type="button" class="mode" data-mode="alts" role="tab">Alts</button><button type="button" class="mode" data-mode="paper" role="tab">Paper &amp; research</button></div>
+  <div class="sgroup" data-mode="memes">Overview</div>
+  <button type="button" class="sitem vtab" data-mode="memes" data-tab="zone" title="Buy zone" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".8" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><span>Buy zone</span></button><button type="button" class="sitem vtab" data-mode="memes" data-tab="mkt" title="Market" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg><span>Market</span></button><button type="button" class="sitem vtab" data-mode="memes" data-tab="vol" title="Volume" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V11M10 20V5M16 20v-7M22 20H2"/></svg><span>Volume</span></button><button type="button" class="sitem vtab" data-mode="memes" data-tab="scan" title="Scan info" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 12l6-6"/><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></svg><span>Scan info</span></button>
+  <div class="sgroup" data-mode="memes">Trades</div>
+  <a class="sitem" data-mode="memes" href="#bid" data-sec="bid" title="Bid-ready"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/></svg><span>Bid-ready</span></a>
+  <a class="sitem" data-mode="memes" href="#runners" data-sec="runners" title="High risk runners"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3 4 4.5 4 8a4 4 0 0 1-8 0c0-1.5.6-2.4 1.4-3.4"/><path d="M12 21a6 6 0 0 0 6-6"/></svg><span>Runners</span></a>
+  <a class="sitem" data-mode="memes" href="#spotmeme" data-sec="spotmeme" title="Spot &amp; chill setups"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18L9 8l4 6 3-4 5 8"/><path d="M3 6l18 10"/></svg><span>Spot &amp; chill</span></a>
+  <a class="sitem" data-mode="memes" href="#plans" data-sec="plans" title="Worth watching"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span>Worth watching</span></a>
+  <a class="sitem" data-mode="memes" href="#patterns" data-sec="patterns" title="Patterns"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg><span>Patterns</span></a>
+  <div class="sgroup" data-mode="alts">Alts desk</div>
+  <a class="sitem" data-mode="alts" href="#alts" data-sec="alts" title="Alts desk"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg><span>Alts desk</span></a>
+  <div class="sgroup" data-mode="paper">Results</div>
+  <a class="sitem" data-mode="paper" href="#paper" data-sec="paper" title="Paper trading"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12.5h2M3 10h18"/></svg><span>Paper trading</span></a><a class="sitem" data-mode="paper" href="#log" data-sec="log" title="Signal log"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Signal log</span></a><a class="sitem" data-mode="paper" href="#learn" data-sec="learn" title="What works"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0012 3z"/></svg><span>What works</span></a><a class="sitem" data-mode="paper" href="#backtest" data-sec="backtest" title="Backtest"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Backtest</span></a>
   <div class="sgroup">Tools</div>
   <a class="sitem" href="#lookup" data-sec="lookup" title="Check a coin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span>Check a coin</span></a>
 </aside>
@@ -56,7 +60,7 @@ crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)).then(function(b){if(
   </header>
   <p class="health" id="health" hidden></p>
   <p class="hint" id="setupHint" hidden></p>
-  <section class="card verdict" id="verdict" hidden>
+  <section class="card verdict" data-mode="memes" id="verdict" hidden>
     <div id="vTop"></div>
     <div class="vwrap">
       <div class="vpanes">
@@ -74,57 +78,69 @@ crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)).then(function(b){if(
     </div>
   </section>
 
-  <div class="ctl" id="ctl" aria-label="Filter and sort"></div>
+  <div class="ctl" data-mode="memes" id="ctl" aria-label="Filter and sort"></div>
 
 
-  <section class="tiles" id="tiles"></section>
+  <section class="tiles" data-mode="memes" id="tiles"></section>
 
-  <section class="card" id="bid">
+  <section class="card" data-mode="memes" id="bid">
     <h2>Bid-ready charts</h2>
     <p class="note">Coins where all 7 gates pass, whether the setup is a bottom reversal or a chart pattern. Each chart shows the entry zone (shaded), stop (red) and take-profits (green) over 4h candles with volume underneath; the purple dashed line is the pattern's neckline, rim or trend lines.</p>
     <p class="empty" id="bidEmpty" hidden></p>
     <div class="plans" id="bidList"></div>
   </section>
 
-  <section class="card" id="runners">
+  <section class="card" data-mode="memes" id="runners">
     <h2>High risk, high reward runners</h2>
     <p class="note">Coins with unusual volume, buyers leading, more wallets buying than selling and holders growing. Each card shows four checks. Coins that trip a risk rule (wallets selling, a few wallets driving the volume, a flagged token, thin liquidity) are dropped from the list but still tracked, so the data can show whether the rules help. These are not bid-ready charts: they have no tested entry rules and can fall 50% or more, or be rugged. Updated on each full scan.</p>
     <p class="empty" id="runEmpty" hidden></p>
     <div class="plans" id="runList"></div>
   </section>
 
-  <section class="card" id="plans">
+  <section class="card" data-mode="memes" id="spotmeme">
+    <h2>Spot &amp; chill meme setups</h2>
+    <p class="note">The Alts desk rules run over the meme universe on daily candles: a coin that has already run 100%+, is now correcting in a falling wedge, flag or flat base, and is close to resolving on a daily close. Slower than the 4h signals above and far rarer. Entry is the daily close through the red line, invalidation under the pattern low; meme rules for the exit: small size, clip 20% into strength, moonbag the rest. Updated once a day after the UTC close.</p>
+    <div id="spotMemeOut"></div>
+  </section>
+
+  <section class="card" data-mode="memes" id="plans">
     <h2>Worth watching</h2>
     <p class="note">Valid plan, $250k+ volume and close to bid-ready, ranked by opportunity score. Risk is shown, not capped: the stop sits wherever the setup is proved wrong, so check the stop distance before sizing.</p>
     <div class="plans" id="watchList"></div>
   </section>
 
-  <section class="card" id="patterns">
+  <section class="card" data-mode="memes" id="patterns">
     <h2>Chart patterns and bottomed-out charts</h2>
     <p class="note">Bottomed-out charts are coins that sold off to oversold, stopped making lower lows and are now turning up (an RSI flip, a divergence or a higher low). They are early: levels are indicative until all 7 gates pass. Chart patterns (bull flag, inverse head and shoulders, cup and handle, falling wedge, double bottom) are found on the 4h chart by fixed rules; the purple lines on each chart are the pattern itself.</p>
     <div class="chips" id="patChips"></div>
     <div class="plans" id="patList"></div>
   </section>
 
-  <section class="card" id="paper">
+  <section class="card" data-mode="alts" id="alts">
+    <h2>Alts desk <span class="sub">timing beats time · spot &amp; chill</span></h2>
+    <p class="note">Market Watcher-style HTF spot setups on the top 80 alts by volume, daily candles, scanned once a day after the UTC close. Regime first (BTC and the alt basket above their weekly support), then coins that have already run 50%+ and are correcting in a falling wedge, bull flag or flat base. WATCH is a pattern forming; DECISION is price pressing the upper line; BID is a daily close through it, on volume. Entry is that close, invalidation sits under the pattern low, T1 is the impulse high and T2/T3 the measured move. Phone alerts fire only when a state changes. Relative strength, the spot book and the playbook are on the chips below.</p>
+    <div id="altsOut"></div>
+  </section>
+
+  <section class="card" data-mode="paper" id="paper">
     <h2>Paper desk</h2>
     <p class="note">Fifteen paper books, each with its own $10,000: conservative (bid-ready setups, and risky coins under three exit plans), the degen desk plus three other exit plans on the same coins (ladder, moonbag, and cut-on-sellers), three playbook setups (Fib pullback, inside the pattern, proven wallets), an early-move book fed by a 15-minute checker plus a "buy the flush" version of it, a breakout scalper and a random-entry baseline every book must beat. The Council tab is six rule-based reviewers that argue over the results and a chair that gives one final answer. Bot sim trades them through one risk-sized account. No real money is involved.</p>
     <div id="paperOut"></div>
   </section>
 
-  <details class="card fold" id="log">
+  <details class="card fold" data-mode="paper" id="log">
     <summary><h2 style="display:inline">Signal log &amp; results (audit trail)</h2></summary>
     <p class="note">Every bid-ready signal the rules have fired, re-checked against new candles on each scan: filled inside 48 hours, a third sold at each target, stop moved to breakeven after TP1, 7-day time exit. Results are in R (1R = the distance from entry to stop).</p>
     <div id="rChart"></div>
     <div class="scroll"><table class="tbl" id="logTbl"><thead><tr><th>Signal</th><th>Coin</th><th>Setup</th><th>Kind</th><th>Entry</th><th>Stop</th><th>Price now</th><th>Why it ended</th><th class="n">Result</th></tr></thead><tbody></tbody></table></div>
   </details>
 
-  <details class="card" id="all">
+  <details class="card" data-mode="paper" id="all">
     <summary><h2 style="display:inline">Review every coin above 65</h2></summary>
     <div class="scroll"><table class="tbl" id="allTbl"><thead><tr><th>Coin</th><th>Chain</th><th>Signal</th><th>Setup</th><th class="n">Opp</th><th class="n">Checks</th><th class="n">Gates</th><th class="n">Risk %</th><th class="n">Upside %</th><th class="n">24h vol</th><th class="n">Liquidity</th><th class="n">Holders</th></tr></thead><tbody></tbody></table></div>
   </details>
 
-  <details class="card fold" id="learn">
+  <details class="card fold" data-mode="paper" id="learn">
     <summary><h2>What the data says</h2></summary>
     <p class="tip" id="learnTip">Nothing learned yet.</p>
     <div class="scroll"><table class="tbl" id="learnTbl"><thead><tr><th>Setup</th><th class="n">Trades</th><th class="n">Win</th><th class="n">Avg R</th><th class="n">90% range</th><th>Verdict</th></tr></thead><tbody></tbody></table></div>
@@ -136,7 +152,7 @@ crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)).then(function(b){if(
     <p class="note">Every week the backtest replays all patterns, including new candidates, and adds the live signal log. A setup is switched off only when its results are reliably negative, and a candidate goes live only when they are reliably positive. Small samples never change anything.</p>
   </details>
 
-  <details class="card fold" id="backtest">
+  <details class="card fold" data-mode="paper" id="backtest">
     <summary><h2>Backtest: do the rules work?</h2></summary>
     <p class="tip" id="btVerdict">No backtest has run yet. Run the "RynoScan backtest" workflow once (Actions tab); it then refreshes every Sunday.</p>
     <div class="scroll"><table class="tbl" id="btTbl"><thead><tr><th>Setup</th><th class="n">Signals</th><th class="n">Closed</th><th class="n">Win rate</th><th class="n">Avg R</th><th class="n">Median R</th><th class="n">Profit factor</th><th class="n">Hit TP1</th></tr></thead><tbody></tbody></table></div>
@@ -148,6 +164,6 @@ crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)).then(function(b){if(
   <p class="foot">Rule-based screen, not financial advice. Rules are untested until the signal log has about 30 closed signals. Meme coins can go to zero and stops can gap on thin liquidity.</p>
 </div>
 </div>
-<script type="module" src="app.js?v=20261020d"></script>
+<script type="module" src="app.js?v=20261026a"></script>
 </body>
 </html>

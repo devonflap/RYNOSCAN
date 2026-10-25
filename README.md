@@ -271,3 +271,13 @@ Not changed, on purpose: the trigger thresholds, targets, ride-free level and ho
 - **Passed-on tracking:** every setup a bot drops (no chasing, too late, thin or pulled liquidity, size too small, expired) is followed for 24 hours with its price, best price and whether its stop would have hit. The desk shows how often saying no was right. This is the missing half of the 2-week test: a bot can look fine on the trades it took and still be leaving the best ones on the table.
 - **Trigger-to-fill latency:** each fill records the trigger price (the next 5-minute open), the price actually paid and the impact for the pool, so the reality check can split the paper gap into "late fills" and "wick targets".
 
+
+## Alts desk (Market Watcher style: "timing beats time")
+The dashboard now has three desks in the sidebar: **Memes** (the 4h scanner above, plus a daily "Spot & chill" section), **Alts** and **Paper & research**.
+
+The Alts desk is a slower, lower-risk book for the top 80 alts by volume (Gate.io daily candles, no key needed). It runs once a day after the UTC close (`.github/workflows/alts.yml`, 00:20 UTC) and looks for the one thing: a coin that has already run 50%+, is correcting in a falling wedge / bull flag / flat base, and is about to resolve on a daily close. Regime first (BTC and the alt basket above their weekly support), relative strength ranked into the weekly close, entry = the daily close through the upper line, invalidation under the pattern low, T1 the impulse high, T2/T3 the measured move, stop to breakeven at +1R, 25% clips into momentum. The same rules run over the meme universe on daily on-chain candles (needs `CG_API_KEY`) and show up in the Memes desk as "Spot & chill meme setups".
+
+- Phone alerts (`altsAlerts` in `config/settings.json`, default on, independent of `phoneAlerts`): **decision time**, **BID**, **invalidated**, position events (**SL TO BE**, **SELL INTO MOMENTUM**, **OUT**), and a Sunday **weekly close check**. Only on a state change, never a BID on a Sunday.
+- Your spot book: `config/alts-positions.json`, e.g. `[{"symbol":"ENA","entry":0.215,"invalidation":0.171}]`. The daily run moves the stop and records clips.
+- Settings: `altsUniverse` (pairs, default 80), `altsMinScore` (default 60). Rules live in `docs/mw.mjs` (`P`, and `P_MEME` for memes).
+- First run: Actions → **RynoScan alts desk** → Run workflow. The sample `docs/data/alts.json` (7 coins to 25 Oct 2026) is replaced on the first run.

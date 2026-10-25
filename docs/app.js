@@ -9,6 +9,7 @@ import { BOOKS } from './strategies.mjs';
 import { evidence, exitHint } from './evidence.mjs';
 import { botBook, BOT, BOT_RULES } from './botsim.mjs';
 import { parseInfo } from './holders.mjs';
+import { drawAlts, drawMemeSetups } from './alts.mjs';
 
 const $ = (id) => document.getElementById(id);
 const NS = 'http://www.w3.org/2000/svg';
@@ -995,13 +996,13 @@ function drawLearn() {
 const store = { get(k) { try { return localStorage.getItem(k) || ''; } catch { return ''; } }, set(k, v) { try { v ? localStorage.setItem(k, v) : localStorage.removeItem(k); } catch { /* storage blocked: fine */ } } };
 function guessRepo() { const saved = store.get('rynoRepo'); if (saved) return saved; const m = location.hostname.match(/^([^.]+)\.github\.io$/), p = location.pathname.split('/').filter(Boolean)[0]; return m && p ? m[1] + '/' + p : ''; }
 async function loadAll() {
-  const [setups, signals, charts, vol, meta, bt, watch, learned, usage, fwd, degen, lab, wscore, runners, council, trench, tracks] = await Promise.all([getJ('setups.json', []), getJ('signals.json', []), getJ('charts.json', []), getJ('chainvol.json', []), getJ('meta.json', null), getJ('backtest.json', null), getJ('watch.json', null), getJ('learned.json', null), getJ('usage.json', null), getJ('forward.json', []), getJ('degen.json', []), getJ('lab.json', []), getJ('walletscore.json', null), getJ('runners.json', null), getJ('council.json', null), getJ('trench-council.json', null), getJ('councils.json', null)]);
+  const [setups, signals, charts, vol, meta, bt, watch, learned, usage, fwd, degen, lab, wscore, runners, council, trench, tracks, alts] = await Promise.all([getJ('setups.json', []), getJ('signals.json', []), getJ('charts.json', []), getJ('chainvol.json', []), getJ('meta.json', null), getJ('backtest.json', null), getJ('watch.json', null), getJ('learned.json', null), getJ('usage.json', null), getJ('forward.json', []), getJ('degen.json', []), getJ('lab.json', []), getJ('walletscore.json', null), getJ('runners.json', null), getJ('council.json', null), getJ('trench-council.json', null), getJ('councils.json', null), getJ('alts.json', null)]);
   const arr = (x) => (Array.isArray(x) ? x.filter((y) => y && typeof y === 'object') : []), obj = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? x : null);
   S.degen = arr(degen); S.lab = arr(lab); S.trench = obj(trench) && trench.headline ? trench : null; S.tracks = obj(tracks) && tracks.head ? tracks : null; S.council = obj(council) && council.final && Array.isArray(council.hats) ? council : null; S.wscore = obj(wscore); S.runners = obj(runners) && Array.isArray(runners.items) ? runners : null; try { const r = await fetch('paper-config.json', { cache: 'no-store' }); S.paperCfg = r.ok ? await r.json() : null; } catch { S.paperCfg = null; } S.setups = arr(setups); S.signals = arr(signals); S.fwd = arr(fwd); S.charts = new Map(arr(charts).filter((c) => c.id != null).map((c) => [c.id, c])); S.vol = arr(vol); S.usage = obj(usage) ? usage : null; S.meta = obj(meta) && meta.scannedAt ? meta : null; S.bt = obj(bt) && Array.isArray(bt.byType) && bt.overall ? bt : null;
   S.learned = obj(learned) && Array.isArray(learned.setups) ? { ...learned, promote: Array.isArray(learned.promote) ? learned.promote : [], demote: Array.isArray(learned.demote) ? learned.demote : [], insights: Array.isArray(learned.insights) ? learned.insights : [], total: obj(learned.total) || {} } : null; try { C.applyLearned(learned); } catch { /* ignore */ }
   S.pulse = watch && watch.pulse && Array.isArray(watch.pulse.items) ? watch.pulse : null; S.myPos = watch && Array.isArray(watch.positions) ? watch.positions : []; S.watch = new Map(arr(watch && watch.items).filter((w) => w.id != null).map((w) => [w.id, w])); S.watchAt = watch && watch.at && watch.scanAt === (meta && meta.scannedAt) ? watch.at : (watch && watch.at) || null;
   if (S.live && S.meta && S.live.at > Date.parse(S.meta.scannedAt)) { const m = S.live; S.setups = S.setups.map((r) => m.fresh.get(r.id) || r).filter((r) => r.mine || r.opp == null || r.opp > (S.meta.minOpp ?? 65) || !m.fresh.has(r.id)); m.charts.forEach((c, id) => S.charts.set(id, c)); }
-  header(); verdict(); draw(); fearGreed(); drawBacktest(); drawLearn(); try { drawRunners(); } catch { /* keep the page alive */ } try { drawScorecard(); } catch { /* keep the page alive */ } try { drawPaper(); } catch { /* keep the page alive */ } stamp();
+  header(); verdict(); draw(); fearGreed(); drawBacktest(); drawLearn(); try { drawRunners(); } catch { /* keep the page alive */ } try { drawScorecard(); } catch { /* keep the page alive */ } try { drawPaper(); } catch { /* keep the page alive */ } S.alts = alts && typeof alts === 'object' ? alts : null; try { drawAlts(S.alts, $('altsOut')); drawMemeSetups(S.alts, $('spotMemeOut')); } catch { /* keep the page alive */ } if (S.applyMode) S.applyMode(); stamp();
 }
 // ---------- boot ----------
 function stamp() {
@@ -1028,6 +1029,16 @@ function wireTabs() {
   let k = 'zone'; try { k = store.get('rynoTab') || 'zone'; } catch { /* default */ } show(tabs.some((t) => t.dataset.tab === k) ? k : 'zone');
 }
 
+// ---------- desk modes: Memes / Alts / Paper & research. Everything tagged data-mode shows only in its desk; untagged things show in all ----------
+function wireModes() {
+  const btns = [...document.querySelectorAll('.mode')]; if (!btns.length) return;
+  const show = (k) => { btns.forEach((b) => { const on = b.dataset.mode === k; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
+    document.querySelectorAll('[data-mode]').forEach((e) => { if (e.classList.contains('mode')) return; if (e.id === 'verdict' && e.dataset.mode === k) { e.hidden = !S.meta; return; } e.hidden = e.dataset.mode !== k; });
+    try { store.set('rynoMode', k); } catch { /* optional */ } if (k === 'alts') document.querySelectorAll('#altsOut canvas').forEach((cv) => { try { if (cv._r) import('./alts.mjs').then((m) => m.drawMwChart(cv, cv._r)); } catch { /* fine */ } }); };
+  S.applyMode = () => show(store.get('rynoMode') || 'memes');
+  btns.forEach((b) => b.addEventListener('click', () => { show(b.dataset.mode); window.scrollTo({ top: 0 }); }));
+  let k = 'memes'; try { k = store.get('rynoMode') || 'memes'; } catch { /* default */ } show(btns.some((b) => b.dataset.mode === k) ? k : 'memes');
+}
 // ---------- feature sidebar: highlight the section in view; Overview items pick a pane and scroll to the card ----------
 function wireSide() {
   const items = [...document.querySelectorAll('.sitem[data-sec]')]; if (!items.length) return;
@@ -1089,7 +1100,7 @@ async function refresh(manual) {
   refreshing = false;
 }
 (async () => {
-  tidy(); wireTabs(); wireSide(); await loadAll(); stamp(); setInterval(stamp, 60000);
+  tidy(); wireTabs(); wireSide(); wireModes(); await loadAll(); stamp(); setInterval(stamp, 60000);
   const b = $('refreshBtn'); if (b) b.addEventListener('click', () => refresh(true));
   setInterval(() => { if (!document.hidden) refresh(false); }, 5 * 60000);          // quiet refresh every 5 minutes
   document.addEventListener('visibilitychange', () => { if (!document.hidden && S.meta && Date.now() - Date.parse(S.meta.scannedAt) > 20 * 60000) refresh(false); }); // coming back to the tab
