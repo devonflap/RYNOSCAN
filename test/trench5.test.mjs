@@ -18,7 +18,7 @@ const T0 = 1800000000, iso = (t) => new Date(t * 1000).toISOString();
   ok(C.trenchx.holderGate && C.trenchx.insiderExit && C.trenchx.spikeSell.atX === 1.8 && C.trenchx.maxHoldH === 24, 'the extractor: clean coins only, half into the FOMO or at 1.8x, out when insiders sell, a day at most');
   ok(C.trenchbonus.lanes.join() === 'trend' && C.trenchbonus.trend.minAgeH === 0.5 && C.trenchbonus.holderGate && C.trenchbonus.mults.join() === '3', 'the second wave: trending only, nothing under 30 minutes, clean coins, a third into the FOMO, a third at 3x, a free third');
   ok(C.trenchshot.trendCfg.maxHoldH === undefined && C.trenchx.trendCfg.deadMin === undefined, 'the OG\'s trending-lane overrides (6 hours, 6 quiet minutes) are not forced on the other trenchers');
-  ok(!('holderGate' in BOTS.breakout) && !('spikeSell' in BOTS.lab) && !('lanes' in BOTS.rider), 'and no trench rule leaks into the other bots'); }
+  ok(!('holderGate' in BOTS.breakout) && !('spikeSell' in BOTS.rider) && !('lanes' in BOTS.rider), 'and no trench rule leaks into the other bots'); }
 
 // ---- the second wave: too young is looked at again later, not thrown away
 { const q = (ageMin) => ({ priceUsd: '1', pairCreatedAt: (T0 - ageMin * 60) * 1000, txns: { m5: { buys: 90, sells: 40 } }, volume: { h1: 3e5 }, priceChange: { m5: 4, h1: 45 }, marketCap: 1e6, dexId: 'pumpswap' });

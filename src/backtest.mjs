@@ -24,7 +24,7 @@ const t0 = Date.now(); const say = m => console.log(`[${((Date.now() - t0) / 100
 say(`backtest: plan ${api.plan}, up to ${cfg.maxPools} coins`);
 const { list } = await discoverPools(api.get, cfg, [], m => api.log.push(m));
 const WARM = 384, TAIL = 192, STEP_OK = t => (t + 3600) % 14400 === 0; // 4h candle just closed
-const VARIANTS = { 'Breakeven after TP1 (current)': { tp1Stop: 0 }, 'Stop half a risk below entry after TP1': { tp1Stop: 0.5 }, 'Keep the original stop until TP2': { tp1Stop: 1 }, 'Breakeven after TP1, then stop at TP1 after TP2': { tp1Stop: 0, ladder: true } };
+const VARIANTS = { 'Breakeven after TP1 (current)': { tp1Stop: 0 }, 'Stop half a risk below entry after TP1': { tp1Stop: 0.5 }, 'Keep the original stop until TP2': { tp1Stop: 1 }, 'Breakeven after TP1, then stop at TP1 after TP2': { tp1Stop: 0, ladder: true }, 'Hold a week, stop only (no targets)': { noTargets: true }, 'A third at TP1, the rest held a week': { tpMax: 1 } }; /* 25 Oct: the base-breakout study found holding beat selling into targets */
 const DEFAULT_OFF = [...C.RULES.off], DEFAULT_SHADOW = [...C.RULES.shadow], isLive = n => !DEFAULT_OFF.includes(n) && !DEFAULT_SHADOW.includes(n);
 C.RULES.allowShadow = true; C.RULES.off = []; // the replay measures every pattern, including candidates and switched-off ones, so the learner can see them
 const signals = [], nmRows = []; let coins = 0, cuts = 0, i = 0;

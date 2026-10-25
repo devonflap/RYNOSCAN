@@ -346,7 +346,7 @@ export function applyLearned(L){if(!L||typeof L!=='object'||!RULES.v2)return;con
  RULES.shadow=RULES.shadow.filter(x=>!pro.includes(x));RULES.off=[...new Set([...RULES.off.filter(x=>!pro.includes(x)),...(RULES.neverOff?[]:dem)])];} // neverOff: the data may flag a pattern as failing, but it keeps running and alerting (owner's rule)
 // Walk an existing signal forward over new hourly candles (fill within 48h, a third sold at each TP,
 // stop to breakeven after TP1, 7-day time exit). Result in R.
-export function evaluate(s,h1,at,opts={}){const k1=opts.tp1Stop??0,ladder=!!opts.ladder; // k1: stop after TP1 sits k1 x risk below entry (0 = breakeven, 1 = keep the original stop); ladder: after TP2 the stop moves up to TP1
+export function evaluate(s,h1,at,opts={}){const k1=opts.tp1Stop??0,ladder=!!opts.ladder,maxHit=opts.noTargets?0:(opts.tpMax??3); /* noTargets: hold a week with the stop only; tpMax 1: a third at TP1, the rest held */ // k1: stop after TP1 sits k1 x risk below entry (0 = breakeven, 1 = keep the original stop); ladder: after TP2 the stop moves up to TP1
 // fillAt: 'mid' (default, optimistic) or 'high' (limit order resting at the top of the zone, which is what actually fills). slipPct: round-trip slippage and fees as % of the fill price, charged in R.
 const E=opts.fillAt==='high'?s.entryHigh:opts.fillAt==='low'?s.entryLow:s.entryMid,slipPct=opts.slipPct??0;
 const t0=Date.parse(s.signalAt)/1000;const bars=h1.filter(b=>b[0]>=t0);let filled=null,stop=s.stop,hit=0,R=0,left=1,status='waiting for entry',closedAt=null,hiMax=-Infinity,loMin=Infinity,exitPx=null;
@@ -354,7 +354,7 @@ const t0=Date.parse(s.signalAt)/1000;const bars=h1.filter(b=>b[0]>=t0);let fille
  if(!(risk>0))return {...s,status:'invalid plan',tpHit:0,resultR:null,openR:null,closedAt:null,checkedAt:at};
  for(const b of bars){if(!filled){if(b[0]>t0+48*3600){status='expired (no fill)';closedAt=b[0];break;}if(b[3]<=s.entryHigh){filled=b[0];status='open';R=-slipR;}else continue;}
   loMin=Math.min(loMin,b[3]);if(b[3]<=stop){R+=left*((stop-E)/risk);exitPx=left>0?stop:null;left=0;status=hit?'stopped after TP'+hit:'stopped out';closedAt=b[0];break;}
-  hiMax=Math.max(hiMax,b[2]);const tps=[s.tp1,s.tp2,s.tp3];while(hit<3&&b[2]>=tps[hit]){R+=(1/3)*((tps[hit]-E)/risk);left-=1/3;hit++;if(hit===1)stop=Math.max(stop,E-k1*risk);if(hit===2&&ladder)stop=Math.max(stop,s.tp1);}
+  hiMax=Math.max(hiMax,b[2]);const tps=[s.tp1,s.tp2,s.tp3];while(hit<maxHit&&b[2]>=tps[hit]){R+=(1/3)*((tps[hit]-E)/risk);left-=1/3;hit++;if(hit===1)stop=Math.max(stop,E-k1*risk);if(hit===2&&ladder)stop=Math.max(stop,s.tp1);}
   if(hit===3){left=0;status='hit TP3';closedAt=b[0];break;}
   if(b[0]>filled+7*86400){R+=left*((b[4]-E)/risk);exitPx=b[4];left=0;status='time exit (7 days)';closedAt=b[0];break;}}
  return {...s,status,tpHit:hit,resultR:status==='open'||status==='waiting for entry'||status==='expired (no fill)'?null:+R.toFixed(2),openR:status==='open'?+(R+left*(((bars.length?bars[bars.length-1][4]:E)-E)/risk)).toFixed(2):null,

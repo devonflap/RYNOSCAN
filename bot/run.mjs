@@ -107,16 +107,6 @@ export const BOTS = {
   // THE LAB: the same minute-scan signals as the runner, but every signal is traded seven ways at once, each a seventh of the risk, so the
   // council can measure one choice at a time against the base case (A): entry now vs the first pullback vs a random coin (the luck
   // baseline); the fixed 20% stop vs the structure stop; Ryan's clips vs cash-early vs the momentum trail. Never goes live (labOnly).
-  lab: { name: 'lab', label: 'RynoBot Lab', source: 'live', liveScan: true, labOnly: true, entry: 'market', exit: 'ladder', realityBook: null, minOpp: 0, ...RUN, runnerMaxNewLive: 2, minLiqUsd: 50000, fixedStopPct: 20, minStopPct: 0, maxStopPct: 45, mults: [1.5, 2, 2.5, 3, 4], shares: [0.2, 0.2, 0.2, 0.2, 0.1], moonTrail: 0.45, beAfterFirst: false, flowCut: true, noFollowH: 24, boostTighten: 0.15, minAgeH: 2, maxLiqPct: 0.5, coolH: 72, sellersLoss: 0.08, sellersX: 1.2, maxHoldH: 168, maxOpen: 70, maxOpenRiskPct: 16, riskPct: 1.5, maxPosPct: 4, /* 70 open = about ten signals at once (7 variants each); 30 filled up in a day on 23 Oct and the lab stopped learning */ signalMaxAgeH: 4, chaseLimitPct: 15, pbDipPct: 12, pbWaitH: 3, pbFailPct: 15,
-    variants: [
-      { key: 'A-base', entry: 'market', signalMaxAgeH: 2 },
-      { key: 'B-pullback', entry: 'pullback' },
-      { key: 'C-control', entry: 'control', signalMaxAgeH: 2 },
-      { key: 'D-structure', entry: 'market', signalMaxAgeH: 2, stopMode: 'structure', structure: { minPct: 12, maxPct: 30, fixedPct: 20 } },
-      { key: 'E-cash-early', entry: 'market', signalMaxAgeH: 2, mults: [1.5, 2], shares: [0.5, 0.3], moonTrail: 0.35 },
-      { key: 'F-momentum', entry: 'market', signalMaxAgeH: 2, exit: 'momentum' },
-      { key: 'G-giveback', entry: 'market', signalMaxAgeH: 2, peakGiveback: { armPct: 0.3, keep: 0.5 }, dumpCut: { min5: 8, sellX5: 1.5, sellX1: 1.2, offHighPct: 0.15 } },
-    ] },
   // THE MINUTE BOT (research, paper only): the looser minute scan (volume 1.8x, buyers 1.05x, $25k liquidity, no age gate), the entry on the
   // first green 1-minute candle after the signal, the exit on a 1-minute dump candle or a trail under the last three minutes' lows once up 20%,
   // then the clips. Does a 1-minute entry and exit trade better than the hourly structure? It will rug sometimes; that is the data.
@@ -152,6 +142,17 @@ export const BOTS = {
 RETIRED.btc = { name: 'btc', label: 'RynoBot BTC range', source: 'majors', asset: 'BTC', mint: 'cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij', chainOn: 'solana', ...MAJORS };
 RETIRED.eth = { name: 'eth', label: 'RynoBot ETH range', source: 'majors', asset: 'ETH', mint: '7vfCXTUXx5WJV5JADk17DUJ4ksgau7utNKj4b963voxs', chainOn: 'solana', ...MAJORS };
 // retired 24 Oct (Ryan's call: the focus moves to the trench lab): the runner, the minute bot and ignition. Kept so their files still load.
+// retired 25 Oct (Ryan's call, from the runner backtest: buying the minute scan's runners on the signal lost in every one of its seven ways, 21 closed, 1 winner; the base-breakout bot trades the same coins on the entry that worked). Kept so its files still load.
+RETIRED.lab = { name: 'lab', label: 'RynoBot Lab', source: 'live', liveScan: true, labOnly: true, entry: 'market', exit: 'ladder', realityBook: null, minOpp: 0, ...RUN, runnerMaxNewLive: 2, minLiqUsd: 50000, fixedStopPct: 20, minStopPct: 0, maxStopPct: 45, mults: [1.5, 2, 2.5, 3, 4], shares: [0.2, 0.2, 0.2, 0.2, 0.1], moonTrail: 0.45, beAfterFirst: false, flowCut: true, noFollowH: 24, boostTighten: 0.15, minAgeH: 2, maxLiqPct: 0.5, coolH: 72, sellersLoss: 0.08, sellersX: 1.2, maxHoldH: 168, maxOpen: 70, maxOpenRiskPct: 16, riskPct: 1.5, maxPosPct: 4, /* 70 open = about ten signals at once (7 variants each); 30 filled up in a day on 23 Oct and the lab stopped learning */ signalMaxAgeH: 4, chaseLimitPct: 15, pbDipPct: 12, pbWaitH: 3, pbFailPct: 15,
+    variants: [
+      { key: 'A-base', entry: 'market', signalMaxAgeH: 2 },
+      { key: 'B-pullback', entry: 'pullback' },
+      { key: 'C-control', entry: 'control', signalMaxAgeH: 2 },
+      { key: 'D-structure', entry: 'market', signalMaxAgeH: 2, stopMode: 'structure', structure: { minPct: 12, maxPct: 30, fixedPct: 20 } },
+      { key: 'E-cash-early', entry: 'market', signalMaxAgeH: 2, mults: [1.5, 2], shares: [0.5, 0.3], moonTrail: 0.35 },
+      { key: 'F-momentum', entry: 'market', signalMaxAgeH: 2, exit: 'momentum' },
+      { key: 'G-giveback', entry: 'market', signalMaxAgeH: 2, peakGiveback: { armPct: 0.3, keep: 0.5 }, dumpCut: { min5: 8, sellX5: 1.5, sellX1: 1.2, offHighPct: 0.15 } },
+    ] };
 RETIRED.runner = { name: 'runner', label: 'RynoBot Runner', source: 'live', liveScan: true, entry: 'market', exit: 'ladder', realityBook: null, minOpp: 0, ...RUN, runnerMaxNewLive: 2, minLiqUsd: 50000, fixedStopPct: 20, stopMode: 'structure', structure: { minPct: 12, maxPct: 30, fixedPct: 20 }, minStopPct: 0, maxStopPct: 45, mults: [2, 3, 4, 5], shares: [0.2, 0.2, 0.2, 0.2], moonTrail: 0.35, dumpCut: { min5: 8, sellX5: 1.5, sellX1: 1.2, offHighPct: 0.15 }, peakGiveback: { armPct: 0.3, keep: 0.5 }, beAfterFirst: false, flowCut: true, noFollowH: 24, boostTighten: 0.15, minAgeH: 2, maxLiqPct: 0.5, coolH: 72, sellersLoss: 0.08, sellersX: 1.2, maxHoldH: 168, maxOpen: 6, maxOpenRiskPct: 3, riskPct: 0.5, maxPosPct: 10, runnerMaxNew: 2, runnerMinPassed: 3, signalMaxAgeH: 2, chaseLimitPct: 15 };
 RETIRED.minute = { name: 'minute', label: 'RynoBot Minute', source: 'live', liveScan: true, labOnly: true, entry: 'minute', exit: 'minute', realityBook: null, minOpp: 0, ...MIN, runnerMaxNewLive: 2, minLiqUsd: 25000, minAgeH: 0, fixedStopPct: 15, minStopPct: 0, maxStopPct: 45, mults: [1.5, 2, 3], shares: [0.3, 0.3, 0.2], moonTrail: 0.3, beAfterFirst: false, flowCut: true, sellersLoss: 0.06, sellersX: 1.2, noFollowH: 6, boostTighten: 0.15, maxLiqPct: 0.5, coolH: 24, maxHoldH: 48, maxOpen: 5, maxOpenRiskPct: 3, riskPct: 0.5, maxPosPct: 3, signalMaxAgeH: 0.5, chaseLimitPct: 10, minWaitMin: 15, minFailPct: 10, armPct: 0.2, trailBars: 3, dumpBarPct: 8, dumpVolX: 2, dumpCut: { min5: 6, sellX5: 1.5, sellX1: 1.2, offHighPct: 0.12 }, peakGiveback: { armPct: 0.3, keep: 0.5 }, maxGtPerMin: 10 };
 RETIRED.ignition = { name: 'ignition', label: 'RynoBot Runner · ignition', source: 'ignition', entry: 'market', exit: 'ladder', mults: [1.5, 2, 2.5, 3, 4], shares: [0.2, 0.2, 0.2, 0.2, 0.1], moonTrail: 0.45, beAfterFirst: false, flowCut: true, sellersLoss: 0.08, sellersX: 1.2, noFollowH: 24, boostTighten: 0.15, maxLiqPct: 0.5, coolH: 72, realityBook: null, minOpp: 0, minLiqUsd: 50000, minStopPct: 3, maxStopPct: 30, maxHoldH: 168, maxOpen: 6, maxOpenRiskPct: 6, maxPosPct: 1, riskPct: 1, ...IGN, scanPerCycle: 4, scanEveryMin: 60, maxGtPerMin: 10, signalMaxAgeH: 1, chaseLimitPct: 10 };
