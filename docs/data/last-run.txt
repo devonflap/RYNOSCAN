@@ -1,4 +1,3 @@
-Hourly refresh 08:10 Brisbane: 5 tracked coins refreshed, 5 scored, 3 above 65. On-chain volume Normal (1x 7-day avg).
-NEW watch: STONK (Solana) Bottom reversal, opp 68, checks 4/6, stop 23% away, upside 69.1%; more sellers than buyers in the last hour; volume fading.
+Hourly refresh 09:10 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Normal (1x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
