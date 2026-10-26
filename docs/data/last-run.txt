@@ -1,5 +1,4 @@
-Full scan 07:11 Brisbane: 62 scanned, 53 scored, 5 above 65. On-chain volume Normal (1x 7-day avg).
-NEW watch: SWORDCAT (Solana) Breakout retest, opp 74, checks 5/6, stop 67.4% away, upside 202.1%; weak last 6h.
+Hourly refresh 08:10 Brisbane: 5 tracked coins refreshed, 5 scored, 3 above 65. On-chain volume Normal (1x 7-day avg).
+NEW watch: STONK (Solana) Bottom reversal, opp 68, checks 4/6, stop 23% away, upside 69.1%; more sellers than buyers in the last hour; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: PUMP (top 10 wallets hold 60.4% (gate 30%)), BIRB (Top 10 holders high ownership), LMAO! (top 10 wallets hold 31.4% (gate 30%)), KIMCHI (Top 10 holders high ownership), BONER (owner can change balances).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
