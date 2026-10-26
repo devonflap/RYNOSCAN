@@ -1,3 +1,4 @@
-Hourly refresh 21:11 Brisbane: 3 tracked coins refreshed, 2 scored, 2 above 65. On-chain volume Normal (0.88x 7-day avg).
+Full scan 22:11 Brisbane: 59 scanned, 49 scored, 3 above 65. On-chain volume Normal (0.98x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: LMAO! (top 10 wallets hold 31.4% (gate 30%)), PUMP (top 10 wallets hold 60.3% (gate 30%)), KIMCHI (Top 10 holders high ownership), FABLES (owner can mint more), USELESS (top 10 wallets hold 36.7% (gate 30%)), ANSEM (Single holder ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
