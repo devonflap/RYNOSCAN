@@ -1,5 +1,4 @@
-Full scan 18:11 Brisbane: 60 scanned, 48 scored, 5 above 65. On-chain volume Normal (0.88x 7-day avg).
-NEW watch: WORM (Robinhood) Falling wedge, opp 67, checks 5/6, stop 61% away, upside 182.9%; weak last 6h.
+Hourly refresh 19:10 Brisbane: 5 tracked coins refreshed, 5 scored, 4 above 65. On-chain volume Normal (0.88x 7-day avg).
+NEW watch: TORCH (Robinhood) Bottom reversal, opp 66, checks 4/6, stop 17.8% away, upside 129.6%; more sellers than buyers in the last hour; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: BIRB (Top 10 holders high ownership), KIMCHI (Top 10 holders high ownership), SPX (Mint Authority still enabled), ANSEM (Single holder ownership), PUMP (top 10 wallets hold 60.3% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
