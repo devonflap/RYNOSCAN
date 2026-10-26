@@ -1,6 +1,3 @@
-Full scan 11:11 Brisbane: 64 scanned, 50 scored, 3 above 65. On-chain volume Normal (1.01x 7-day avg).
-NEW watch: DACITY (Solana) Breakout retest, opp 77, checks 5/6, stop 38.3% away, upside 106.5%; volume fading.
-NEW watch: BATON (Solana) Inverse H&S, opp 66, checks 3/6, stop 26.2% away, upside 98%; more sellers than buyers in the last hour; volume fading; weak last 6h.
+Hourly refresh 12:10 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Normal (1.01x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: BIRB (Top 10 holders high ownership), DJT (Mint Authority still enabled), KIMCHI (Top 10 holders high ownership), SPCX (Mint Authority still enabled), CASHCAT (top 10 wallets hold 36.5% (gate 30%)), PUMP (top 10 wallets hold 60.3% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
