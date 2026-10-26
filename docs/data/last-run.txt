@@ -1,4 +1,4 @@
-Hourly refresh 19:10 Brisbane: 5 tracked coins refreshed, 5 scored, 4 above 65. On-chain volume Normal (0.88x 7-day avg).
-NEW watch: TORCH (Robinhood) Bottom reversal, opp 66, checks 4/6, stop 17.8% away, upside 129.6%; more sellers than buyers in the last hour; volume fading.
+Hourly refresh 20:10 Brisbane: 4 tracked coins refreshed, 4 scored, 4 above 65. On-chain volume Normal (0.88x 7-day avg).
+NEW watch: FRONG (Robinhood) Breakout retest, opp 81, checks 5/6, stop 18.9% away, upside 58.7%; weak last 6h.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
