@@ -1,3 +1,4 @@
-Hourly refresh 09:10 Brisbane: 8 tracked coins refreshed, 8 scored, 6 above 65. On-chain volume Normal (1.04x 7-day avg).
+Full scan 10:11 Brisbane: 63 scanned, 51 scored, 1 above 65. On-chain volume Normal (0.99x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: BIRB (Top 10 holders high ownership), DJT (Mint Authority still enabled), SPCX (Mint Authority still enabled), MET (top 10 wallets hold 81.5% (gate 30%)), KIMCHI (Top 10 holders high ownership), CASHCAT (top 10 wallets hold 36.5% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
