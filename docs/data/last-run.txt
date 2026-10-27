@@ -1,3 +1,5 @@
-Hourly refresh 21:10 Brisbane: 3 tracked coins refreshed, 3 scored, 2 above 65. On-chain volume Normal (1.06x 7-day avg).
+Full scan 22:12 Brisbane: 63 scanned, 51 scored, 6 above 65. On-chain volume Normal (1.03x 7-day avg).
+NEW watch: SPX (Solana) Falling wedge, opp 74, checks 6/6, stop 12.4% away, upside 37.3%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: CASHCAT (top 10 wallets hold 36.4% (gate 30%)), BONER (owner can change balances), PUMP (top 10 wallets hold 60.4% (gate 30%)), ANSEM (Single holder ownership), BIRB (Top 10 holders high ownership), CARDS (Top 10 holders high ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
