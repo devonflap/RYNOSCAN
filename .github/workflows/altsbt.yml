@@ -1,0 +1,32 @@
+# The alts backtest (src/altsbt.mjs): Chill's DCA and a plain trend rule on the top 300 alts, years of daily closes, against holding BTC and random days.
+# Weekly, or by hand: Actions -> "RynoScan alts backtest" -> Run workflow.
+name: RynoScan alts backtest
+on:
+  schedule:
+    - cron: "10 15 * * 0"   # Sundays (Brisbane Monday 1:10am)
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: rynoscan-altsbt
+  cancel-in-progress: false
+jobs:
+  altsbt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Replay a year of Solana meme coins through the alts entries and exits
+        env:
+          CG_API_KEY: ${{ secrets.CG_API_KEY }}
+          CG_PLAN: ${{ vars.CG_PLAN }}
+        run: node src/altsbt.mjs
+      - name: Save results
+        run: |
+          git config user.name "rynoscan-bot"
+          git config user.email "rynoscan-bot@users.noreply.github.com"
+          git add docs/data/alts-bt.json
+          git diff --cached --quiet && echo "no changes" || (git commit -m "alts backtest $(date -u +%Y-%m-%d)" && git pull --rebase -q && git push)
