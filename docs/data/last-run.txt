@@ -1,3 +1,4 @@
-Hourly refresh 08:10 Brisbane: 7 tracked coins refreshed, 7 scored, 7 above 65. On-chain volume Normal (1.08x 7-day avg).
+Hourly refresh 09:10 Brisbane: 7 tracked coins refreshed, 7 scored, 6 above 65. On-chain volume Normal (1.08x 7-day avg).
+NEW watch: DELTA (Robinhood) Liquidity sweep reclaim, opp 87, checks 6/6, stop 15.8% away, upside 37.6%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
