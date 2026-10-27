@@ -1,3 +1,6 @@
-Hourly refresh 09:10 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Normal (1x 7-day avg).
+Full scan 10:11 Brisbane: 64 scanned, 54 scored, 7 above 65. On-chain volume Normal (1.01x 7-day avg).
+NEW watch: DACITY (Solana) Bottom reversal, opp 80, checks 6/6, stop 52.3% away, upside 156.9%.
+NEW watch: HARMONIC (Robinhood) Volume breakout, opp 67, checks 5/6, stop 55.7% away, upside 167.1%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: PUMP (top 10 wallets hold 60.4% (gate 30%)), SPX (Mint Authority still enabled), BIRB (Top 10 holders high ownership), BONER (owner can change balances), ANSEM (Single holder ownership), CASHCAT (top 10 wallets hold 35.4% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
