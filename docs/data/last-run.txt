@@ -1,9 +1,3 @@
-Full scan 06:11 Brisbane: 69 scanned, 59 scored, 9 above 65. On-chain volume Normal (1.08x 7-day avg).
-NEW watch: DELTA (Robinhood) Liquidity sweep reclaim, opp 87, checks 6/6, stop 15.8% away, upside 37.6%.
-NEW watch: BONER (Robinhood) Volume breakout, opp 73, checks 6/6, stop 36% away, upside 108.1%.
-NEW watch: HOOKR (Robinhood) Inverse H&S, opp 72, checks 4/6, stop 17.3% away, upside 82.3%; more sellers than buyers in the last hour; volume fading.
-NEW watch: MOW (Robinhood) Liquidity sweep reclaim, opp 66, checks 4/6, stop 7.1% away, upside 21.4%; volume fading; no socials/website listed.
-NEW watch: PRIORS (Robinhood) Double bottom, opp 66, checks 5/6, stop 36% away, upside 78.2%; volume fading.
+Hourly refresh 07:10 Brisbane: 9 tracked coins refreshed, 9 scored, 7 above 65. On-chain volume Normal (1.08x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: ANSEM (Single holder ownership), KIMCHI (Top 10 holders high ownership), PUMP (top 10 wallets hold 60.4% (gate 30%)), BIRB (Top 10 holders high ownership), HAROLD (Top 10 holders high ownership), CASHCAT (top 10 wallets hold 36.4% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
