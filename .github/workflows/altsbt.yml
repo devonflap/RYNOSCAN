@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-      - name: Replay a year of Solana meme coins through the alts entries and exits
+      - name: Replay the top alts through the DCA and trend rules
         env:
           CG_API_KEY: ${{ secrets.CG_API_KEY }}
           CG_PLAN: ${{ vars.CG_PLAN }}
