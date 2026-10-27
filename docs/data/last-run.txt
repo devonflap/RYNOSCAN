@@ -1,6 +1,3 @@
-Full scan 02:12 Brisbane: 67 scanned, 54 scored, 6 above 65. On-chain volume Normal (1.05x 7-day avg).
-NEW watch: OTC (Solana) Double bottom, opp 82, checks 6/6, stop null% away, upside null%.
-NEW watch: CATE (Solana) Bottom reversal, opp 69, checks 5/6, stop 10.8% away, upside 75.6%; volume fading.
+Hourly refresh 03:10 Brisbane: 6 tracked coins refreshed, 6 scored, 6 above 65. On-chain volume Normal (1.05x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: PUMP (top 10 wallets hold 60.4% (gate 30%)), CASHCAT (top 10 wallets hold 36.4% (gate 30%)), BONER (owner can change balances), BIRB (Top 10 holders high ownership), AI (owner can change balances), HOOKR (owner can change balances).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
