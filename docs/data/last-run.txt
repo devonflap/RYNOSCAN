@@ -1,4 +1,6 @@
-Hourly refresh 09:10 Brisbane: 7 tracked coins refreshed, 7 scored, 6 above 65. On-chain volume Normal (1.08x 7-day avg).
-NEW watch: DELTA (Robinhood) Liquidity sweep reclaim, opp 87, checks 6/6, stop 15.8% away, upside 37.6%.
+Full scan 10:11 Brisbane: 71 scanned, 60 scored, 6 above 65. On-chain volume Normal (1.03x 7-day avg).
+NEW watch: SI (Solana) Inverse H&S, opp 79, checks 6/6, stop 38.4% away, upside 115.2%.
+NEW watch: GLDSTN (Robinhood) Breakout retest, opp 68, checks 5/6, stop 8.8% away, upside 26.1%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: PUMP (top 10 wallets hold 60.4% (gate 30%)), ANSEM (Single holder ownership), CASHCAT (top 10 wallets hold 36.4% (gate 30%)), XSOL (Mint Authority still enabled), BIRB (Top 10 holders high ownership), DOOD (Top 10 holders high ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
