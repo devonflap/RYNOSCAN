@@ -1,4 +1,7 @@
-Hourly refresh 21:10 Brisbane: 7 tracked coins refreshed, 7 scored, 5 above 65. On-chain volume Normal (1x 7-day avg).
-NEW watch: OTC (Solana) Bottom reversal, opp 68, checks 5/6, stop 28.8% away, upside 86.3%; volume fading.
+Full scan 22:11 Brisbane: 74 scanned, 59 scored, 6 above 65. On-chain volume Normal (1.04x 7-day avg).
+NEW watch: TROLL (Solana) Double bottom, opp 71, checks 5/6, stop 9.5% away, upside 22.2%; volume fading.
+NEW watch: GLDSTN (Robinhood) Breakout retest, opp 70, checks 5/6, stop 5.4% away, upside 30.5%; more sellers than buyers in the last hour.
+NEW watch: MOW (Robinhood) Bottom reversal, opp 67, checks 5/6, stop 7.9% away, upside 23.8%; no socials/website listed.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: BIRB (Top 10 holders high ownership), DJT (Mint Authority still enabled), CRCLX (Mint Authority still enabled), CARDS (Top 10 holders high ownership), CASHCAT (top 10 wallets hold 36.4% (gate 30%)), PUMP (top 10 wallets hold 60.4% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
