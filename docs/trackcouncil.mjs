@@ -9,9 +9,9 @@ import { trenchCouncil } from './trenchcouncil.mjs';
 import { rulebookLines } from './bestrules.mjs';
 export const FREEZE = { from: '2026-10-25', until: '2026-11-08', minTrades: 30 };
 export const TRACKS = {
-  trenches: { title: 'Trenches', what: 'trencher', bots: { trench: 'OG trencher', trenchbonus: 'Second wave' }, base: 'trench', labBot: null },
+  trenches: { title: 'Trenches', what: 'trencher', bots: { trench: 'OG trencher' }, base: 'trench', labBot: null },
   patterns: { title: 'Chart patterns', what: 'chart-pattern bot', bots: { breakout: 'Breakout retest' }, base: 'breakout', backtest: 'backtest.json' },
-  runners: { title: 'High risk runners', what: 'runner bot', bots: { basebreak: 'Base breakout + proven-wallet copies' }, base: 'basebreak', labBot: 'basebreak', backtest: 'runner-bt.json' },
+  runners: { title: 'High risk runners', what: 'runner bot', bots: { basebreak: 'Base breakout' }, base: 'basebreak', labBot: 'basebreak', backtest: 'runner-bt.json' },
   bottoms: { title: 'Bottomed-out holds', what: 'bottomed-out bot', bots: { bottoms: 'Bottomed-out (Chill)' }, base: 'bottoms', backtest: 'bottom-bt.json' },
   alts: { title: 'Alts', what: 'alts bot', bots: {}, base: 'alts', backtest: 'alts-bt.json' }, /* 27 Oct: backtest only; a bot only when a rule passes every bar */
   best: { title: 'Best-of bot', what: 'best-of bot', bots: { bestof: 'Best-of (head council)' }, base: 'bestof', backtest: 'bestof-rules.json' },

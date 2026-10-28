@@ -41,6 +41,7 @@ export function trendSetup(q, nowMs, cfg = TREND) {
   { const m5 = n(q.priceChange && q.priceChange.m5); if (cfg.maxM5Pct != null && m5 != null && m5 > cfg.maxM5Pct) return null; } /* no chasing: already up too much in 5 minutes; looked at again next round */
   const { b, s } = m5of(q), vh = +(q.volume && q.volume.h1) || 0, mc = +(q.marketCap || q.fdv) || 0, pc = q.priceChange || {}, c5 = n(pc.m5), c1 = n(pc.h1);
   if (b < cfg.minBuys5 || b < cfg.buySellX5 * Math.max(1, s) || vh < cfg.minVolH1) return null; if (c1 == null || c1 < cfg.minH1Pct) return null; if (c5 != null && c5 <= 0) return null;
+  if (cfg.maxBuySellX5 != null && b > cfg.maxBuySellX5 * Math.max(1, s)) return null; /* a pile-in (buys more than maxBuySellX5 the sells in 5 minutes): the trench council's confirmed worst slice, looked at again next round */
   if (c1 > cfg.maxH1Pct) return { dead: `up ${Math.round(c1)}% in the hour: vertical` }; if (mc < cfg.minMcapUsd || mc > cfg.maxMcapUsd) return null;
   return { price: +q.priceUsd, why: [`trending on ${q.dexId === 'pumpswap' ? 'PumpSwap' : 'pump.fun'}: ${b} buys vs ${s} sells in 5 minutes`, `$${Math.round(vh / 1000)}k traded in the hour, +${Math.round(c1)}% in the hour${c5 != null ? `, +${c5}% in 5 minutes` : ''}`, `market cap $${mc >= 1e6 ? (mc / 1e6).toFixed(1) + 'm' : Math.round(mc / 1000) + 'k'}${ageH != null ? `, ${ageH < 1 ? Math.round(ageH * 60) + ' minutes' : ageH.toFixed(0) + ' hours'} old` : ''}`] };
 }

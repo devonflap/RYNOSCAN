@@ -52,12 +52,18 @@ export const TRENCH_WAYS = [
 //   trenchbonus  Claude's pick from everything the trench research says (see TRENCH_BONUS)
 // Shared on purpose: the market data and the signal judges. Not shared: every gate, size and exit. The market dial and the daily loss
 // limit are off for all five (they would stop a bot taking shots for reasons that have nothing to do with the trench).
-export const TRENCH_PACK = ['trench', 'trenchbonus']; /* 25 Oct (Ryan): one bot per track; the trench track keeps the OG and the second wave, the lab, shotgun and extractor are retired */
+export const TRENCH_PACK = ['trench']; /* 29 Oct: the second wave retired */  /* 25 Oct (Ryan): one bot per track; the trench track keeps the OG and the second wave, the lab, shotgun and extractor are retired */
 // 25 OCT, RYAN'S CALL, ON ALL FIVE (from the day's 258 trades on coins whose pool cannot be pulled): the trending lane only (DexScreener
 // launches lost $65 per $100), nothing under 30 minutes old (under 10 minutes lost $40 and a quarter rugged; over 2 hours lost $9-14,
 // none rugged), nothing under a $60k market cap (lost $60-99 per $100), and no chasing: not already up more than 15% in 5 minutes (those
 // lost $42 per $100, calmer entries $15) or 150% in the hour. One day of data: the trench council will say whether it holds.
 export const TRENCH_TREND = { ...TREND, minAgeH: 0.5, minMcapUsd: 60000, maxH1Pct: 150, maxM5Pct: 15 };
+// 29 Oct (Ryan: change the bots on what has been learnt): 181 trench trades since 25 Oct, 14 won, -$2,775, -$16 to -$17 per $100. The trench
+// council's lessons that held on BOTH halves of those trades: coins under a $1m market cap, under an hour old, already up 50%+ in the hour,
+// or with buys over 2.5x the sells in 5 minutes were the worst slices. The OG trencher now trades only the best side of each; the second
+// wave is retired (the same coins, a worse exit: its "no pop" cut every slow winner). Even the best slices lost money, so this cuts the
+// bleed while the trench keeps learning; it is not a proven edge.
+export const TRENCH_TREND_V2 = { ...TRENCH_TREND, minAgeH: 1, minMcapUsd: 1e6, maxH1Pct: 50, maxBuySellX5: 2.5 };
 const TRENCH_OG = { name: 'trench', label: 'RynoBot Trencher (OG)', engine: 'trench', source: 'trench', labOnly: true, entry: 'market', exit: 'ladder', realityBook: null, minOpp: 0, ...TRENCH, trenchMaxNew: 3, minLiqUsd: 3000, minAgeH: 0, fixedStopPct: 35, minStopPct: 0, maxStopPct: 45, mults: [1.5, 2.2, 3.5], shares: [0.3, 0.3, 0.2], moonTrail: 0.3, beAfterFirst: false, flowCut: true, sellersLoss: 0.1, sellersX: 1.1, noFollowH: 0.25, boostTighten: 0, maxLiqPct: 2, coolH: 24, maxHoldH: 1, maxOpen: 16, maxOpenRiskPct: 14, riskPct: 1, maxPosPct: 1, signalMaxAgeH: 0.1, chaseLimitPct: 25, dumpCut: { min5: 4, sellX5: 1.3, sellX1: 1.1, offHighPct: 0.12 }, peakGiveback: { armPct: 0.25, keep: 0.5 }, heartbeatMin: 120, dsLaunch: DSLAUNCH, trend: TREND,
   pollSec: 10, /* 25 Oct: checked every 10 seconds, not every minute (rugs and dumps take seconds; a minute let stops gap 30-90%) */ origin: ['pump', 'bonk'], /* launched on pump.fun or letsbonk, or a locked pool */
   lanes: ['trend'], trend: TRENCH_TREND, regimeDial: false, dailyLossPct: 100, holderRead: false, feedAlerts: false, minPoolLiqUsd: 20000, minLiqMcap: 0.05, organic: true, /* real-market floor for every trencher: a traded pool needs $20k+ of real liquidity and 5%+ of its market cap */
@@ -115,16 +121,15 @@ export const BOTS = {
   // THE TRENCHER (research, paper only, see bot/trench.mjs): pump.fun launches from the PumpPortal feed, in once a dozen real buyers have shown
   // up in the first minutes, out INTO the buyers (30% at 1.5x, 30% at 2.2x, 20% at 3.5x, the rest trails 30%), or out the moment sellers take
   // over, the chart dies for 4 minutes, half a +25% gain is given back, or an hour passes. $100 a go, flat. Nothing here can place an order.
-  trench: TRENCHERS.trench, trenchbonus: TRENCHERS.trenchbonus,
+  trench: { ...TRENCHERS.trench, trend: TRENCH_TREND_V2 },
   // THE BASE-BREAKOUT BOT (25 Oct, from the runner backtest: 24-hour bases broken on volume, held up to a week, averaged +17% a trade over
   // 400 trades in the last 40 days, on both halves and both chains; a quarter win, the rest are small stopped losses). Its coins: the
   // "High risk, high reward runners" list and the scanner's watched coins. Three ways on every breakout, $100 each: H-hold (the stop
   // under the base, a week at most: the backtest's best), G-giveback (once up 50%, out if half the gain goes) and R-ride (half at 2x,
   // the rest a free ride trailing 50%: Ryan's startupSI trade). Paper only; judged by the main council.
   basebreak: { name: 'basebreak', label: 'RynoBot Base breakout', source: 'basebreak', labOnly: true, entry: 'market', exit: 'ladder', realityBook: null, minOpp: 0, base: BASE, minLiqUsd: 30000, maxLiqPct: 1, minAgeH: 0, fixedStopPct: 0, minStopPct: 0, maxStopPct: 36, mults: [], shares: [], moonTrail: 0.5, beAfterFirst: true, flowCut: false, noFollowH: 0, boostTighten: 0, coolH: 24, maxHoldH: 168, maxOpen: 70, maxOpenRiskPct: 30, riskPct: 6, maxPosPct: 1, signalMaxAgeH: 2, chaseLimitPct: 10, scanPerCycle: 12, maxGtPerMin: 12, regimeDial: false, dailyLossPct: 100, heartbeatMin: 120,
-    copy: COPY, /* 25 Oct (Ryan): the copy bot folded in: the proven wallets' fresh buys are this bot's second signal, traded the copy bot's three ways */
-    variants: [{ key: 'H-hold', kinds: ['base'], mults: [], shares: [] }, { key: 'G-giveback', kinds: ['base'], mults: [], shares: [], peakGiveback: { armPct: 0.5, keep: 0.5 } }, { key: 'R-ride', kinds: ['base'], mults: [2], shares: [0.5], freeRide: true, moonTrail: 0.5 },
-      { key: 'CM-mirror', kinds: ['copy'], mirror: true, mults: [], shares: [] }, { key: 'CT-24h', kinds: ['copy'], mults: [], shares: [], fixedStopPct: 30, maxHoldH: 24 }, { key: 'CL-ladder', kinds: ['copy'], mults: [2], shares: [0.5], freeRide: true }] },
+    /* 29 Oct: the copy signal RETIRED (61 copies since 25 Oct, 8 won, -$2,396, about -$40 per $100 on every exit; the scanner's own proven-wallet book -1.0R over 8; the proven list rests on 3 coins a wallet). Its code stays (bot/copy.mjs) */
+    variants: [{ key: 'H-hold', kinds: ['base'], mults: [], shares: [] }, { key: 'G-giveback', kinds: ['base'], mults: [], shares: [], peakGiveback: { armPct: 0.5, keep: 0.5 } }, { key: 'R-ride', kinds: ['base'], mults: [2], shares: [0.5], freeRide: true, moonTrail: 0.5 }] },
   // THE BOTTOMED-OUT BOT (Chill's DCA; see bot/bottoms.mjs): a $100 clip at -70%, -80% and -90% from the year's high on quality Solana meme
   // coins, the day each level is first reached; each clip sold when the market flips from risk-on back to risk-off; stop 40%; 180 days at most.
   bottoms: { name: 'bottoms', label: 'RynoBot Bottomed-out (Chill)', source: 'bottoms', labOnly: true, entry: 'market', exit: 'ladder', realityBook: null, minOpp: 0, minLiqUsd: 50000, maxLiqPct: 1, minAgeH: 0, fixedStopPct: 40, minStopPct: 0, maxStopPct: 45, mults: [], shares: [], moonTrail: 0.5, beAfterFirst: false, flowCut: false, noFollowH: 0, boostTighten: 0, coolH: 0, maxHoldH: 180 * 24, maxOpen: 150, maxOpenRiskPct: 100, riskPct: 0.4, maxPosPct: 1, signalMaxAgeH: 24, chaseLimitPct: 15, regimeDial: false, dailyLossPct: 100, heartbeatMin: 120, pollSec: 300, regimeOut: true, bottoms: BOTTOMS },
@@ -149,7 +154,7 @@ export const BOTS = {
 // track keeps the OG and the second wave), the rider (1 trade in a week) and the stand-alone copy bot (folded into the base-breakout bot).
 // Kept so their files, the councils' history and the tests still load; not run as services.
 for (const k of ['copy', 'rider']) { RETIRED[k] = BOTS[k]; delete BOTS[k]; }
-for (const k of ['trenchlab', 'trenchshot', 'trenchx']) RETIRED[k] = TRENCHERS[k];
+for (const k of ['trenchlab', 'trenchshot', 'trenchx', 'trenchbonus']) RETIRED[k] = TRENCHERS[k]; /* trenchbonus retired 29 Oct */
 // retired 24 Oct: BTC and ETH on the Monday range. A year of Coinbase candles, the bots' own detector, eight readings of the rules
 // (UTC and New York Monday, stop under the order block or the sweep low, entry at the top or middle, 2R or 3R minimum, the discount rule,
 // the previous-day range), longs and shorts: none had an edge (the rules as written -0.47R a trade over 89). Kept so their files still load.
