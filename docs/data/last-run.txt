@@ -1,3 +1,9 @@
-Hourly refresh 06:10 Brisbane: 5 tracked coins refreshed, 5 scored, 2 above 65. On-chain volume Normal (1.14x 7-day avg).
+Full scan 07:11 Brisbane: 74 scanned, 59 scored, 12 above 65. On-chain volume Strong (1.18x 7-day avg).
+NEW watch: STONK (Solana) Bull flag, opp 76, checks 5/6, stop null% away, upside null%; more sellers than buyers in the last hour.
+NEW watch: ABYSS (Robinhood) Volume breakout, opp 73, checks 5/6, stop null% away, upside null%; more sellers than buyers in the last hour.
+NEW watch: INDEX (Robinhood) Bottom reversal, opp 71, checks 6/6, stop 41.9% away, upside 125.6%.
+NEW watch: BATON (Solana) Falling wedge, opp 70, checks 5/6, stop 32.6% away, upside 97.9%; more sellers than buyers in the last hour.
+NEW watch: MICRODUCK (Robinhood) Cup & handle, opp 68, checks 5/6, stop 62.4% away, upside 187.3%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: PUMP (top 10 wallets hold 60.4% (gate 30%)), CASHCAT (top 10 wallets hold 35.9% (gate 30%)), CRCLX (Mint Authority still enabled), BIRB (Top 10 holders high ownership), SKHY (Mint Authority still enabled), CARDS (Top 10 holders high ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
