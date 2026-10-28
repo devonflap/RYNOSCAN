@@ -1,3 +1,4 @@
-Hourly refresh 08:10 Brisbane: 12 tracked coins refreshed, 12 scored, 8 above 65. On-chain volume Strong (1.18x 7-day avg).
+Hourly refresh 09:10 Brisbane: 8 tracked coins refreshed, 8 scored, 8 above 65. On-chain volume Strong (1.18x 7-day avg).
+NEW watch: BATON (Solana) Falling wedge, opp 77, checks 6/6, stop 32.6% away, upside 97.9%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
