@@ -1,8 +1,3 @@
-Full scan 18:11 Brisbane: 73 scanned, 58 scored, 9 above 65. On-chain volume Normal (1x 7-day avg).
-NEW watch: INDEX (Robinhood) Liquidity sweep reclaim, opp 80, checks 5/6, stop 40.5% away, upside 121.6%; more sellers than buyers in the last hour.
-NEW watch: LMAO! (Solana) Breakout retest, opp 71, checks 4/6, stop null% away, upside null%; volume figures disagree; volume fading.
-NEW watch: BONER (Robinhood) Inverse H&S, opp 67, checks 5/6, stop 39.5% away, upside 118.5%; volume fading.
-NEW watch: SI (Solana) Inverse H&S, opp 66, checks 4/6, stop 41.4% away, upside 124.2%; more sellers than buyers in the last hour; volume fading.
+Hourly refresh 19:10 Brisbane: 9 tracked coins refreshed, 9 scored, 8 above 65. On-chain volume Normal (1x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: CRCLX (Mint Authority still enabled), PUMP (top 10 wallets hold 60.4% (gate 30%)), ANSEM (Single holder ownership), BIRB (Top 10 holders high ownership), CASHCAT (top 10 wallets hold 36.4% (gate 30%)), CARDS (Top 10 holders high ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
