@@ -1,3 +1,5 @@
-Hourly refresh 02:10 Brisbane: 4 tracked coins refreshed, 4 scored, 2 above 65. On-chain volume Strong (1.23x 7-day avg).
+Full scan 03:11 Brisbane: 76 scanned, 62 scored, 4 above 65. On-chain volume Normal (1.09x 7-day avg).
+NEW watch: LMAO! (Solana) Breakout retest, opp 67, checks 2/6, stop 7.3% away, upside 68.5%; volume figures disagree; more sellers than buyers in the last hour; volume fading; weak last 6h.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: BIRB (Top 10 holders high ownership), SKHY (Mint Authority still enabled), FABLES (owner can mint more), CARDS (Top 10 holders high ownership), SPCX (Mint Authority still enabled), ANSEM (Single holder ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
