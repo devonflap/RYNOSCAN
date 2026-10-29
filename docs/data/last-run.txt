@@ -1,9 +1,3 @@
-Full scan 06:11 Brisbane: 72 scanned, 58 scored, 8 above 65. On-chain volume Strong (1.25x 7-day avg).
-NEW watch: JEANPHIL (Solana) Breakout retest, opp 83, checks 5/6, stop 9.7% away, upside 50.7%; volume fading.
-NEW watch: BONER (Robinhood) Breakout retest, opp 80, checks 6/6, stop 29.5% away, upside 88.4%.
-NEW watch: TROLL (Solana) Falling wedge, opp 78, checks 6/6, stop 7.5% away, upside 25.7%.
-NEW watch: GTA (Solana) Double bottom, opp 76, checks 6/6, stop null% away, upside null%.
-NEW watch: E/ACC (Solana) Breakout retest, opp 69, checks 3/6, stop 32.3% away, upside 97%; more sellers than buyers in the last hour; volume fading; weak last 6h.
+Hourly refresh 07:10 Brisbane: 8 tracked coins refreshed, 8 scored, 8 above 65. On-chain volume Strong (1.25x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: PONS (top 10 wallets hold 52.9% (gate 30%)), SPCX (Mint Authority still enabled), BIRB (Top 10 holders high ownership), PUMP (top 10 wallets hold 60.4% (gate 30%)), ANSEM (Single holder ownership), CARDS (Top 10 holders high ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
