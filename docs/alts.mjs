@@ -45,10 +45,12 @@ function regimeStrip(d) {
   s.append(meta); return s;
 }
 
+// the desk's scoreboard (30 Oct): every BID booked on paper next to a random coin (docs/deskbook.mjs), one plain line
+export function scoreLine(name, r) { if (!r || !r.bids) return `${name} scoreboard: starts with the next daily scan (every BID booked on paper, next to a random coin).`; const b = r.bids, x = r.random || {}; return b.n ? `${name} scoreboard: BIDs ${b.avg >= 0 ? '+' : ''}${b.avg}% a trade over ${b.n} (${b.win}% won); random coins the same days ${x.n ? (x.avg >= 0 ? '+' : '') + x.avg + '%' : '—'}${r.open ? `; ${r.open} open` : ''}${b.n < 30 ? '. Too few to judge yet.' : '.'}` : `${name} scoreboard: no BID closed yet${r.open ? ` (${r.open} open)` : ''}. Every BID is booked on paper, next to a random coin, and judged like every other book.`; }
 export function drawAlts(d, root) {
   if (!root) return; root.innerHTML = '';
   if (!d || !Array.isArray(d.results)) { root.append(el('p', 'empty', 'No alts scan yet. Run the "RynoScan alts desk" workflow once (Actions tab); it then runs daily after the UTC close.')); return; }
-  root.append(regimeStrip(d));
+  root.append(regimeStrip(d)); root.append(el('p', 'meta', scoreLine('Alts desk', d.record && d.record.alts)));
   const tabs = el('div', 'chips'), panes = {}, names = [['setups', 'Setups'], ['rs', 'Relative strength'], ['book', 'Spot book'], ['play', 'Playbook']];
   let cur = 'setups'; try { cur = localStorage.getItem('rynoAltsTab') || 'setups'; } catch { /* fine */ }
   names.forEach(([k, lab]) => { const b = el('button', 'chip' + (k === cur ? ' on' : ''), lab); b.type = 'button'; b.addEventListener('click', () => { cur = k; try { localStorage.setItem('rynoAltsTab', k); } catch { /* fine */ } tabs.querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', c === b)); Object.entries(panes).forEach(([pk, p]) => { p.hidden = pk !== k; }); if (k === 'setups') panes.setups.querySelectorAll('canvas').forEach((cv) => drawMwChart(cv, cv._r)); }); tabs.append(b); });
@@ -71,7 +73,7 @@ export function drawAlts(d, root) {
 }
 
 export function drawMemeSetups(d, root) {
-  if (!root) return; root.innerHTML = '';
+  if (!root) return; root.innerHTML = ''; if (d) root.append(el('p', 'meta', scoreLine('Spot & chill', d.record && d.record.memes)));
   const rows = d && Array.isArray(d.memes) ? d.memes.filter((r) => r.state !== 'NONE' && r.score >= (d.minScore || 60)) : [];
   if (!rows.length) { root.append(el('p', 'empty', d && d.memeNote ? `No meme coin is wedging or flagging on the daily right now (${d.memeNote}).` : 'No alts scan yet.')); return; }
   const grid = el('div', 'plans'); rows.forEach((r) => grid.append(mwCard(r, { meme: true }))); root.append(grid);

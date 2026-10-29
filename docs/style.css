@@ -320,3 +320,7 @@ details.card summary h2{font-family:var(--gauge)}
 .mw-q{border-left:3px solid var(--line);padding:4px 12px;color:var(--mut);font-style:italic}
 @media(max-width:420px){.mw-lv{grid-template-columns:repeat(2,1fr)}}
 [data-mode][hidden]{display:none!important}
+
+/* 30 Oct: books the council calls losing, and the warning on the bid-ready section */
+.dk-cmp .dk-losing td{opacity:.55}.dk-cmp .dk-losing td:first-child{color:var(--down,#e5534b)}
+.warnline{border-left:3px solid var(--down,#e5534b);padding:.4rem .7rem;margin:.4rem 0;background:rgba(229,83,75,.08);font-size:.9rem}

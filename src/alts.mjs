@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { makeApi } from './api.mjs';
 import { analyse, regime, basketIndex, managePositions, P, P_MEME } from '../docs/mw.mjs';
+import { stepDeskBook, deskRecord } from '../docs/deskbook.mjs';
 
 const outDir = () => process.env.OUT_DIR || 'docs/data';
 const readJson = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return d; } };
@@ -74,9 +75,13 @@ export async function runAlts({ api = makeApi(), log = console.log, out = path.j
   for (const [sym, kind, msg] of events) await push(`${sym} · ${kind}`, msg, kind === 'OUT' || kind === 'SL TO BE' ? 'high' : 'default', 'moneybag');
   if (sunday || firstRun) { const top = A.results.filter((r) => r.state !== 'NONE' && r.score >= minScore).slice(0, 6), rs = [...A.results].sort((a, b) => b.rsBasket - a.rsBasket).slice(0, 5);
     await push('weekly close check', `regime ${reg.label}. relative strength: ${rs.map((r) => `${r.symbol} ${r.rsBasket > 0 ? '+' : ''}${Math.round(r.rsBasket)}%`).join(', ')}. setups: ${top.map((r) => `${r.symbol} (${r.state.toLowerCase()})`).join(', ') || 'none'}. not trading into the close.`, 'default', 'calendar'); }
+  /* the scoreboard (30 Oct): every BID on paper, next to a random coin, managed on daily closes the way the desk says (docs/deskbook.mjs) */
+  let book = null; try { const bp = path.join(path.dirname(out), 'alts-book.json'), b0 = readJson(bp, {}), day = new Date().toISOString().slice(0, 10);
+    book = { alts: stepDeskBook(b0.alts, A.results, { day, prevStates: prev, minScore }), memes: stepDeskBook(b0.memes, M.results, { day, prevStates: prev, keyPrefix: 'M:', minScore }) }; book.at = new Date().toISOString().slice(0, 19) + 'Z'; book.record = { alts: deskRecord(book.alts), memes: deskRecord(book.memes) };
+    fs.writeFileSync(bp, JSON.stringify(book)); log(`scoreboard: alts ${JSON.stringify(book.record.alts)}; memes ${JSON.stringify(book.record.memes)}`); } catch (e) { log('scoreboard: ' + e.message); }
   fs.writeFileSync(statePath, JSON.stringify(next));
   const result = { at: new Date().toISOString().slice(0, 19) + 'Z', seconds: Math.round((Date.now() - t0) / 1000), regime: reg, basketRet14: +(A.basketRet * 100).toFixed(1), btcRet14: +(A.btcRet * 100).toFixed(1),
-    universe: uni.length, scored: A.results.length, minScore, results: A.results, memes: M.results, memeNote, positions, positionEvents: events, alerts: sent, alertsOn: !!alertsOn };
+    universe: uni.length, scored: A.results.length, minScore, results: A.results, memes: M.results, memeNote, positions, positionEvents: events, alerts: sent, alertsOn: !!alertsOn, record: book ? book.record : null };
   fs.mkdirSync(path.dirname(out), { recursive: true }); fs.writeFileSync(out, JSON.stringify(result));
   log(`regime ${reg.label}: ${reg.note}`); for (const r of A.results.filter((r) => r.state !== 'NONE').slice(0, 12)) log(`${r.symbol.padEnd(7)} ${r.state.padEnd(11)} ${r.pattern.padEnd(18)} ${r.score}  ${r.reasons.at(-1)}`);
   log(`memes: ${memeNote}; ${M.results.filter((r) => r.state !== 'NONE').length} with a setup. alerts sent: ${sent.length}`);

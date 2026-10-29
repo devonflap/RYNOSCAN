@@ -29,7 +29,7 @@ jobs:
         run: |
           git config user.name "rynoscan-bot"
           git config user.email "rynoscan-bot@users.noreply.github.com"
-          git add docs/data/alts.json docs/data/alts-state.json config/alts-positions.json
+          git add docs/data/alts.json docs/data/alts-state.json docs/data/alts-book.json config/alts-positions.json
           git diff --cached --quiet && echo "no changes" || (git commit -m "alts desk $(date -u +%Y-%m-%d)" && git pull --rebase -q && git push)
       - name: Phone alert if it broke
         if: failure()
