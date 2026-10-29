@@ -36,16 +36,22 @@ export const EXITS = {
   trail20: { shares: [], trail: 0.2, trailFromStart: true },
   all_at_2x: { mults: [2], shares: [1], trail: null },
   giveback: { shares: [], giveback: { arm: 0.5, keep: 0.5 } },
+  /* 30 Oct: the scanner's paper books' own exits, exactly (docs/exits.mjs PROFILES), so the runner backtest can test the books' claim on
+     every signal the list has made and on the random coins: their own stop, their sales, break-even after the first, the trail starting
+     after the first sale, their time limit */
+  claude: { stopPct: 0.18, mults: [1.4, 2, 3], shares: [0.25, 0.25, 0.25], trail: 0.35, trailFrom: 'first', beAfter: true, maxH: 120 },
+  ryan: { stopPct: 0.20, mults: [1.69, 2.5, 3.6], shares: [0.3, 0.3, 0.4], trail: null, beAfter: false, maxH: 168 },
+  clips: { stopPct: 0.20, mults: [1.5, 2, 2.5, 3, 4], shares: [0.2, 0.2, 0.2, 0.2, 0.1], trail: 0.45, trailFrom: 'first', beAfter: false, maxH: 168 },
 };
 export function exit(B, e, X, c = RBT) {
-  let rem = 1, got = 0, stop = e.stop, hiC = e.px, hits = 0; const mults = X.mults || [], shares = X.shares || [], maxH = X.maxH || c.maxHoldH, out = (frac, px, why) => { got += frac * px * (1 - c.outPct / 100); rem -= frac; return why; };
+  let rem = 1, got = 0, stop = X.stopPct ? e.px * (1 - X.stopPct) : e.stop, hiC = e.px, hits = 0; const mults = X.mults || [], shares = X.shares || [], maxH = X.maxH || c.maxHoldH, out = (frac, px, why) => { got += frac * px * (1 - c.outPct / 100); rem -= frac; return why; };
   let why = null, lastI = e.i;
   for (let i = e.i; i < B.length && B[i][0] < B[e.i][0] + maxH * H; i++) { const [, o, h, l, cl] = B[i]; lastI = i;
     if (l <= stop) { why = out(rem, Math.min(o, stop), hits ? 'break-even/trail stop' : 'stop'); break; }
     while (hits < mults.length && h >= e.px * mults[hits] && rem > 1e-9) { out(Math.min(rem, shares[hits]), e.px * mults[hits], 'clip'); hits++; if (X.beAfter) stop = Math.max(stop, e.px); }
     if (rem <= 1e-9) { why = 'all clipped'; break; }
     hiC = Math.max(hiC, cl);
-    if (X.trail && (X.trailFromStart || hits >= mults.length && mults.length) && cl <= hiC * (1 - X.trail)) { why = out(rem, cl, `trail ${Math.round(X.trail * 100)}%`); break; }
+    if (X.trail && (X.trailFromStart || (X.trailFrom === 'first' ? hits >= 1 : hits >= mults.length && mults.length)) && cl <= hiC * (1 - X.trail)) { why = out(rem, cl, `trail ${Math.round(X.trail * 100)}%`); break; }
     if (X.giveback && hiC >= e.px * (1 + X.giveback.arm) && cl <= e.px * (1 + (hiC / e.px - 1) * (1 - X.giveback.keep))) { why = out(rem, cl, 'giveback'); break; } }
   if (rem > 1e-9) { const px = B[lastI] ? B[lastI][4] : e.px; why = out(rem, px, why || 'time'); }
   return { ret: (got / (1 + c.inPct / 100) / e.px - 1) * 100, why, heldH: (B[lastI][0] - B[e.i][0]) / H, peakX: Math.max(...B.slice(e.i, lastI + 1).map((b) => b[2])) / e.px };

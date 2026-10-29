@@ -11,4 +11,10 @@ const s = exit(B, { i: 31, px: 1.25, stop: 1.2 }, EXITS.hold7); ok(s.why === 'st
 const R = [...B.slice(0, 31), bar(31, 1.2, 1.25, 1.12, 1.15), bar(32, 1.15, 1.2, 1.11, 1.18), ...B.slice(33)]; const rt = retest(R, 24, 24); ok(rt && rt.i === 32, 'the first hour back at the base top that closes above it: the retest entry');
 const sim = simulate(B, T0 + 24 * H); ok(Object.keys(sim).length === 5 * Object.keys(EXITS).length && sim['listing / hold7'] && sim['box24 / half2_t30'], 'every entry is run with every exit');
 const rec = record([{ ret: 10, peakX: 2.1, heldH: 5 }, { ret: -20, peakX: 1, heldH: 2 }, null]); ok(rec.n === 2 && rec.avg === -5 && rec.win === 50 && rec.x2 === 1, 'a combination\'s record (missed entries are not trades)');
+// 30 Oct: the paper books' own exits
+{ const { exit, EXITS } = await import('../src/runnerbt.mjs'); const H = 3600, bar = (i, o, h, l, c) => [1800000000 + i * H, o, h, l, c, 100];
+  const B = [bar(0, 1, 1.05, 0.95, 1), bar(1, 1, 1.45, 1, 1.42), bar(2, 1.42, 1.5, 1.3, 1.45), bar(3, 1.45, 1.46, 0.98, 0.99)];
+  const r = exit(B, { i: 0, px: 1, stop: 0.5 }, EXITS.claude, { inPct: 0, outPct: 0, maxHoldH: 999 });
+  ok(Math.abs(r.ret - (0.25 * 1.4 + 0.75 * 1) * 100 + 100) < 0.01 && /break-even|trail/.test(r.why), 'Claude\'s exits: a quarter at +40%, then the stop at break-even catches the rest (its own 18% stop, not the entry\'s)');
+  const r2 = exit([bar(0, 1, 1.02, 0.8, 0.85)], { i: 0, px: 1, stop: 0.5 }, EXITS.ryan, { inPct: 0, outPct: 0, maxHoldH: 999 }); ok(Math.abs(r2.ret + 20) < 0.01, 'Ryan\'s exits: his own 20% stop'); }
 process.exit(f);
