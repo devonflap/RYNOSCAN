@@ -29,4 +29,4 @@ jobs:
           git config user.name "rynoscan-bot"
           git config user.email "rynoscan-bot@users.noreply.github.com"
           git add docs/data/alts-bt.json
-          git diff --cached --quiet && echo "no changes" || (git commit -m "alts backtest $(date -u +%Y-%m-%d)" && git pull --rebase -q && git push)
+          git diff --cached --quiet && echo "no changes" || (git commit -m "alts backtest $(date -u +%Y-%m-%d)" && (for i in 1 2 3 4 5; do git pull --rebase -q && git push && break; sleep $((i*5)); done; git fetch -q && [ "$(git rev-parse HEAD)" = "$(git rev-parse @{u})" ]))

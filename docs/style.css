@@ -324,3 +324,6 @@ details.card summary h2{font-family:var(--gauge)}
 /* 30 Oct: books the council calls losing, and the warning on the bid-ready section */
 .dk-cmp .dk-losing td{opacity:.55}.dk-cmp .dk-losing td:first-child{color:var(--down,#e5534b)}
 .warnline{border-left:3px solid var(--down,#e5534b);padding:.4rem .7rem;margin:.4rem 0;background:rgba(229,83,75,.08);font-size:.9rem}
+
+/* 30 Oct: best bets */
+.bb-block{border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:.6rem .8rem;margin:.6rem 0}.bb-block h3{margin:.1rem 0 .3rem;font-size:1rem}.bb-off{opacity:.6}.bb-coin{padding:.45rem 0;border-top:1px solid rgba(255,255,255,.06);font-size:.92rem}.bb-coin a{margin-left:.5rem}.bb-held{opacity:.6;font-size:.85rem}
