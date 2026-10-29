@@ -1,5 +1,4 @@
-Full scan 20:11 Brisbane: 77 scanned, 60 scored, 1 above 65. On-chain volume Strong (1.21x 7-day avg).
-NEW watch: E/ACC (Solana) Double bottom, opp 68, checks 4/6, stop 28% away, upside 84.1%; more sellers than buyers in the last hour; volume fading.
+Full scan 22:11 Brisbane: 77 scanned, 57 scored, 4 above 65. On-chain volume Normal (1.13x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: METAX (Mint Authority still enabled), CARDS (Top 10 holders high ownership), CASHCAT (top 10 wallets hold 35.9% (gate 30%)), CYBERLEEK (top 10 wallets hold 37.1% (gate 30%)), ANTFUN (Single holder ownership), BIRB (Top 10 holders high ownership).
+Removed for token safety: CASHCAT (top 10 wallets hold 35.9% (gate 30%)), CYBERLEEK (top 10 wallets hold 37.1% (gate 30%)), CARDS (Top 10 holders high ownership), BIRB (Top 10 holders high ownership), ANSEM (Single holder ownership), PUMP (top 10 wallets hold 60.4% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
