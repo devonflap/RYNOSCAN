@@ -1,4 +1,3 @@
-Hourly refresh 00:10 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Normal (1.13x 7-day avg).
-NEW watch: E/ACC (Solana) Bottom reversal, opp 76, checks 5/6, stop 34.6% away, upside 103.7%; volume fading.
+Hourly refresh 01:10 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Normal (1.13x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
