@@ -1,6 +1,5 @@
-Full scan 14:11 Brisbane: 74 scanned, 59 scored, 2 above 65. On-chain volume Strong (1.16x 7-day avg).
-NEW watch: SWORDCAT (Solana) Breakout retest, opp 85, checks 5/6, stop 13.6% away, upside 185.2%; weak last 6h.
-NEW watch: BONER (Robinhood) Bull flag, opp 72, checks 5/6, stop 33.9% away, upside 101.8%; weak last 6h.
+Full scan 15:11 Brisbane: 77 scanned, 63 scored, 4 above 65. On-chain volume Strong (1.2x 7-day avg).
+NEW watch: SI (Solana) Breakout retest, opp 69, checks 4/6, stop 29.7% away, upside 89%; more sellers than buyers in the last hour; weak last 6h.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: CARDS (Top 10 holders high ownership), PUMP (top 10 wallets hold 60.4% (gate 30%)), BIRB (Top 10 holders high ownership), CASHCAT (top 10 wallets hold 35.9% (gate 30%)).
+Removed for token safety: CASHCAT (top 10 wallets hold 35.9% (gate 30%)), STANDARD (owner can mint more), PUMP (top 10 wallets hold 60.4% (gate 30%)), CYBERLEEK (top 10 wallets hold 37.1% (gate 30%)), CARDS (Top 10 holders high ownership), SPX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
