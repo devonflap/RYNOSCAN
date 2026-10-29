@@ -1,4 +1,5 @@
-Hourly refresh 09:10 Brisbane: 8 tracked coins refreshed, 8 scored, 8 above 65. On-chain volume Strong (1.18x 7-day avg).
-NEW watch: BATON (Solana) Falling wedge, opp 77, checks 6/6, stop 32.6% away, upside 97.9%.
+Full scan 10:11 Brisbane: 74 scanned, 60 scored, 4 above 65. On-chain volume Strong (1.24x 7-day avg).
+NEW watch: TROLL (Solana) Base breakout, opp 69, checks 5/6, stop 13.4% away, upside 40.1%; more sellers than buyers in the last hour.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: SKHY (Mint Authority still enabled), PUMP (top 10 wallets hold 60.4% (gate 30%)), DJT (Mint Authority still enabled), CASHCAT (top 10 wallets hold 35.9% (gate 30%)), SPYX (Mint Authority still enabled), CARDS (Top 10 holders high ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
