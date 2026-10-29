@@ -1,5 +1,4 @@
-Full scan 17:11 Brisbane: 79 scanned, 61 scored, 2 above 65. On-chain volume Strong (1.21x 7-day avg).
-NEW watch: SI (Solana) Breakout retest, opp 69, checks 4/6, stop 29.7% away, upside 89%; volume fading; weak last 6h.
+Full scan 18:11 Brisbane: 78 scanned, 60 scored, 1 above 65. On-chain volume Strong (1.21x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: CASHCAT (top 10 wallets hold 35.9% (gate 30%)), METAX (Mint Authority still enabled), STANDARD (owner can mint more), PUMP (top 10 wallets hold 60.4% (gate 30%)), DOOD (Top 10 holders high ownership), FARTCOIN (top 10 wallets hold 35.8% (gate 30%)).
+Removed for token safety: CASHCAT (top 10 wallets hold 35.9% (gate 30%)), CARDS (Top 10 holders high ownership), CYBERLEEK (top 10 wallets hold 37.1% (gate 30%)), METAX (Mint Authority still enabled), PUMP (top 10 wallets hold 60.4% (gate 30%)), SPX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
