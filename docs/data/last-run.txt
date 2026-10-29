@@ -1,3 +1,5 @@
-Hourly refresh 07:10 Brisbane: 8 tracked coins refreshed, 8 scored, 8 above 65. On-chain volume Strong (1.25x 7-day avg).
+Hourly refresh 08:10 Brisbane: 8 tracked coins refreshed, 8 scored, 7 above 65. On-chain volume Strong (1.25x 7-day avg).
+NEW watch: JEANPHIL (Solana) Breakout retest, opp 83, checks 5/6, stop 9.7% away, upside 50.7%; weak last 6h.
+NEW watch: OTC (Solana) Bottom reversal, opp 68, checks 5/6, stop 10.4% away, upside 66%; weak last 6h.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
