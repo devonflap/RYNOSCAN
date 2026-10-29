@@ -10,7 +10,7 @@ const T0 = 1800000000, iso = (t) => new Date(t * 1000).toISOString();
 
 // ---- the five, each with its own rules
 const FIVE = ['trench', 'trenchlab', 'trenchshot', 'trenchx', 'trenchbonus']; /* the lab, shotgun and extractor were retired on 25 Oct but still load and run, so their rules stay tested */
-{ ok(TRENCH_PACK.join() === 'trench' && TRENCH_PACK.every((n) => BOTS[n] && BOTS[n].engine === 'trench' && BOTS[n].labOnly) && FIVE.every((n) => loadConfig(n).engine === 'trench' && loadConfig(n).labOnly), 'the trench pack runs the OG trencher only (29 Oct); all five trench rulebooks still load, paper only (labOnly: live is refused)');
+{ ok(TRENCH_PACK.length === 0 && !BOTS.trench && FIVE.every((n) => loadConfig(n).engine === 'trench' && loadConfig(n).labOnly), 'no trench service runs (30 Oct: every trencher retired); all five trench rulebooks still load, paper only (labOnly: live is refused)');
   const C = Object.fromEntries(FIVE.map((n) => [n, loadConfig(n)]));
   ok(FIVE.every((n) => C[n].regimeDial === false && C[n].dailyLossPct >= 100), 'no outside gate: the market dial and the daily loss limit are off for every trencher');
   ok(!C.trench.variants && !C.trench.holderGate && C.trench.holderRead === false && C.trench.mults.join() === '1.5,2.2,3.5' && C.trench.fixedStopPct === 35 && C.trench.maxOpen === 16 && C.trench.maxPosPct === 1, 'the OG: its first rules exactly (clips at 1.5x/2.2x/3.5x, 35% stop, 16 open, $100), no holder read');
@@ -19,7 +19,7 @@ const FIVE = ['trench', 'trenchlab', 'trenchshot', 'trenchx', 'trenchbonus']; /*
   ok(C.trenchx.holderGate && C.trenchx.insiderExit && C.trenchx.spikeSell.atX === 1.8 && C.trenchx.maxHoldH === 24, 'the extractor: clean coins only, half into the FOMO or at 1.8x, out when insiders sell, a day at most');
   ok(C.trenchbonus.lanes.join() === 'trend' && C.trenchbonus.trend.minAgeH === 0.5 && C.trenchbonus.holderGate && C.trenchbonus.mults.join() === '3', 'the second wave: trending only, nothing under 30 minutes, clean coins, a third into the FOMO, a third at 3x, a free third');
   ok(C.trenchshot.trendCfg.maxHoldH === undefined && C.trenchx.trendCfg.deadMin === undefined, 'the OG\'s trending-lane overrides (6 hours, 6 quiet minutes) are not forced on the other trenchers');
-  ok(!('holderGate' in BOTS.breakout) && !('spikeSell' in BOTS.basebreak) && !('lanes' in BOTS.basebreak) && !('lanes' in BOTS.bottoms), 'and no trench rule leaks into the other bots'); }
+  ok(!('holderGate' in BOTS.breakout) && !('spikeSell' in BOTS.riskyryan) && !('lanes' in BOTS.riskyclaude) && !('lanes' in BOTS.bottoms), 'and no trench rule leaks into the other bots'); }
 
 // ---- the second wave: too young is looked at again later, not thrown away
 { const q = (ageMin) => ({ priceUsd: '1', pairCreatedAt: (T0 - ageMin * 60) * 1000, txns: { m5: { buys: 90, sells: 40 } }, volume: { h1: 3e5 }, priceChange: { m5: 4, h1: 45 }, marketCap: 1e6, dexId: 'pumpswap' });

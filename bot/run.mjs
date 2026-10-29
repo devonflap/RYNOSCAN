@@ -52,7 +52,7 @@ export const TRENCH_WAYS = [
 //   trenchbonus  Claude's pick from everything the trench research says (see TRENCH_BONUS)
 // Shared on purpose: the market data and the signal judges. Not shared: every gate, size and exit. The market dial and the daily loss
 // limit are off for all five (they would stop a bot taking shots for reasons that have nothing to do with the trench).
-export const TRENCH_PACK = ['trench']; /* 29 Oct: the second wave retired */  /* 25 Oct (Ryan): one bot per track; the trench track keeps the OG and the second wave, the lab, shotgun and extractor are retired */
+export const TRENCH_PACK = []; /* 30 Oct: the OG trencher retired too; no trench service runs */  /* 25 Oct (Ryan): one bot per track; the trench track keeps the OG and the second wave, the lab, shotgun and extractor are retired */
 // 25 OCT, RYAN'S CALL, ON ALL FIVE (from the day's 258 trades on coins whose pool cannot be pulled): the trending lane only (DexScreener
 // launches lost $65 per $100), nothing under 30 minutes old (under 10 minutes lost $40 and a quarter rugged; over 2 hours lost $9-14,
 // none rugged), nothing under a $60k market cap (lost $60-99 per $100), and no chasing: not already up more than 15% in 5 minutes (those
@@ -111,6 +111,14 @@ export const BOTS = {
   // long as it runs. Stop: under the lows of the last two closed hourly candles (12% to 30% from entry, 20% when no candles). Out early
   // when sellers are dumping it (dumpCut: 5-minute sells 1.5x buys and the hour 1.2x, 15% off the high) or when buyers stop following (flowCut)
   // unchanged but for one rule (23 Oct, HOOKR: +30% at the peak, closed -1.4% two days later): once up 30%, half the gain given back is the exit
+  // THE RISKY BOTS (30 Oct, Ryan: "Risky Claude and Risky Ryan are the only paper traders making money: make them into bots"). The scanner's
+  // two best paper books, as bots: the coins the "High risk, high reward runners" list names with 3+ of its 4 checks and no risk rule,
+  // bought at the market when the list names them (up to 2 a scan), each with its own book's exits exactly. Nothing else: no dump cut, no
+  // giveback, no follow-through rule, so the bot and its paper twin can be compared trade for trade (the reality check, weekly).
+  // The evidence when built: 21 paper trades each; Claude's setup +0.86R a trade (90% range -0.28R to +2.11R), Ryan's +0.59R (-0.50R to
+  // +1.87R), random coins -0.18R. Promising, not proven: both ranges still reach below zero.
+  riskyclaude: { name: 'riskyclaude', label: 'RynoBot Risky · Claude', source: 'runners', labOnly: true, entry: 'market', exit: 'ladder', realityBook: 'riskyPick', realityEveryDays: 7, minOpp: 0, runnerMinPassed: 3, runnerMaxNew: 2, minLiqUsd: 30000, maxLiqPct: 1, minAgeH: 0, fixedStopPct: 18, minStopPct: 0, maxStopPct: 25, mults: [1.4, 2, 3], shares: [0.25, 0.25, 0.25], moonTrail: 0.35, beAfterFirst: true, flowCut: false, noFollowH: 0, boostTighten: 0, dumpCut: null, peakGiveback: null, volDied: 0, coolH: 24, maxHoldH: 120, maxOpen: 10, maxOpenRiskPct: 20, riskPct: 3, maxPosPct: 1, signalMaxAgeH: 2, chaseLimitPct: 15, regimeDial: false, dailyLossPct: 100, heartbeatMin: 120 },
+  riskyryan: { name: 'riskyryan', label: 'RynoBot Risky · Ryan', source: 'runners', labOnly: true, entry: 'market', exit: 'ladder', realityBook: 'riskyRyan', realityEveryDays: 7, minOpp: 0, runnerMinPassed: 3, runnerMaxNew: 2, minLiqUsd: 30000, maxLiqPct: 1, minAgeH: 0, fixedStopPct: 20, minStopPct: 0, maxStopPct: 25, mults: [1.69, 2.5, 3.6], shares: [0.3, 0.3, 0.4], moonTrail: 0.5, beAfterFirst: false, flowCut: false, noFollowH: 0, boostTighten: 0, dumpCut: null, peakGiveback: null, volDied: 0, coolH: 24, maxHoldH: 168, maxOpen: 10, maxOpenRiskPct: 20, riskPct: 3, maxPosPct: 1, signalMaxAgeH: 2, chaseLimitPct: 15, regimeDial: false, dailyLossPct: 100, heartbeatMin: 120 },
   breakout: { name: 'breakout', label: 'RynoBot Breakout', source: 'breakouts', entry: 'limit', exit: 'ladder', realityBook: 'brkBot', tuneKey: 'breakout', autoTune: true, minOpp: 50, maxStopPct: 35, maxHoldH: 168, minAgeH: 24, smaHalve: true, peakGiveback: { armPct: 0.3, keep: 0.5 } },
   // THE LAB: the same minute-scan signals as the runner, but every signal is traded seven ways at once, each a seventh of the risk, so the
   // council can measure one choice at a time against the base case (A): entry now vs the first pullback vs a random coin (the luck
@@ -154,6 +162,8 @@ export const BOTS = {
 // track keeps the OG and the second wave), the rider (1 trade in a week) and the stand-alone copy bot (folded into the base-breakout bot).
 // Kept so their files, the councils' history and the tests still load; not run as services.
 for (const k of ['copy', 'rider']) { RETIRED[k] = BOTS[k]; delete BOTS[k]; }
+// retired 30 Oct (Ryan: "retire all losing bots"): the OG trencher (98 trades since 25 Oct, 7 won, -$1,529) and base breakout (65 closed, -$2,568 with the copy signal; its own breakouts 4 closed, all losers, and the forward backtest found no base-breakout rule making money). Kept so their files load.
+for (const k of ['trench', 'basebreak']) { RETIRED[k] = BOTS[k]; delete BOTS[k]; }
 for (const k of ['trenchlab', 'trenchshot', 'trenchx', 'trenchbonus']) RETIRED[k] = TRENCHERS[k]; /* trenchbonus retired 29 Oct */
 // retired 24 Oct: BTC and ETH on the Monday range. A year of Coinbase candles, the bots' own detector, eight readings of the rules
 // (UTC and New York Monday, stop under the order block or the sweep low, entry at the top or middle, 2R or 3R minimum, the discount rule,
