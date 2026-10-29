@@ -1,9 +1,10 @@
 # The Alts desk (src/alts.mjs): Market Watcher-style HTF spot setups on the top alts (Gate.io daily candles) and on the meme universe.
-# Once a day after the UTC daily close, or by hand: Actions -> "RynoScan alts desk" -> Run workflow.
+# Hourly (30 Oct): patterns are judged on daily closes only, so a setup changes state once a day; every run refreshes the live price and the
+# 1h / 4h charts. Or by hand: Actions -> "RynoScan alts desk" -> Run workflow.
 name: RynoScan alts desk
 on:
   schedule:
-    - cron: "20 0 * * *"   # daily, 00:20 UTC (10:20am Brisbane), just after the daily close
+    - cron: "20 * * * *"   # hourly at 20 past (the 00:20 UTC run is the first after the daily close)
   workflow_dispatch: {}
 permissions:
   contents: write

@@ -28,6 +28,12 @@ export async function gateDaily(api, pair, limit = 200) {
   if (bars.length && bars.at(-1)[0] + 86400 > Date.now() / 1000) bars.pop();     // drop the still-open candle: we trade daily closes
   return bars;
 }
+// intraday candles for the chart toggles (30 Oct: hourly refresh): the still-open candle is kept, it is the live price. [iso, o, h, l, c]
+export async function gateCandles(api, pair, interval, limit) { const j = await api.getJson(`https://api.gateio.ws/api/v4/spot/candlesticks?currency_pair=${encodeURIComponent(pair)}&interval=${interval}&limit=${limit}`); if (!Array.isArray(j)) return [];
+  return j.map((c) => [+c[0], +c[5], +c[3], +c[4], +c[2]]).filter((b) => b[4] > 0).sort((a, b) => a[0] - b[0]).map((b) => [new Date(b[0] * 1000).toISOString().slice(0, 16), b[1], b[2], b[3], b[4]]); }
+async function memeIntraday(api, net, pool, agg, limit) { const j = await api.get(`/networks/${net}/pools/${pool}/ohlcv/hour?aggregate=${agg}&limit=${limit}&currency=usd&token=base`); const raw = j?.data?.attributes?.ohlcv_list; if (!Array.isArray(raw)) return [];
+  return raw.map((b) => b.map(Number)).sort((a, b) => a[0] - b[0]).map((b) => [new Date(b[0] * 1000).toISOString().slice(0, 16), b[1], b[2], b[3], b[4]]); }
+export const liveOf = (r) => { const h = r.tf && r.tf['1h'], last = h && h.length ? h[h.length - 1] : null; if (!last) return null; return { px: last[4], at: last[0] + 'Z', toLinePct: r.upperNow > 0 ? +((last[4] / r.upperNow - 1) * 100).toFixed(1) : null, toInvalPct: r.invalidation > 0 ? +((last[4] / r.invalidation - 1) * 100).toFixed(1) : null }; };
 async function memeDaily(api, net, pool, limit = 120) {
   const j = await api.get(`/networks/${net}/pools/${pool}/ohlcv/day?aggregate=1&limit=${limit}&currency=usd&token=base`);
   const raw = j?.data?.attributes?.ohlcv_list; if (!Array.isArray(raw)) return [];
@@ -51,16 +57,24 @@ export async function runAlts({ api = makeApi(), log = console.log, out = path.j
   const bars = {}, btcBars = await gateDaily(api, 'BTC_USDT'); let k = 0;
   for (const u of uni) { try { const b = await gateDaily(api, u.pair); if (b.length >= 40) bars[u.sym] = b; } catch (e) { log(`${u.sym}: ${e.message}`); } if (++k % 20 === 0) log(`candles ${k}/${uni.length}`); await api.sleep(120); }
   const btc = btcBars.map((b) => b[4]), A = scoreBook(bars, btc), reg = A.basket.length >= 40 && btc.length >= 40 ? regime(btc.slice(-A.basket.length), A.basket) : { label: 'UNKNOWN', note: 'not enough history for a regime call' };
+  // 30 Oct: the desk runs hourly. Patterns are still judged on DAILY closes only (the open daily candle is dropped), so a state can only
+  // change once a day; each hourly run refreshes the live price and the 1h / 4h charts. The meme coins' daily candles (CoinGecko, metered)
+  // and the spot book are done once a day, on the first run after the UTC close; the other runs reuse that day's meme results.
+  const prevOut = readJson(out, {}), today = new Date().toISOString().slice(0, 10), newDay = String(prevOut.dayAt || '').slice(0, 10) !== today;
   // ---- memes: the scanner's universe on daily on-chain candles (needs the data key; skipped on the free feed)
   const memes = {}, memeNames = {}; let memeNote = '';
-  if (api.keyed) { const u = readJson(path.join(outDir(), 'universe.json'), []).filter((x) => x && x.pool && x.net).slice(0, 60); let m = 0;
+  if (!newDay && Array.isArray(prevOut.memes)) { memeNote = prevOut.memeNote || ''; }
+  else if (api.keyed) { const u = readJson(path.join(outDir(), 'universe.json'), []).filter((x) => x && x.pool && x.net).slice(0, 60); let m = 0;
     for (const x of u) { try { const b = await memeDaily(api, x.net, x.pool); if (b.length >= 40) { memes[x.id || x.sym] = b; memeNames[x.id || x.sym] = x; } } catch (e) { log(`${x.sym}: ${e.message}`); } if (++m % 20 === 0) log(`meme candles ${m}/${u.length}`); }
     memeNote = `${Object.keys(memes).length} of ${u.length} meme coins have 40+ days of history`; }
   else memeNote = 'meme setups need the CoinGecko key (CG_API_KEY) for daily on-chain candles';
-  const M = scoreBook(memes, btc, { p: P_MEME }); M.results.forEach((r) => { const x = memeNames[r.symbol]; if (x) { r.coin = x.sym; r.chain = x.chain; r.pool = x.pool; r.net = x.net; } });
+  const M = !newDay && Array.isArray(prevOut.memes) ? { results: prevOut.memes.map((r) => ({ ...r })) } : scoreBook(memes, btc, { p: P_MEME }); if (newDay || !Array.isArray(prevOut.memes)) M.results.forEach((r) => { const x = memeNames[r.symbol]; if (x) { r.coin = x.sym; r.chain = x.chain; r.pool = x.pool; r.net = x.net; } });
+  // ---- 1h and 4h candles for every coin with a setup (the chart toggles and the live price)
+  for (const r of A.results.filter((x) => x.state !== 'NONE')) { try { const u = uni.find((x) => x.sym === r.symbol); if (!u) continue; r.tf = { '1h': await gateCandles(api, u.pair, '1h', 72), '4h': await gateCandles(api, u.pair, '4h', 60) }; r.live = liveOf(r); await api.sleep(60); } catch (e) { log(`${r.symbol} intraday: ${e.message}`); } }
+  if (api.keyed) for (const r of M.results.filter((x) => x.state !== 'NONE' && x.pool && x.net)) { try { r.tf = { '1h': await memeIntraday(api, r.net, r.pool, 1, 72), '4h': await memeIntraday(api, r.net, r.pool, 4, 60) }; r.live = liveOf(r); } catch (e) { log(`${r.symbol} intraday: ${e.message}`); } }
   // ---- spot book
-  const posPath = 'config/alts-positions.json', positions = readJson(posPath, []), events = managePositions(positions, A.results, reg);
-  try { fs.writeFileSync(posPath, JSON.stringify(positions, null, 1)); } catch { /* read-only checkout: fine */ }
+  const posPath = 'config/alts-positions.json', positions = readJson(posPath, []), events = newDay ? managePositions(positions, A.results, reg) : []; /* once a day, on daily closes */
+  if (newDay) try { fs.writeFileSync(posPath, JSON.stringify(positions, null, 1)); } catch { /* read-only checkout: fine */ }
   // ---- alerts: only on a state change worth acting on; never a BID on a Sunday (the weekly close)
   const statePath = path.join(path.dirname(out), 'alts-state.json'), prev = readJson(statePath, {}), next = {}, sunday = new Date().getUTCDay() === 0, sent = [];
   const firstRun = !Object.keys(prev).length, alertsOn = topic && settings.altsAlerts !== false;   // a first run (or a reset state file) would ping every coin at once: send only the digest
@@ -73,14 +87,14 @@ export async function runAlts({ api = makeApi(), log = console.log, out = path.j
   for (const r of M.results) { const key = 'M:' + r.symbol; next[key] = r.state; if (r.state === prev[key] || r.score < minScore || sunday || firstRun) continue;
     if (r.state === 'BID') await push(`${r.coin || r.symbol} (meme) · BID, ${r.pattern} resolved`, `daily close ${fmt(r.lastClose)} through ${fmt(r.upperNow)}. invalidation ${fmt(r.invalidation)} · T1 ${fmt(r.t1)} · T2 ${fmt(r.t2)}. meme rules: small size, clip 20% into strength, moonbag the rest.`, 'high', 'rocket'); }
   for (const [sym, kind, msg] of events) await push(`${sym} · ${kind}`, msg, kind === 'OUT' || kind === 'SL TO BE' ? 'high' : 'default', 'moneybag');
-  if (sunday || firstRun) { const top = A.results.filter((r) => r.state !== 'NONE' && r.score >= minScore).slice(0, 6), rs = [...A.results].sort((a, b) => b.rsBasket - a.rsBasket).slice(0, 5);
+  if ((sunday && newDay) || firstRun) { const top = A.results.filter((r) => r.state !== 'NONE' && r.score >= minScore).slice(0, 6), rs = [...A.results].sort((a, b) => b.rsBasket - a.rsBasket).slice(0, 5);
     await push('weekly close check', `regime ${reg.label}. relative strength: ${rs.map((r) => `${r.symbol} ${r.rsBasket > 0 ? '+' : ''}${Math.round(r.rsBasket)}%`).join(', ')}. setups: ${top.map((r) => `${r.symbol} (${r.state.toLowerCase()})`).join(', ') || 'none'}. not trading into the close.`, 'default', 'calendar'); }
   /* the scoreboard (30 Oct): every BID on paper, next to a random coin, managed on daily closes the way the desk says (docs/deskbook.mjs) */
   let book = null; try { const bp = path.join(path.dirname(out), 'alts-book.json'), b0 = readJson(bp, {}), day = new Date().toISOString().slice(0, 10);
     book = { alts: stepDeskBook(b0.alts, A.results, { day, prevStates: prev, minScore }), memes: stepDeskBook(b0.memes, M.results, { day, prevStates: prev, keyPrefix: 'M:', minScore }) }; book.at = new Date().toISOString().slice(0, 19) + 'Z'; book.record = { alts: deskRecord(book.alts), memes: deskRecord(book.memes) };
     fs.writeFileSync(bp, JSON.stringify(book)); log(`scoreboard: alts ${JSON.stringify(book.record.alts)}; memes ${JSON.stringify(book.record.memes)}`); } catch (e) { log('scoreboard: ' + e.message); }
   fs.writeFileSync(statePath, JSON.stringify(next));
-  const result = { at: new Date().toISOString().slice(0, 19) + 'Z', seconds: Math.round((Date.now() - t0) / 1000), regime: reg, basketRet14: +(A.basketRet * 100).toFixed(1), btcRet14: +(A.btcRet * 100).toFixed(1),
+  const result = { at: new Date().toISOString().slice(0, 19) + 'Z', dayAt: newDay ? new Date().toISOString().slice(0, 19) + 'Z' : prevOut.dayAt || null, seconds: Math.round((Date.now() - t0) / 1000), regime: reg, basketRet14: +(A.basketRet * 100).toFixed(1), btcRet14: +(A.btcRet * 100).toFixed(1),
     universe: uni.length, scored: A.results.length, minScore, results: A.results, memes: M.results, memeNote, positions, positionEvents: events, alerts: sent, alertsOn: !!alertsOn, record: book ? book.record : null };
   fs.mkdirSync(path.dirname(out), { recursive: true }); fs.writeFileSync(out, JSON.stringify(result));
   log(`regime ${reg.label}: ${reg.note}`); for (const r of A.results.filter((r) => r.state !== 'NONE').slice(0, 12)) log(`${r.symbol.padEnd(7)} ${r.state.padEnd(11)} ${r.pattern.padEnd(18)} ${r.score}  ${r.reasons.at(-1)}`);

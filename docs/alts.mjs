@@ -4,28 +4,32 @@ const fmt = (x) => (x == null || !isFinite(x) ? '—' : x >= 1000 ? Math.round(x
 const pc = (x) => (x == null ? '—' : (x > 0 ? '+' : '') + Number(x).toFixed(1) + '%');
 const STATE_CLS = { WATCH: 'mw-watch', DECISION: 'mw-decision', BID: 'mw-bid', INVALIDATED: 'mw-inval', NONE: 'mw-none' };
 
-export function drawMwChart(cv, r) {
+export function drawMwChart(cv, r, tf = '1d') {
   const dpr = window.devicePixelRatio || 1, W = cv.clientWidth || 320, H = cv.clientHeight || 190; cv.width = W * dpr; cv.height = H * dpr;
-  const g = cv.getContext('2d'); g.scale(dpr, dpr); const c = r.candles || [], n = c.length; if (!n) return; const off = r.offset || 0, pad = { l: 6, r: 58, t: 10, b: 8 };
+  const intra = tf !== '1d' && r.tf && Array.isArray(r.tf[tf]) && r.tf[tf].length; /* 1h / 4h: the candles and the levels; the daily trendlines are drawn on the daily chart only */
+  const g = cv.getContext('2d'); g.scale(dpr, dpr); const c = intra ? r.tf[tf] : r.candles || [], n = c.length; if (!n) return; const off = r.offset || 0, pad = { l: 6, r: 58, t: 10, b: 8 };
   let lo = Math.min(...c.map((x) => x[3])), hi = Math.max(...c.map((x) => x[2]));  [r.t1, r.t2, r.invalidation].forEach((v) => { if (v > 0) { lo = Math.min(lo, v); hi = Math.max(hi, v); } }); lo *= 0.985; hi *= 1.015;
   const x = (i) => pad.l + (i + 0.5) * (W - pad.l - pad.r) / n, y = (v) => pad.t + (hi - v) / (hi - lo) * (H - pad.t - pad.b), bw = Math.max(2, (W - pad.l - pad.r) / n * 0.62);
   g.fillStyle = '#141414'; g.fillRect(0, 0, W, H); g.strokeStyle = '#2a2a2a'; g.lineWidth = 1;
   for (let k = 0; k < 5; k++) { const yy = pad.t + k * (H - pad.t - pad.b) / 4; g.beginPath(); g.moveTo(pad.l, yy); g.lineTo(W - pad.r, yy); g.stroke(); g.fillStyle = '#6a6a6a'; g.font = '10px sans-serif'; g.textAlign = 'left'; g.fillText(fmt(hi - (hi - lo) * k / 4), W - pad.r + 6, yy + 3); }
   const lvl = (v, col, lab) => { if (!(v > 0)) return; g.strokeStyle = col; g.setLineDash([3, 3]); g.beginPath(); g.moveTo(pad.l, y(v)); g.lineTo(W - pad.r, y(v)); g.stroke(); g.setLineDash([]); g.fillStyle = col; g.font = 'bold 9.5px sans-serif'; g.textAlign = 'right'; g.fillText(lab, W - pad.r - 4, y(v) - 3); };
-  lvl(r.invalidation, '#f8717199', 'INVAL'); lvl(r.t1, '#a8a8a899', 'T1'); lvl(r.t2, '#a8a8a899', 'T2');
-  if (r.fib) for (const [k, v] of Object.entries(r.fib)) if (v > lo && v < hi) lvl(v, '#a78bfa66', '0.' + k.slice(1));
+  lvl(r.invalidation, '#f8717199', 'INVAL'); lvl(r.t1, '#a8a8a899', 'T1'); lvl(r.t2, '#a8a8a899', 'T2'); if (intra) lvl(r.upperNow, '#fb923ccc', 'BID ABOVE (daily close)');
+  if (r.fib && !intra) for (const [k, v] of Object.entries(r.fib)) if (v > lo && v < hi) lvl(v, '#a78bfa66', '0.' + k.slice(1));
   c.forEach((k, i) => { const up = k[4] >= k[1]; g.strokeStyle = g.fillStyle = up ? '#34d399' : '#f87171'; g.beginPath(); g.moveTo(x(i), y(k[2])); g.lineTo(x(i), y(k[3])); g.stroke(); const t = y(Math.max(k[1], k[4])), b = y(Math.min(k[1], k[4])); g.fillRect(x(i) - bw / 2, t, bw, Math.max(1, b - t)); });
   const line = (pts, col) => { if (!pts || pts.length < 2) return; const [a, b] = pts, m = (b[1] - a[1]) / (b[0] - a[0]), xa = a[0] - off, xb = n - 1 + 6; g.strokeStyle = col; g.lineWidth = 1.6; g.beginPath(); g.moveTo(x(xa), y(a[1])); g.lineTo(x(xb), y(a[1] + m * (xb - xa))); g.stroke(); g.lineWidth = 1; };
-  line(r.upperPts, '#f87171'); line(r.lowerPts, '#34d399');
-  if (r.lowerPts && r.lowerPts.length === 1) { g.strokeStyle = '#34d399'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(x(r.lowerPts[0][0] - off), y(r.lowerPts[0][1])); g.lineTo(x(n + 5), y(r.lowerPts[0][1])); g.stroke(); }
+  if (!intra) { line(r.upperPts, '#f87171'); line(r.lowerPts, '#34d399'); }
+  if (!intra && r.lowerPts && r.lowerPts.length === 1) { g.strokeStyle = '#34d399'; g.lineWidth = 1.6; g.beginPath(); g.moveTo(x(r.lowerPts[0][0] - off), y(r.lowerPts[0][1])); g.lineTo(x(n + 5), y(r.lowerPts[0][1])); g.stroke(); }
   const last = c[n - 1][4]; g.fillStyle = last >= c[n - 1][1] ? '#34d399' : '#f87171'; g.fillRect(W - pad.r + 1, y(last) - 7, pad.r - 2, 14); g.fillStyle = '#111'; g.font = 'bold 10px sans-serif'; g.textAlign = 'left'; g.fillText(fmt(last), W - pad.r + 5, y(last) + 3.5);
 }
 
 export function mwCard(r, { meme = false } = {}) {
   const card = el('div', 'plan mw-card'), rrv = r.rPerUnit > 0 ? ((r.t2 - r.entry) / r.rPerUnit).toFixed(1) : '—';
-  const top = el('div', 't'); const name = el('b', null, meme ? (r.coin || r.symbol) : r.symbol); const sub = el('span', 'meta', ` 1D · ${r.pattern || 'no pattern'}${meme && r.chain ? ' · ' + r.chain : ''}`); top.append(name, sub);
+  const top = el('div', 't'); const name = el('b', null, meme ? (r.coin || r.symbol) : r.symbol); const sub = el('span', 'meta', ` ${r.tf ? 'daily pattern' : '1D'} · ${r.pattern || 'no pattern'}${meme && r.chain ? ' · ' + r.chain : ''}`); top.append(name, sub);
   const right = el('span', 'score'); right.append('score ', el('b', null, String(r.score)), ' ', Object.assign(el('span', 'badge ' + (STATE_CLS[r.state] || 'mw-none'), r.state))); top.append(right); card.append(top);
-  const cv = el('canvas', 'mw-cv'); card.append(cv);
+  const cv = el('canvas', 'mw-cv'); let tf = '1d'; try { tf = localStorage.getItem('rynoAltsTf') || '1d'; } catch { /* storage off */ } if (tf !== '1d' && !(r.tf && r.tf[tf] && r.tf[tf].length)) tf = '1d';
+  if (r.tf) { const bar = el('div', 'mw-tf'); for (const [k, lab] of [['1d', '1D'], ['4h', '4h'], ['1h', '1h']]) { if (k !== '1d' && !(r.tf[k] && r.tf[k].length)) continue; const b = el('button', 'chip' + (k === tf ? ' on' : ''), lab); b.type = 'button'; b.addEventListener('click', () => { tf = k; try { localStorage.setItem('rynoAltsTf', k); } catch { /* storage off */ } bar.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); cv._tf = tf; drawMwChart(cv, r, tf); }); bar.append(b); } card.append(bar); }
+  card.append(cv); cv._r = r; cv._tf = tf;
+  if (r.live && r.live.px > 0) card.append(el('div', 'mw-live', `now ${fmt(r.live.px)} (${String(r.live.at).slice(11, 16)} UTC) · ${r.live.toLinePct >= 0 ? 'above' : 'below'} the bid line by ${Math.abs(r.live.toLinePct)}% · ${r.live.toInvalPct}% over invalidation${r.state !== 'BID' && r.live.toLinePct > 0 ? ' · above the line intraday: the BID needs a DAILY close above it' : ''}`));
   const lv = el('div', 'mw-lv'); const box = (lab, val, cls) => { const d = el('div'); d.append(el('span', null, lab), Object.assign(el('b', cls, val))); return d; };
   lv.append(box('bid above', fmt(r.upperNow), 'mw-o'), box('invalidation', fmt(r.invalidation), 'mw-r'), box('T1 / T2', `${fmt(r.t1)} / ${fmt(r.t2)}`, 'mw-g'), box('R:R to T2', rrv)); card.append(lv);
   const meta = el('div', 'mw-meta'); const m = (lab, val, cls) => { const s = el('span', null, lab + ' '); s.append(Object.assign(el('b', cls, val))); return s; };
@@ -33,7 +37,7 @@ export function mwCard(r, { meme = false } = {}) {
   card.append(el('div', 'mw-why', (r.reasons || []).join(' · ')));
   if (meme && r.deeper) card.append(el('div', 'caut', '⚠ ' + r.deeper));
   if (meme && r.pool) { const a = el('a', 'mw-link', 'DexScreener ↗'); a.href = `https://dexscreener.com/${r.net || r.chain}/${r.pool}`; a.target = '_blank'; a.rel = 'noopener'; card.append(a); }
-  requestAnimationFrame(() => drawMwChart(cv, r));
+  requestAnimationFrame(() => drawMwChart(cv, r, tf));
   return card;
 }
 

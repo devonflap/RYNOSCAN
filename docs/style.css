@@ -327,3 +327,6 @@ details.card summary h2{font-family:var(--gauge)}
 
 /* 30 Oct: best bets */
 .bb-block{border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:.6rem .8rem;margin:.6rem 0}.bb-block h3{margin:.1rem 0 .3rem;font-size:1rem}.bb-off{opacity:.6}.bb-coin{padding:.45rem 0;border-top:1px solid rgba(255,255,255,.06);font-size:.92rem}.bb-coin a{margin-left:.5rem}.bb-held{opacity:.6;font-size:.85rem}
+
+/* 30 Oct: alts desk timeframe chips and live price */
+.mw-tf{display:flex;gap:.3rem;margin:.3rem 0}.mw-tf .chip{padding:.15rem .55rem;font-size:.8rem}.mw-live{font-size:.82rem;color:#bdbdbd;margin:.25rem 0}

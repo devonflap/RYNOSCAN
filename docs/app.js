@@ -1046,7 +1046,7 @@ function wireModes() {
   const btns = [...document.querySelectorAll('.mode')]; if (!btns.length) return;
   const show = (k) => { btns.forEach((b) => { const on = b.dataset.mode === k; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
     document.querySelectorAll('[data-mode]').forEach((e) => { if (e.classList.contains('mode')) return; if (e.id === 'verdict' && e.dataset.mode === k) { e.hidden = !S.meta; return; } e.hidden = e.dataset.mode !== k; });
-    try { store.set('rynoMode', k); } catch { /* optional */ } if (k === 'alts') document.querySelectorAll('#altsOut canvas').forEach((cv) => { try { if (cv._r) import('./alts.mjs').then((m) => m.drawMwChart(cv, cv._r)); } catch { /* fine */ } }); };
+    try { store.set('rynoMode', k); } catch { /* optional */ } if (k === 'alts') document.querySelectorAll('#altsOut canvas').forEach((cv) => { try { if (cv._r) import('./alts.mjs').then((m) => m.drawMwChart(cv, cv._r, cv._tf || '1d')); } catch { /* fine */ } }); };
   S.applyMode = () => show(store.get('rynoMode') || 'memes');
   btns.forEach((b) => b.addEventListener('click', () => { show(b.dataset.mode); window.scrollTo({ top: 0 }); }));
   let k = 'memes'; try { k = store.get('rynoMode') || 'memes'; } catch { /* default */ } show(btns.some((b) => b.dataset.mode === k) ? k : 'memes');

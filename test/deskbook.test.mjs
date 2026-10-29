@@ -16,4 +16,9 @@ let g = stepDeskBook(null, res(1, 10, 'BID'), { day: d(0), rnd: () => 0 }); for 
 const { headCouncil } = await import('../docs/trackcouncil.mjs');
 { const h = headCouncil({}, Date.now(), [], { alts: { bids: { n: 31, avg: 6, win: 45 }, random: { n: 31, avg: -2 }, open: 2 }, memes: { bids: { n: 0 }, random: { n: 0 }, open: 0 } });
   ok(h.points.some((p) => /Alts desk BIDs on paper: \+6/.test(p)) && h.points.some((p) => /Spot & chill: no BID closed/.test(p)) && h.proposals.some((p) => p.kind === 'bot candidate' && /Alts desk/.test(p.text)), 'the head council reads both scoreboards and proposes a desk as a bot once its BIDs beat random over 30+'); }
+// 30 Oct: the alts desk refreshes hourly: intraday candles keep the live (open) candle and give a live price against the bid line
+{ const { gateCandles, liveOf } = await import('../src/alts.mjs'); const now = 1800000000;
+  const c = await gateCandles({ getJson: async () => [[String(now - 3600), '1', '2.1', '2.2', '2.0', '2.05'], [String(now), '1', '2.3', '2.35', '2.2', '2.1']] }, 'AAA_USDT', '1h', 2);
+  ok(c.length === 2 && c[1][0] === new Date(now * 1000).toISOString().slice(0, 16) && c[1][4] === 2.3, 'intraday candles: oldest first, the open candle kept (it is the live price)');
+  const L = liveOf({ tf: { '1h': c }, upperNow: 2.0, invalidation: 1.5 }); ok(L.px === 2.3 && L.toLinePct === 15 && L.toInvalPct === 53.3, 'the live price, and how far it sits from the bid line and the invalidation'); }
 process.exit(f);
