@@ -330,3 +330,6 @@ details.card summary h2{font-family:var(--gauge)}
 
 /* 30 Oct: alts desk timeframe chips and live price */
 .mw-tf{display:flex;gap:.3rem;margin:.3rem 0}.mw-tf .chip{padding:.15rem .55rem;font-size:.8rem}.mw-live{font-size:.82rem;color:#bdbdbd;margin:.25rem 0}
+
+/* 30 Oct: alts card links */
+.mw-links{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:.35rem}.mw-name{font-weight:700;color:inherit;text-decoration:underline;text-decoration-color:rgba(255,255,255,.25)}
