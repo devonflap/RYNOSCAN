@@ -2,8 +2,8 @@
 // (wallet distribution, how many wallets are buying versus selling, optional watch-list of known good wallets). Paper money only.
 // Shared by the scanner (Node) and the dashboard (browser). Nothing here touches the main scanner rules, scores or alerts.
 export const DEGEN = { start: 10000, pct: 10, slots: 8, stopPct: 0.20, tpMult: 2, trailPct: 0.30, slipPct: 3, maxHours: 72, maxNew: 3, minLiq: 50000, minV24: 250000, minVacc: 2.5, minBs1: 1.15, minCh24: 10, maxCh24: 400, sizeUsd: 1000 };
-import { runExit, PROFILES } from './exits.mjs?v=46588e22b3';
-import { EXIT_SET, buyerSpike } from './strategies.mjs?v=46588e22b3';
+import { runExit, PROFILES } from './exits.mjs?v=67b28f29cc';
+import { EXIT_SET, buyerSpike } from './strategies.mjs?v=67b28f29cc';
 const num = (v) => (v == null || v === '' || !isFinite(+v) ? null : +v);
 const r4 = (x) => (x == null || !isFinite(x) ? null : +(+x).toPrecision(5));
 const sameAddr = (a, b) => !!a && !!b && (a === b || String(a).toLowerCase() === String(b).toLowerCase());

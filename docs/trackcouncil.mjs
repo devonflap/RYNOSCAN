@@ -5,13 +5,13 @@
 // bot is testing yet (a new bot to propose), and which bots have earned nothing (to retire). It never builds, changes or retires a bot by
 // itself: its proposals go to Ryan in the Monday review, and need his yes. Rules are frozen for two weeks or 30 trades from 25 Oct
 // (bug fixes only), so every verdict is about rules that held still long enough to judge.
-import { trenchCouncil } from './trenchcouncil.mjs?v=46588e22b3';
-import { rulebookLines } from './bestrules.mjs?v=46588e22b3';
+import { trenchCouncil } from './trenchcouncil.mjs?v=67b28f29cc';
+import { rulebookLines } from './bestrules.mjs?v=67b28f29cc';
 export const FREEZE = { from: '2026-10-25', until: '2026-11-08', minTrades: 30 };
 export const TRACKS = {
   trenches: { title: 'Trenches', what: 'trencher', bots: {}, base: 'trench', labBot: null }, /* 30 Oct: every trencher retired; the track keeps its history */
   patterns: { title: 'Chart patterns', what: 'chart-pattern bot', bots: { breakout: 'Breakout retest' }, base: 'breakout', backtest: 'backtest.json' },
-  runners: { title: 'High risk runners', what: 'runner bot', bots: { riskyclaude: 'Risky · Claude', riskyryan: 'Risky · Ryan' }, base: 'riskyryan', labBot: null, backtest: 'runner-bt.json' }, /* 30 Oct: the two best paper books as bots; base breakout retired */
+  runners: { title: 'High risk runners', what: 'runner bot', bots: { riskyclaude: 'Risky · Claude', riskyryan: 'Risky · Ryan', volrider: 'Volume rider' }, base: 'riskyryan', labBot: null, backtest: 'runner-bt.json' }, /* 30 Oct: the two best paper books as bots; base breakout retired */
   bottoms: { title: 'Bottomed-out holds', what: 'bottomed-out bot', bots: { bottoms: 'Bottomed-out (Chill)' }, base: 'bottoms', backtest: 'bottom-bt.json' },
   alts: { title: 'Alts', what: 'alts bot', bots: {}, base: 'alts', backtest: 'alts-bt.json' }, /* 27 Oct: backtest only; a bot only when a rule passes every bar */
   best: { title: 'Best-of bot', what: 'best-of bot', bots: { bestof: 'Best-of (head council)' }, base: 'bestof', backtest: 'bestof-rules.json' },

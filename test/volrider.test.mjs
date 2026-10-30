@@ -1,0 +1,62 @@
+// the Volume rider (30 Oct, Ryan's HI/HYPE playbook) and coins paired with other tokens (HYPE, a stock token) being picked up by every bot
+import fs0 from 'node:fs'; process.env.RYNOBOT_DIR = fs0.mkdtempSync('/tmp/rynovol-');
+import { cycle, newState, loadConfig, BOTS, refreshQuotePx } from '../bot/run.mjs';
+import { VOLR, volCandidates, volSetup, volDead } from '../bot/volrider.mjs';
+import { quoteProblem, trueLiq } from '../bot/manage.mjs';
+const out = console.log; let f = 0; const ok = (c, m) => { out((c ? 'PASS ' : 'FAIL ') + m); if (!c) f = 1; };
+const log0 = console.log, quiet = async (fn) => { console.log = () => {}; try { return await fn(); } finally { console.log = log0; } };
+const T0 = 1800000000;
+// a chart shaped like Ryan's HI: launch at 1, big volume run to 2.5, decline to 1.5 (back 0.67 of the run), 4 hours of base at 1.5-1.65
+function chart({ base = [1.5, 1.65], runTo = 2.5, dipTo = 1.5, baseVol = 3000, baseBars = 16, baseRange = null } = {}) { const B = []; let t = T0, px = 1;
+  for (let i = 0; i < 8; i++) { B.push([t, px, px * 1.02, px * 0.98, px, 2000]); t += 900; }
+  for (let i = 0; i < 16; i++) { const n = 1 + ((runTo - 1) * (i + 1)) / 16; B.push([t, px, n * 1.01, px * 0.99, n, 40000]); px = n; t += 900; }
+  for (let i = 0; i < 12; i++) { const n = runTo - ((runTo - dipTo) * (i + 1)) / 12; B.push([t, px, px * 1.005, n * 0.995, n, 15000]); px = n; t += 900; }
+  const [bl, bh] = baseRange || base; for (let i = 0; i < baseBars; i++) { const c = i % 2 ? bh * 0.98 : bl * 1.02; B.push([t, px, bh, bl, c, baseVol]); px = c; t += 900; }
+  return { B, now: t + 60 }; }
+{ const { B, now } = chart(), r = volSetup(B, 1.58, now);
+  ok(r && !r.none && r.retr > 0.5 && r.retr < 0.786 && Math.abs(r.stop / (1.5 * 0.97) - 1) < 0.01 && r.mults[1] > 1.5 && r.mults[0] > 1 && r.mults[0] < r.mults[1], `HI's shape: a 2.5x run, back ${r && Math.round(r.retr * 100)}% into it, a 4-hour base: bid at 1.58, stop 3% under the base (${r && r.stopPct}%), sells half-way back (${r && r.mults[0]}x) and at the old high (${r && r.mults[1]}x)`); }
+{ const { B, now } = chart({ dipTo: 2.0, base: [2.0, 2.15] }); const r = volSetup(B, 2.1, now); ok(r && r.none && /only \d+% back/.test(r.none), 'a shallow first dip (back about a third): waits for the 0.5 zone (' + (r && r.none) + ')');
+  const r2 = volSetup(B, 2.1, now, VOLR, { entryN: 2 }); ok(r2 && !r2.none && r2.mults[0] >= 1.1 && r2.mults[1] > r2.mults[0], `the same shallow dip on a second go (a handle under the high): bought, sells at the old high (${r2 && r2.mults[0]}x) and the measured move above it (${r2 && r2.mults[1]}x)`); }
+{ const { B, now } = chart({ dipTo: 1.1, base: [1.1, 1.2] }); const r = volSetup(B, 1.15, now); ok(r && r.none && /broken/.test(r.none), 'back 93% of the run: broken, not bought'); }
+{ const { B, now } = chart({ base: [1.4, 1.9], baseRange: [1.4, 1.9] }); const r = volSetup(B, 1.6, now); ok(r && r.none && /not a base|too wide/.test(r.none), 'swinging 36% over 3 hours: not a base yet'); }
+{ const { B, now } = chart({ baseVol: 50000 }); const r = volSetup(B, 1.58, now); ok(r && r.none && /not cooled/.test(r.none), 'the base still trading at the run\'s pace: volume has not cooled'); }
+{ const { B, now } = chart({ baseVol: 500 }); const r = volSetup(B, 1.58, now); ok(r && r.none && /volume dead/.test(r.none), 'a base with $2k an hour: volume dead, not bought'); }
+{ const { B, now } = chart(); const r = volSetup(B, 1.4, now); ok(r && r.none && /broke down/.test(r.none), 'price under the base: broke down, not bought'); }
+{ const { B } = chart(), live = B.slice(0, 26); const r = volSetup(live, 2.5, live[live.length - 1][0] + 960); ok(r && r.none && /no first dip|too fresh/.test(r.none), 'still on the launch run: do nothing (' + (r && r.none) + ')'); }
+// the volume-death exit
+{ const pos = { meta: { basePaceH: 12000 } }, t = T0 * 1000; ok(volDead(pos, 2000, t) == null && volDead(pos, 2000, t + 30 * 60e3) == null && /volume died/.test(volDead(pos, 2000, t + 61 * 60e3) || ''), 'an hour of trading under a quarter of the base\'s pace: out after 60 minutes running');
+  const p2 = { meta: { basePaceH: 12000 } }; volDead(p2, 2000, t); volDead(p2, 9000, t + 40 * 60e3); ok(volDead(p2, 2000, t + 70 * 60e3) == null, 'the volume came back in between: the clock starts again'); }
+// the list: ranked by 6-hour volume; HYPE, SOL and stock tokens are the pairing, never the coin; a quiet pool with an hour's spike is kept
+{ const pool = (id, name, sym, h1, h6, h24, liq, tok) => ({ id: 'solana_' + id, attributes: { name, reserve_in_usd: liq, volume_usd: { h1, h6, h24 }, pool_created_at: null }, relationships: { base_token: { data: { id: 'solana_' + tok } } } });
+  const inc = [['HI', 'HiMint'], ['HYPE', 'HypeMint'], ['BIG', 'BigMint'], ['SPK', 'SpkMint'], ['SMALL', 'SmMint'], ['THIN', 'ThinMint'], ['NVDA', 'NvMint']].map(([s, t]) => ({ id: 'solana_' + t, attributes: { symbol: s, address: t, name: s === 'NVDA' ? 'NVIDIA Robinhood Token' : s } }));
+  const L = volCandidates([{ net: 'solana', included: inc, data: [pool('p1', 'HI / HYPE', 'HI', 200000, 900000, 2e6, 120000, 'HiMint'), pool('p2', 'HYPE / USDC', 'HYPE', 1e6, 6e6, 2e7, 5e6, 'HypeMint'), pool('p3', 'BIG / SOL', 'BIG', 300000, 2e6, 5e6, 400000, 'BigMint'), pool('p4', 'SPK / SOL', 'SPK', 90000, 120000, 200000, 60000, 'SpkMint'), pool('p5', 'SMALL / SOL', 'SMALL', 5000, 30000, 100000, 50000, 'SmMint'), pool('p6', 'THIN / SOL', 'THIN', 1e5, 1e6, 2e6, 9000, 'ThinMint'), pool('p7', 'NVDA / AI', 'NVDA', 1e5, 1e6, 2e6, 9e5, 'NvMint')] }]);
+  ok(L.map((x) => x.coin).join() === 'BIG,HI,SPK', 'the volume list: BIG then HI (HI/HYPE kept, the coin is HI), SPK kept for its spike (the hour 11x the day\'s pace), HYPE and the stock token never the coin, thin and quiet pools out: ' + L.map((x) => x.coin).join()); }
+// OTHER PAIRINGS: a coin priced in HYPE (Solana) or a stock token (Robinhood) is used once that token's own price is checked
+{ const HYPE = 'HypeMint11111111111111111111111111111111111', q = { chainId: 'solana', baseToken: { address: 'HiMint', symbol: 'HI' }, quoteToken: { address: HYPE, symbol: 'HYPE' }, priceUsd: '0.00108', priceNative: '0.000027', liquidity: { usd: 150000, quote: 1900 }, marketCap: 1.04e6 };
+  ok(/not checked yet/.test(quoteProblem(q, { token: 'HiMint' }) || ''), 'priced in HYPE, HYPE\'s own price not known yet: waits');
+  const QP = { [HYPE.toLowerCase()]: { px: 40, liq: 5e6 } }; ok(quoteProblem(q, { token: 'HiMint', quotePx: QP }) == null, 'HYPE at $40 from its own market, the pair agrees ($0.00108 = 0.000027 HYPE x $40): used');
+  ok(/does not match/.test(quoteProblem(q, { token: 'HiMint', quotePx: { [HYPE.toLowerCase()]: { px: 10, liq: 5e6 } } }) || ''), 'the pair disagrees with HYPE\'s own price by 4x: ignored as a broken quote');
+  ok(/too thin/.test(quoteProblem(q, { token: 'HiMint', quotePx: { [HYPE.toLowerCase()]: { px: 40, liq: 20000 } } }) || ''), 'a pairing token with a $20k market of its own: its price is not trusted');
+  const q2 = JSON.parse(JSON.stringify(q)); trueLiq(q2, 0, QP); ok(q2.liquidity.usd === 150000, 'liquidity re-worked from the HYPE side (1,900 HYPE x $40 x 2 = $152k): the lower figure kept');
+  const NV = '0xnvda000000000000000000000000000000000001', qr = { chainId: 'robinhood', baseToken: { address: '0xAiToken', symbol: 'AI' }, quoteToken: { address: NV, symbol: 'NVDA' }, priceUsd: '0.5', priceNative: '0.0025', liquidity: { usd: 200000 } };
+  ok(quoteProblem(qr, { token: '0xaitoken', chain: 'robinhood', quotePx: { [NV]: { px: 200, liq: 3e6 } } }) == null, 'AI on Robinhood paired with the NVIDIA token at $200: used');
+  // the bot looks the pairing token's price up from its deepest SOL or dollar market, once per 30 minutes
+  const st = {}; let calls = 0; const G = async (u) => { calls++; return { pairs: [{ chainId: 'solana', baseToken: { address: HYPE, symbol: 'HYPE' }, quoteToken: { symbol: 'USDC' }, priceUsd: '40.2', liquidity: { usd: 4e6 } }, { chainId: 'solana', baseToken: { address: HYPE, symbol: 'HYPE' }, quoteToken: { symbol: 'SOL' }, priceUsd: '39.9', liquidity: { usd: 1e6 } }, { chainId: 'solana', baseToken: { address: 'HiMint', symbol: 'HI' }, quoteToken: { address: HYPE, symbol: 'HYPE' }, priceUsd: '0.001', liquidity: { usd: 150000 } }] }; };
+  await refreshQuotePx(st, { a: q }, { G, now: T0 * 1000 }); await refreshQuotePx(st, { a: q }, { G, now: T0 * 1000 + 10 * 60e3 });
+  const e = st.quotePx[HYPE.toLowerCase()]; ok(e && e.px === 40.2 && e.liq === 5e6 && calls === 1, `HYPE's price from its deepest dollar market ($${e && e.px}, $${e && e.liq / 1e6}m of its own markets), looked up once in 30 minutes`); }
+// through the bot: HI/HYPE on the volume list, its base found, bought for $100 with a random coin from the same list beside it; the volume dies, out
+{ const cfg = { ...loadConfig('volrider'), slipPct: 0 }, HYPE = 'HypeMint11111111111111111111111111111111111', HI = 'HiPool11111111111111111111111111111111111111', RND = 'RndPool1111111111111111111111111111111111111';
+  ok(BOTS.volrider && cfg.labOnly && cfg.variants.length === 2 && cfg.controlFrom === 'volume', 'the Volume rider is a bot, paper only, with the luck-bar coin on every trade');
+  const { B, now } = chart(); let hiPx = 1.58, h1 = 12000; const gtPage = { data: [{ id: 'solana_' + HI, attributes: { name: 'HI / HYPE', reserve_in_usd: 150000, volume_usd: { h1: 50000, h6: 900000, h24: 2e6 } }, relationships: { base_token: { data: { id: 'solana_HiMint' } } } }, { id: 'solana_' + RND, attributes: { name: 'RND / SOL', reserve_in_usd: 200000, volume_usd: { h1: 50000, h6: 600000, h24: 2e6 } }, relationships: { base_token: { data: { id: 'solana_RndMint' } } } }], included: [{ id: 'solana_HiMint', attributes: { symbol: 'HI', address: 'HiMint', name: 'HI' } }, { id: 'solana_RndMint', attributes: { symbol: 'RND', address: 'RndMint', name: 'RND' } }] };
+  const G = async (u) => (u.includes('geckoterminal') ? gtPage : u.includes('/tokens/') ? { pairs: [{ chainId: 'solana', baseToken: { address: HYPE, symbol: 'HYPE' }, quoteToken: { symbol: 'USDC' }, priceUsd: '40', liquidity: { usd: 5e6 } }] } : []);
+  const pair = (pool) => pool === HI ? { chainId: 'solana', pairAddress: HI, baseToken: { address: 'HiMint', symbol: 'HI' }, quoteToken: { address: HYPE, symbol: 'HYPE' }, priceUsd: String(hiPx), priceNative: String(hiPx / 40), liquidity: { usd: 150000, quote: 1900 }, marketCap: 1.5e6, txns: { m5: { buys: 20, sells: 15 }, h1: { buys: 200, sells: 160 } }, volume: { h1, h6: 600000, h24: 2e6 } }
+    : { chainId: 'solana', pairAddress: RND, baseToken: { address: 'RndMint', symbol: 'RND' }, quoteToken: { symbol: 'USDC' }, priceUsd: '2', liquidity: { usd: 200000, quote: 100000 }, marketCap: 3e6, txns: { m5: { buys: 20, sells: 15 }, h1: { buys: 200, sells: 160 } }, volume: { h1: 30000, h6: 300000, h24: 1e6 } };
+  const deps = (sec) => ({ now: sec * 1000, getJson: G, quotes: async (its) => Object.fromEntries(its.map((i) => [String(i.pool).toLowerCase(), pair(i.pool)])), candles15: async (ch, p) => (p === HI ? B : null), candles5: async () => null, notify: async () => {}, journal: () => {}, heartbeat: async () => {}, secondOpinion: false });
+  const st = newState(cfg); await quiet(() => cycle(st, cfg, deps(now))); await quiet(() => cycle(st, cfg, deps(now + 60)));
+  const mine = st.positions.find((p) => p.pool === HI), ctl = st.positions.find((p) => p.variant === 'C-control');
+  ok(st.volList && st.volList.some((c) => c.coin === 'HI') && st.volSeen[HI], 'HI/HYPE made the volume list, and the list is saved for the backtest later');
+  ok(mine && Math.abs(mine.costUsd - 100) < 1 && Math.abs(mine.stop / mine.entry - 1.455 / 1.58) < 0.01 && mine.targets.length === 2, `HI bought in its base: $${mine && Math.round(mine.costUsd)}, stop under the base, sells half-way back and at the old high`);
+  ok(ctl && ctl.pool === RND && Math.abs(ctl.stop / ctl.entry - mine.stop / mine.entry) < 0.01 && Math.abs(ctl.targets[1] / ctl.entry - mine.targets[1] / mine.entry) < 0.01, 'a random coin from the same list bought beside it, same stop distance and targets (the luck bar)');
+  h1 = 1000; await quiet(() => cycle(st, cfg, deps(now + 120))); await quiet(() => cycle(st, cfg, deps(now + 120 + 61 * 60)));
+  const c = st.closed.find((p) => p.pool === HI); ok(c && /volume died/.test((c.sells || []).slice(-1)[0].why), 'an hour of $1k trading against $12k an hour in the base: HI sold, the volume died'); }
+process.exit(f);

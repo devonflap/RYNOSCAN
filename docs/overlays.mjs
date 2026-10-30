@@ -1,6 +1,6 @@
 // Extra checks that sit on top of the chart scoring: token safety (rugs/honeypots), SOL/ETH market regime,
 // and a 24h-cached safety lookup. Shared by the scanner and the dashboard's Check-a-coin box.
-import { ema, rsi } from './core.mjs?v=46588e22b3';
+import { ema, rsi } from './core.mjs?v=67b28f29cc';
 
 // ---------- token safety ----------
 const DANGER_RE = /mint authority|freeze authority|honeypot|rugged|blacklist|cannot sell|can't sell|copycat|mutable metadata.*creator|top 10 holders high ownership|single holder ownership|high holder correlation|creator history/i;

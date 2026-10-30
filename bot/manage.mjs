@@ -103,18 +103,27 @@ export function marketProblem(q, cfg = {}) {
 //   and the dollar liquidity is re-worked from the pool's own SOL or dollar balance (2 x the quote side), never taken on trust.
 export const QUOTE_OK = { solana: ['SOL', 'WSOL', 'USDC', 'USDT', 'USD1', 'PYUSD', 'USDS'], evm: ['ETH', 'WETH', 'USDC', 'USDT', 'BNB', 'WBNB', 'USDC.E'] };
 const MAJOR_BASE = new Set(['SOL', 'WSOL', 'USDC', 'USDT', 'ETH', 'WETH', 'BNB', 'WBNB', 'USD1']);
-export function quoteProblem(q, { token = null, chain = 'solana', solUsd = 0, majors = false } = {}) {
+// OTHER PAIRINGS (30 Oct, Ryan: "HI was bought on Solana, paired with HYPE; AI on Robinhood is paired with NVIDIA; Phantom and Axiom buy them
+// with SOL or ETH with ease"). A coin priced against another token (an RWA, a stock token, HYPE) is fine once that token's own dollar price
+// is known from its own SOL or dollar market (quotePx: { [address]: { px, liq } }, refreshed by the bot every 30 minutes): the pair's dollar
+// price must agree with price-in-that-token x that token's price (25%), and the token's own market must be deep enough ($250k) that its
+// price can be trusted. Until its price is known, the quote waits, as before.
+export const OTHER_QUOTE = { minLiqUsd: 250000 };
+export function quoteProblem(q, { token = null, chain = 'solana', solUsd = 0, majors = false, quotePx = null } = {}) {
   if (!q) return null; const bt = q.baseToken || {}, qt = q.quoteToken || {}, sym = String(qt.symbol || '').toUpperCase(), sol = !/robinhood|bsc|base|ethereum|eth/i.test(String(chain || q.chainId || 'solana'));
   if (q.pump) return null; /* the launch feed's own price from the bonding curve */
   const same = (a, b) => (/^0x/i.test(String(a)) ? String(a).toLowerCase() === String(b).toLowerCase() : a === b); /* EVM addresses come in any letter case (25 Oct: the Breakout bot ignored every Robinhood quote for a day over this); Solana's do not */
   if (token && bt.address && !same(bt.address, token)) return `the pair now shows a different coin (${bt.symbol || bt.address.slice(0, 6)})`;
   if (!majors && MAJOR_BASE.has(String(bt.symbol || '').toUpperCase())) return `upside-down pair: the base coin is ${bt.symbol}`;
-  if (sym && !(sol ? QUOTE_OK.solana : QUOTE_OK.evm).includes(sym)) return `priced against ${qt.symbol}, not SOL or a dollar coin`;
+  if (sym && !(sol ? QUOTE_OK.solana : QUOTE_OK.evm).includes(sym)) { const k = String(qt.address || '').toLowerCase(), o = quotePx && quotePx[k];
+    if (!o || !(o.px > 0)) return `priced against ${qt.symbol}, whose own dollar price is not checked yet`;
+    if (!(o.liq >= OTHER_QUOTE.minLiqUsd)) return `priced against ${qt.symbol}, whose own market is too thin to trust its price ($${Math.round((o.liq || 0) / 1000)}k)`;
+    if (+q.priceNative > 0 && +q.priceUsd > 0) { const r = +q.priceUsd / (+q.priceNative * o.px); if (r > 1.25 || r < 0.8) return `dollar price does not match price-in-${qt.symbol} x ${qt.symbol}'s own price (${r.toFixed(2)}x off)`; } }
   /* a pool cannot hold more money than the whole coin is worth (Water Coin, 24 Oct: $240m of "liquidity" under a coin that was $34k a quarter of an hour earlier) */
   { const L = +(q.liquidity && q.liquidity.usd) || 0, mc = +(q.marketCap || q.fdv) || 0; if (L > 0 && mc > 0 && L > 1.5 * mc) return `liquidity ($${Math.round(L).toLocaleString('en')}) bigger than the coin's whole market cap ($${Math.round(mc).toLocaleString('en')}): a broken quote`; }
   if (sol && /^W?SOL$/.test(sym) && solUsd > 0 && +q.priceNative > 0 && +q.priceUsd > 0) { const r = +q.priceUsd / (+q.priceNative * solUsd); if (r > 1.25 || r < 0.8) return `dollar price does not match price-in-SOL x SOL (${r.toFixed(2)}x off)`; }
   return null; }
-export function trueLiq(q, solUsd = 0) { const L = q && q.liquidity; if (!L) return; const sym = String((q.quoteToken && q.quoteToken.symbol) || '').toUpperCase(), qa = +L.quote, usd = /^W?SOL$/.test(sym) ? (solUsd > 0 && qa >= 0 ? 2 * qa * solUsd : null) : /^(USDC|USDT|USD1|PYUSD|USDS|USDC\.E)$/.test(sym) && qa >= 0 ? 2 * qa : null;
+export function trueLiq(q, solUsd = 0, quotePx = null) { const L = q && q.liquidity; if (!L) return; const sym = String((q.quoteToken && q.quoteToken.symbol) || '').toUpperCase(), qa = +L.quote, o = quotePx && q.quoteToken && quotePx[String(q.quoteToken.address || '').toLowerCase()], usd = /^W?SOL$/.test(sym) ? (solUsd > 0 && qa >= 0 ? 2 * qa * solUsd : null) : /^(USDC|USDT|USD1|PYUSD|USDS|USDC\.E)$/.test(sym) && qa >= 0 ? 2 * qa : o && o.px > 0 && qa >= 0 ? 2 * qa * o.px : null;
   if (usd != null && isFinite(usd)) { L.reported = L.usd; L.usd = +L.usd > 0 ? Math.min(+L.usd, usd) : usd; } }
 // THE ORGANIC-CHART FILTER (24 Oct, Ryan: "all the shit coins I have flagged look like they're just buyers and no sellers"). The coins
 // that faked their way past everything else had one shape: a fresh coin with hundreds of buys a minute and almost no sellers (COIL,
