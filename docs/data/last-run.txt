@@ -1,4 +1,6 @@
-Full scan 21:11 Brisbane: 68 scanned, 56 scored, 1 above 65. On-chain volume Strong (1.6x 7-day avg).
+Full scan 22:11 Brisbane: 70 scanned, 61 scored, 5 above 65. On-chain volume Strong (1.57x 7-day avg).
+NEW watch: AI (Robinhood) Liquidity sweep reclaim, opp 74, checks 4/6, stop 23% away, upside 47.4%; more sellers than buyers in the last hour; volume fading.
+NEW watch: BOOMER (Robinhood) Bottom reversal, opp 73, checks 6/6, stop 37.5% away, upside 112.4%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: BIRB (Top 10 holders high ownership), CASHCAT (top 10 wallets hold 35.6% (gate 30%)), PUMP (top 10 wallets hold 60.5% (gate 30%)), CARDS (Top 10 holders high ownership), VIRTUAL (owner can mint more), USELESS (top 10 wallets hold 36.5% (gate 30%)).
+Removed for token safety: ANSEM (Single holder ownership), BIRB (Top 10 holders high ownership), PUMP (top 10 wallets hold 60.5% (gate 30%)), FABLES (owner can mint more), VIRTUAL (owner can mint more).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
