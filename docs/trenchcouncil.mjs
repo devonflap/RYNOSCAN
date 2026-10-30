@@ -10,7 +10,7 @@
 //      "confirmed", and lessons are remembered across scans (first seen, times seen) so a one-off does not look like a law
 //   5. the lab's seven ways side by side, and the holder read's real cost or saving
 //   6. the chair: who leads, what to try next, and the lessons worth passing to the main council
-import { labVariants } from './council.mjs';
+import { labVariants } from './council.mjs?v=46588e22b3';
 export const TRENCHERS = { trench: 'OG trencher', trenchlab: 'Trench lab', trenchshot: 'Shotgun', trenchx: 'Extractor', trenchbonus: 'Second wave' };
 export const TNEED = 30; // closed shots before a trencher's verdict means anything
 const R2 = (x) => (x == null || !isFinite(x) ? null : +(+x).toFixed(2)), avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);

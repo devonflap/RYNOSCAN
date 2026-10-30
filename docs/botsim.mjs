@@ -7,7 +7,7 @@
 // The adaptive version only takes a book's signals while that book is working, judged ONLY on its trades that had closed before
 // the new signal (walk-forward), so it never peeks at the future.
 // The council version only takes signals from books the review council had approved BEFORE the signal (approvals: [{ at, approved }]).
-import { book } from './exits.mjs';
+import { book } from './exits.mjs?v=46588e22b3';
 
 export const BOT_RULES = { start: 10000, riskPct: 1, coinRiskPct: 2, coinValuePct: 10, liqPct: 2, maxOpenRiskPct: 8, dayLossPct: 3, adaptMin: 8, adaptWindow: 20 };
 export const BOT = {
