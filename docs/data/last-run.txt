@@ -1,3 +1,7 @@
-Hourly refresh 01:10 Brisbane: 3 tracked coins refreshed, 3 scored, 2 above 65. On-chain volume Strong (1.57x 7-day avg).
+Full scan 02:11 Brisbane: 72 scanned, 62 scored, 6 above 65. On-chain volume Strong (1.59x 7-day avg).
+NEW watch: GTA6 (Solana) Breakout retest, opp 77, checks 5/6, stop null% away, upside null%; weak last 6h.
+NEW watch: GLDSTN (Robinhood) Breakout retest, opp 73, checks 5/6, stop 5.5% away, upside 32.4%; volume fading.
+NEW watch: STONKBROKER (Robinhood) Breakout retest, opp 66, checks 5/6, stop 19.7% away, upside 59.2%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: PUMP (top 10 wallets hold 60.5% (gate 30%)), TRUMP (Top 10 holders high ownership), KIMCHI (Top 10 holders high ownership), BIRB (Top 10 holders high ownership), ANSEM (Single holder ownership), PONS (top 10 wallets hold 52.9% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
