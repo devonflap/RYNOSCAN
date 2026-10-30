@@ -5,8 +5,8 @@
 // bot is testing yet (a new bot to propose), and which bots have earned nothing (to retire). It never builds, changes or retires a bot by
 // itself: its proposals go to Ryan in the Monday review, and need his yes. Rules are frozen for two weeks or 30 trades from 25 Oct
 // (bug fixes only), so every verdict is about rules that held still long enough to judge.
-import { trenchCouncil } from './trenchcouncil.mjs?v=67b28f29cc';
-import { rulebookLines } from './bestrules.mjs?v=67b28f29cc';
+import { trenchCouncil } from './trenchcouncil.mjs?v=207bcdf506';
+import { rulebookLines } from './bestrules.mjs?v=207bcdf506';
 export const FREEZE = { from: '2026-10-25', until: '2026-11-08', minTrades: 30 };
 export const TRACKS = {
   trenches: { title: 'Trenches', what: 'trencher', bots: {}, base: 'trench', labBot: null }, /* 30 Oct: every trencher retired; the track keeps its history */

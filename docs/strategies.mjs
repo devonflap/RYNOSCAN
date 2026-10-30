@@ -1,7 +1,7 @@
 // Strategy lab: every paper approach in one place (which coins it buys, how it sizes, how it exits).
 // This registry is also the blueprint for a future trading bot: a bot would read the same entry rule and exit profile and place real orders.
 // Today everything here is paper money only.
-import { PROFILES } from './exits.mjs?v=67b28f29cc';
+import { PROFILES } from './exits.mjs?v=207bcdf506';
 const num = (v) => (v == null || v === '' || !isFinite(+v) ? null : +v);
 const r6 = (x) => (x == null || !isFinite(x) ? null : +(+x).toPrecision(6));
 

@@ -1,16 +1,16 @@
 // RynoScan dashboard. Reads data/*.json written by src/scan.mjs (no build step, no libraries).
-import * as C from './core.mjs?v=67b28f29cc';
-import { discoverPools } from './pools.mjs?v=67b28f29cc';
-import { checkToken, applyOverlays } from './overlays.mjs?v=67b28f29cc';
-import { debate } from './panel.mjs?v=67b28f29cc';
-import { simulate, fwdSummary } from './paper.mjs?v=67b28f29cc';
-import { book, statsBook, fromSignal, fromRun, PROFILES } from './exits.mjs?v=67b28f29cc';
-import { BOOKS } from './strategies.mjs?v=67b28f29cc';
-import { runnerBets, chillBets } from './bestbets.mjs?v=67b28f29cc';
-import { evidence, exitHint } from './evidence.mjs?v=67b28f29cc';
-import { botBook, BOT, BOT_RULES } from './botsim.mjs?v=67b28f29cc';
-import { parseInfo } from './holders.mjs?v=67b28f29cc';
-import { drawAlts, drawMemeSetups } from './alts.mjs?v=67b28f29cc';
+import * as C from './core.mjs?v=207bcdf506';
+import { discoverPools } from './pools.mjs?v=207bcdf506';
+import { checkToken, applyOverlays } from './overlays.mjs?v=207bcdf506';
+import { debate } from './panel.mjs?v=207bcdf506';
+import { simulate, fwdSummary } from './paper.mjs?v=207bcdf506';
+import { book, statsBook, fromSignal, fromRun, PROFILES } from './exits.mjs?v=207bcdf506';
+import { BOOKS } from './strategies.mjs?v=207bcdf506';
+import { runnerBets, chillBets } from './bestbets.mjs?v=207bcdf506';
+import { evidence, exitHint } from './evidence.mjs?v=207bcdf506';
+import { botBook, BOT, BOT_RULES } from './botsim.mjs?v=207bcdf506';
+import { parseInfo } from './holders.mjs?v=207bcdf506';
+import { drawAlts, drawMemeSetups } from './alts.mjs?v=207bcdf506';
 
 const $ = (id) => document.getElementById(id);
 const NS = 'http://www.w3.org/2000/svg';
@@ -1046,7 +1046,7 @@ function wireModes() {
   const btns = [...document.querySelectorAll('.mode')]; if (!btns.length) return;
   const show = (k) => { btns.forEach((b) => { const on = b.dataset.mode === k; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
     document.querySelectorAll('[data-mode]').forEach((e) => { if (e.classList.contains('mode')) return; if (e.id === 'verdict' && e.dataset.mode === k) { e.hidden = !S.meta; return; } e.hidden = e.dataset.mode !== k; });
-    try { store.set('rynoMode', k); } catch { /* optional */ } if (k === 'alts') document.querySelectorAll('#altsOut canvas').forEach((cv) => { try { if (cv._r) import('./alts.mjs?v=67b28f29cc').then((m) => m.drawMwChart(cv, cv._r, cv._tf || '1d')); } catch { /* fine */ } }); };
+    try { store.set('rynoMode', k); } catch { /* optional */ } if (k === 'alts') document.querySelectorAll('#altsOut canvas').forEach((cv) => { try { if (cv._r) import('./alts.mjs?v=207bcdf506').then((m) => m.drawMwChart(cv, cv._r, cv._tf || '1d')); } catch { /* fine */ } }); };
   S.applyMode = () => show(store.get('rynoMode') || 'memes');
   btns.forEach((b) => b.addEventListener('click', () => { show(b.dataset.mode); window.scrollTo({ top: 0 }); }));
   let k = 'memes'; try { k = store.get('rynoMode') || 'memes'; } catch { /* default */ } show(btns.some((b) => b.dataset.mode === k) ? k : 'memes');

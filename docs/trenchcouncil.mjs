@@ -10,7 +10,7 @@
 //      "confirmed", and lessons are remembered across scans (first seen, times seen) so a one-off does not look like a law
 //   5. the lab's seven ways side by side, and the holder read's real cost or saving
 //   6. the chair: who leads, what to try next, and the lessons worth passing to the main council
-import { labVariants } from './council.mjs?v=67b28f29cc';
+import { labVariants } from './council.mjs?v=207bcdf506';
 export const TRENCHERS = { trench: 'OG trencher', trenchlab: 'Trench lab', trenchshot: 'Shotgun', trenchx: 'Extractor', trenchbonus: 'Second wave' };
 export const TNEED = 30; // closed shots before a trencher's verdict means anything
 const R2 = (x) => (x == null || !isFinite(x) ? null : +(+x).toFixed(2)), avg = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
@@ -55,6 +55,11 @@ export const TFEATS = [
   ['buy pressure (5 min)', (m) => { const b = m.mkt && m.mkt.b5, s = m.mkt && m.mkt.s5; return b == null ? null : b / Math.max(1, s) < 1.5 ? 'under 1.5x' : b / Math.max(1, s) < 2.5 ? '1.5-2.5x' : '2.5x+'; }],
   ['coin age', (m) => { const a = m.mkt && m.mkt.ageMin; return a == null ? null : a < 10 ? 'under 10 min' : a < 60 ? '10-60 min' : a < 360 ? '1-6 hours' : '6 hours+'; }],
   ['holder read', (m) => (m.holders ? (m.holders.clean === true ? 'clean' : m.holders.clean === false ? 'held by insiders' : 'no read yet') : null)],
+  // the holder checks on Volume rider trades (31 Oct, from the Axiom Pulse filters): learned from, never used as filters until proven
+  ['top 10 holders', (m) => { const x = m.hold && m.hold.top10; return x == null ? null : x < 25 ? 'under 25%' : x < 40 ? '25-40%' : '40%+'; }],
+  ['holder growth', (m) => { const g = m.hold && m.hold.growthPct; return g == null ? null : g < 2 ? 'flat (under 2%)' : g < 10 ? 'growing 2-10%' : 'growing 10%+'; }],
+  ['wash check', (m) => (m.hold && m.hold.wash != null ? (m.hold.wash ? 'volume, flat holders' : 'holders growing') : null)],
+  ['insiders and bundles', (m) => { const h = m.hold; if (!h || (h.insider == null && h.bundle == null)) return null; const x = Math.max(h.insider || 0, h.bundle || 0); return x < 15 ? 'under 15%' : '15%+'; }],
   ['session', (m, t) => { const h = new Date(t.openedAt).getUTCHours(); return isFinite(h) ? SESSION(h) : null; }],
 ];
 export function learnWay(T, minN = 8) {
