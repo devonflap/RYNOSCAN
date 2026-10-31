@@ -1,4 +1,5 @@
-Hourly refresh 05:10 Brisbane: 6 tracked coins refreshed, 6 scored, 4 above 65. On-chain volume Below normal (0.84x 7-day avg).
+Full scan 06:11 Brisbane: 73 scanned, 58 scored, 7 above 65. On-chain volume Below normal (0.68x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: ANSEM (Single holder ownership), ANTFUN (Single holder ownership), PUMP (top 10 wallets hold 60.6% (gate 30%)), BTC (Top 10 holders high ownership), BIRB (Top 10 holders high ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
