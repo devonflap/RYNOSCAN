@@ -1,7 +1,3 @@
-Full scan 22:11 Brisbane: 67 scanned, 57 scored, 7 above 65. On-chain volume Normal (1x 7-day avg).
-NEW watch: CATE (Solana) Bottom reversal, opp 73, checks 6/6, stop 19.4% away, upside 58.2%.
-NEW watch: ANSEM (Solana) Bottom reversal, opp 68, checks 4/6, stop 11.3% away, upside 85.4%; more sellers than buyers in the last hour; volume fading.
-NEW watch: STONKBROKER (Robinhood) Trend pullback, opp 68, checks 5/6, stop 19.8% away, upside 59.3%; volume fading.
+Hourly refresh 23:10 Brisbane: 7 tracked coins refreshed, 7 scored, 6 above 65. On-chain volume Normal (1x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: BIRB (Top 10 holders high ownership), BTC (Top 10 holders high ownership), CASHCAT (top 10 wallets hold 34.5% (gate 30%)), VIRTUAL (owner can mint more).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
