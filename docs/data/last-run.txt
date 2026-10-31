@@ -1,6 +1,3 @@
-Full scan 09:11 Brisbane: 78 scanned, 64 scored, 5 above 65. On-chain volume Strong (1.2x 7-day avg).
-NEW watch: INDEX (Robinhood) Breakout retest, opp 71, checks 4/6, stop 54.3% away, upside 162.9%; volume fading; weak last 6h.
-NEW watch: BTC (Robinhood) Bottom reversal, opp 67, checks 6/6, stop 36.9% away, upside 110.8%.
+Hourly refresh 10:10 Brisbane: 5 tracked coins refreshed, 5 scored, 2 above 65. On-chain volume Strong (1.2x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: BIRB (Top 10 holders high ownership), PUMP (top 10 wallets hold 60.5% (gate 30%)), BTC (Top 10 holders high ownership), ANSEM (Single holder ownership), FABLES (owner can mint more), CASHCAT (top 10 wallets hold 34.5% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
