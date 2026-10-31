@@ -1,10 +1,4 @@
-Full scan 02:11 Brisbane: 70 scanned, 63 scored, 11 above 65. On-chain volume Below normal (0.84x 7-day avg).
+Hourly refresh 03:10 Brisbane: 11 tracked coins refreshed, 11 scored, 8 above 65. On-chain volume Below normal (0.84x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
-NEW watch: DACITY (Solana) Falling wedge, opp 83, checks 6/6, stop 31.8% away, upside 90%.
-NEW watch: GATO (Solana) Inverse H&S, opp 80, checks 6/6, stop null% away, upside null%; paid DexScreener boost active (promotion, not organic demand).
-NEW watch: NIO (Solana) Breakout retest, opp 73, checks 4/6, stop null% away, upside null%; volume figures disagree; volume fading.
-NEW watch: GRIFT (Robinhood) Breakout retest, opp 72, checks 4/6, stop 28.9% away, upside 228.5%; volume fading; weak last 6h.
-NEW watch: STONKBROKER (Robinhood) Bottom reversal, opp 71, checks 6/6, stop 22.8% away, upside 68.3%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: ANSEM (Single holder ownership), BTC (Top 10 holders high ownership), ANTFUN (Single holder ownership), TRUMP (Top 10 holders high ownership), BIRB (Top 10 holders high ownership), PUMP (top 10 wallets hold 60.6% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
