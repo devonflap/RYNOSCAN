@@ -1,8 +1,3 @@
-Full scan 14:11 Brisbane: 74 scanned, 63 scored, 8 above 65. On-chain volume Normal (1.04x 7-day avg).
-NEW watch: ANSEM (Solana) Bottom reversal, opp 78, checks 5/6, stop 12.3% away, upside 84.5%; volume fading.
-NEW watch: ANTFUN (Solana) Breakout retest, opp 76, checks 5/6, stop 6.4% away, upside 17.9%; volume fading.
-NEW watch: GTA6 (Solana) Breakout retest, opp 76, checks 5/6, stop null% away, upside null%; weak last 6h.
-NEW watch: INDEX (Robinhood) Breakout retest, opp 69, checks 5/6, stop 52.2% away, upside 156.6%; volume fading.
+Hourly refresh 15:10 Brisbane: 8 tracked coins refreshed, 8 scored, 7 above 65. On-chain volume Normal (1.04x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: BTC (Top 10 holders high ownership), BIRB (Top 10 holders high ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
