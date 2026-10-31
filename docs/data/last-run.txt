@@ -1,5 +1,3 @@
-Full scan 11:11 Brisbane: 77 scanned, 64 scored, 3 above 65. On-chain volume Normal (1.09x 7-day avg).
-NEW watch: DACITY (Solana) Falling wedge, opp 75, checks 4/6, stop 32.7% away, upside 91.3%; more sellers than buyers in the last hour; volume fading.
+Hourly refresh 12:10 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Normal (1.09x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: BTC (Top 10 holders high ownership), ANSEM (Single holder ownership), PUMP (top 10 wallets hold 60.5% (gate 30%)), CRCLX (Mint Authority still enabled), TRUMP (Top 10 holders high ownership), BIRB (Top 10 holders high ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
