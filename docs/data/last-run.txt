@@ -1,5 +1,4 @@
-Hourly refresh 20:11 Brisbane: 6 tracked coins refreshed, 6 scored, 6 above 65. On-chain volume Poor (0.54x 7-day avg).
+Hourly refresh 21:11 Brisbane: 6 tracked coins refreshed, 6 scored, 5 above 65. On-chain volume Poor (0.54x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
-NEW watch: JEANPHIL (Solana) Falling wedge, opp 89, checks 6/6, stop 15% away, upside 63.8%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
