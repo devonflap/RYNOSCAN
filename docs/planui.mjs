@@ -1,7 +1,7 @@
 // THE PERPS PLANNER on the page (1 Nov): search or pick a ticker, and the plan is built live from Gate.io's USDT perpetual charts (free,
 // read straight from the page): a limit entry at real support, the stop past it, TPs at the next levels, and the money at your margin,
 // leverage and loss limit. Settings are remembered on this phone only. The maths lives in perps.mjs (tested).
-import { planTrade, sizeTrade, ticket, fx, PERP } from './perps.mjs?v=2e2e0da7ed';
+import { planTrade, sizeTrade, ticket, outcomes, pnlAt, fx, PERP } from './perps.mjs?v=d567230964';
 const GATE = 'https://api.gateio.ws/api/v4/futures/usdt';
 const $ = (id) => document.getElementById(id), el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 const store = { get: (k, d) => { try { const v = localStorage.getItem('rp-' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set: (k, v) => { try { localStorage.setItem('rp-' + k, JSON.stringify(v)); } catch { /* private mode */ } } };
@@ -42,6 +42,13 @@ export async function initPlanner({ desk = null } = {}) {
     row(`Liquidation at ${S.lev}x`, s.liq, s.warn.some((w) => /BEFORE/.test(w)) ? 'BEFORE the stop!' : `${s.liqPct}% away`);
     t.append(tb); const wrap = el('div'); wrap.style.overflowX = 'auto'; wrap.append(t); g.append(wrap);
     g.append(el('p', null, `Position $${s.notional.toFixed(0)} (${fx(s.qty)} ${x.sym}) on $${S.margin} margin at ${S.lev}x. All three TPs: +$${s.tps[s.tps.length - 1].total.toFixed(0)} (${s.tps[s.tps.length - 1].roe}% on the margin). Stopped out: −$${s.lossAtStop.toFixed(0)}. Safe leverage for this stop: ${Math.min(s.maxLev, x.maxLevX || 100, 20)}x at most.${x.funding != null ? ` Funding: about $${Math.abs(s.notional * x.funding).toFixed(2)} every 8 hours (${(S.side === 'long') === (x.funding > 0) ? 'you pay' : 'you receive'}).` : ''}`));
+    // what you'll make: every way it can play out, and any price you type
+    const mk = el('div', 'bb-block'); mk.append(el('h3', null, `What you'll make on $${S.margin} at ${S.lev}x`)); const ot = el('table', 'tbl'), ob = el('tbody');
+    for (const o of outcomes(p, s)) { const r = el('tr'), v = el('td', 'n', (o.usd >= 0 ? '+$' : '−$') + Math.abs(o.usd).toFixed(2)); v.style.color = o.usd >= 0 ? 'var(--ok)' : 'var(--bad)'; v.style.fontWeight = '700'; const k = el('td', null, o.k); k.style.whiteSpace = 'normal'; r.append(k, v, el('td', 'n', (o.pctMargin >= 0 ? '+' : '') + o.pctMargin + '%')); ob.append(r); }
+    ot.append(ob); mk.append(ot);
+    const wf = el('form', 'lookup'), wi = el('input'), wr = el('p', 'meta', 'Type any price to see the profit or loss on the whole position if you closed it all there.'); wi.type = 'number'; wi.inputMode = 'decimal'; wi.step = 'any'; wi.placeholder = 'Close price, e.g. ' + fx(p.tps[1] ? p.tps[1].px : p.entry); wi.setAttribute('aria-label', 'Close price');
+    const wb = el('button', null, 'Work it out'); wb.type = 'submit'; wf.append(wi, wb); wf.onsubmit = (e) => { e.preventDefault(); const q = pnlAt(p, s, +wi.value); if (!q) { wr.textContent = 'Type a price.'; return; } wr.textContent = q.liquidated ? `At ${fx(+wi.value)} the position is liquidated first: you lose the whole $${S.margin} margin.` : `Closed at ${fx(+wi.value)} (${q.movePct >= 0 ? '+' : ''}${q.movePct}% from the entry): ${q.usd >= 0 ? '+$' : '−$'}${Math.abs(q.usd).toFixed(2)}, ${q.pctMargin >= 0 ? '+' : ''}${q.pctMargin}% on your margin.`; wr.style.color = q.usd >= 0 ? 'var(--ok)' : 'var(--bad)'; };
+    mk.append(wf, wr); g.append(mk);
     if (S.maxLoss > 0 && s.fitMargin != null && !s.warn.some((w) => /limit/.test(w))) g.append(el('p', 'meta', `Within your $${S.maxLoss} loss limit (up to $${s.fitMargin.toFixed(0)} margin at ${S.lev}x).`));
     for (const w of s.warn) g.append(el('p', 'warnline', w));
     g.append(el('p', 'meta', p.why.join(' · ')));

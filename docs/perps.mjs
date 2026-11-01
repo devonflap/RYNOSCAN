@@ -60,6 +60,15 @@ export function sizeTrade(plan, { margin = 100, lev = 5, maxLoss = null, mmr = P
   const warn = []; if (stopPastLiq) warn.push(`At ${lev}x you would be liquidated at ${fx(liq)} BEFORE the stop at ${fx(plan.stop)}: use ${maxLev}x or less.`); else if (lev > maxLev) warn.push(`At ${lev}x the liquidation (${fx(liq)}) sits close behind the stop: ${maxLev}x or less keeps a safe gap.`);
   if (maxLoss > 0 && lossAtStop > maxLoss) warn.push(`The stop costs $${lossAtStop.toFixed(0)}, over your $${maxLoss} limit: use $${fit.toFixed(0)} margin at ${lev}x instead.`);
   return { margin, lev, notional: +notional.toFixed(2), qty, liq, liqPct: +liqPct.toFixed(1), lossAtStop: +lossAtStop.toFixed(2), lossPctMargin: +((lossAtStop / margin) * 100).toFixed(0), maxLev, tps, fitMargin: fit != null ? +fit.toFixed(2) : null, warn }; }
+// WHAT YOU'LL MAKE (1 Nov, Ryan: "add how much you'll make off whatever position"): each way the trade can play out, in dollars and as a
+// share of the margin, following the plan's own rules (stop to entry after TP1, so a turn after a TP closes the rest at the entry)
+export function outcomes(plan, s, P = PERP) { if (!plan || plan.none || !s) return []; const e = plan.entry, out = [{ k: 'Stopped out', usd: -s.lossAtStop }];
+  s.tps.forEach((t, i) => { const left = 1 - s.tps.slice(0, i + 1).reduce((a, x) => a + x.share / 100, 0), feeBE = left > 0 ? s.qty * left * e * P.takerFee : 0;
+    out.push({ k: i === s.tps.length - 1 ? `All ${s.tps.length} TPs hit` : `TP${i + 1} hit, then back to the entry`, usd: +(t.total - feeBE).toFixed(2) }); });
+  return out.map((o) => ({ ...o, pctMargin: +((o.usd / s.margin) * 100).toFixed(0) })); }
+// profit or loss on the whole position if it were all closed at one price (fees in and out included)
+export function pnlAt(plan, s, px, P = PERP) { if (!plan || plan.none || !s || !(px > 0)) return null; const L = plan.side === 'long', g = s.qty * (L ? px - plan.entry : plan.entry - px) - s.notional * P.makerFee - s.qty * px * P.takerFee;
+  const liq = L ? px <= s.liq : px >= s.liq; return { usd: liq ? -s.margin : +g.toFixed(2), pctMargin: liq ? -100 : +((g / s.margin) * 100).toFixed(0), movePct: +(((px - plan.entry) / plan.entry) * 100).toFixed(2), liquidated: liq }; }
 // the order ticket, to copy into the exchange
 export function ticket(sym, plan, s) { if (!plan || plan.none || !s) return ''; const T = plan.tps;
   return [`${plan.side.toUpperCase()} ${sym}USDT perpetual · isolated ${s.lev}x · margin $${s.margin}`, `Limit entry ${fx(plan.entry)} (size ${fx(s.qty)} ${sym}, $${s.notional} position)`, `Stop loss ${fx(plan.stop)} (−${plan.stopPct}%, costs about $${s.lossAtStop.toFixed(0)})`, ...s.tps.map((t, i) => `TP${i + 1} ${fx(t.px)}: close ${t.share}% (${t.r}R, +$${t.usd.toFixed(0)})`), `After TP1: move the stop to the entry.`, `Liquidation about ${fx(s.liq)}.`].join('\n'); }

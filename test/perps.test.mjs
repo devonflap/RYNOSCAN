@@ -1,5 +1,5 @@
 // the perps planner (1 Nov): limit entries at real levels, stops past them, TPs at the next levels, and the leverage maths
-import { planTrade, sizeTrade, ticket, pivots, zones, atr, ema, PERP } from '../docs/perps.mjs';
+import { planTrade, sizeTrade, ticket, outcomes, pnlAt, pivots, zones, atr, ema, PERP } from '../docs/perps.mjs';
 import fs from 'node:fs';
 const out = console.log; let f = 0; const ok = (c, m) => { out((c ? 'PASS ' : 'FAIL ') + m); if (!c) f = 1; };
 // an uptrend that keeps turning at 10 and stalls at 12 and 13.5, now at 11
@@ -12,6 +12,8 @@ ok(['A', 'B', 'C'].includes(p.grade) && /support/.test(p.why[0]), 'graded, with 
 const s = sizeTrade(p, { margin: 100, lev: 5 });
 ok(Math.abs(s.notional - 500) < 1e-9 && Math.abs(s.liq - p.entry * (1 - 0.2 + 0.005)) < 1e-9 && s.lossAtStop > 500 * p.stopPct / 100 && s.lossAtStop < 500 * p.stopPct / 100 + 1, `$100 at 5x = a $500 position; liquidation ${s.liq.toFixed(2)} (20% less the maintenance margin under the entry); the stop costs $${s.lossAtStop.toFixed(2)} with fees`);
 ok(s.tps.length === 3 && s.tps.reduce((a, x) => a + x.share, 0) === 100 && s.tps[2].total > s.tps[0].total, `TP sells 40/30/30: +$${s.tps.map((x) => x.usd.toFixed(0)).join(', +$')} (total +$${s.tps[2].total.toFixed(0)}, ${s.tps[2].roe}% on the margin)`);
+{ const O = outcomes(p, s); ok(O.length === 4 && O[0].usd === -s.lossAtStop && O[1].usd > 0 && O[1].usd < O[2].usd && O[2].usd < O[3].usd && Math.abs(O[3].usd - s.tps[2].total) < 1e-6, `what you'll make: stopped −$${-O[0].usd}, TP1 then back to entry +$${O[1].usd}, TP2 then entry +$${O[2].usd}, all TPs +$${O[3].usd} (${O[3].pctMargin}% on the margin)`);
+  const a = pnlAt(p, s, p.entry * 1.1), b = pnlAt(p, s, p.entry * 0.97), c = pnlAt(p, s, s.liq * 0.99); ok(a.usd > 0 && Math.abs(a.usd - (s.qty * p.entry * 0.1 - s.notional * PERP.makerFee - s.qty * p.entry * 1.1 * PERP.takerFee)) < 0.01 && b.usd < 0 && c.liquidated && c.usd === -100, `any price: +10% = +$${a.usd} (${a.pctMargin}% on $100 at 5x), −3% = −$${-b.usd}, past the liquidation = the whole $100`); }
 // leverage too high for the stop: liquidated before the stop
 const wide = { ...p, stopPct: 12, stop: p.entry * 0.88 }, s10 = sizeTrade(wide, { margin: 100, lev: 10 });
 ok(s10.liq > wide.stop && /BEFORE the stop/.test(s10.warn[0]) && s10.maxLev <= 5, `a 12% stop at 10x: liquidated at ${s10.liq.toFixed(2)} before the stop: warned, ${s10.maxLev}x at most`);

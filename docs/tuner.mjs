@@ -3,9 +3,9 @@
 // and a starting filter is switched off when new trades show it hurts. Backtest replays are where hints come from (hindsight, and
 // coins that are still active today), so they never confirm a hint by themselves.
 // Only ever changes WHICH setups a bot takes. Never sizing, risk limits, entries or exits. Pure: no network, no clock.
-import { FEATS } from './features.mjs?v=2e2e0da7ed';
-import { statsBook, fromRun } from './exits.mjs?v=2e2e0da7ed';
-import { pDiff, bhQ } from './evidence.mjs?v=2e2e0da7ed';
+import { FEATS } from './features.mjs?v=d567230964';
+import { statsBook, fromRun } from './exits.mjs?v=d567230964';
+import { pDiff, bhQ } from './evidence.mjs?v=d567230964';
 
 export const TUNE = {
   breakout: { pattern: 'Breakout retest', book: 'brk', start: ['Reward to risk (TP2)|3R+|only'], from: '2026-10-21T00:00:00Z', minKept: 10, minRemoved: 8, minDiff: 0.3, maxQ: 0.1, minKeepShare: 0.2 },
