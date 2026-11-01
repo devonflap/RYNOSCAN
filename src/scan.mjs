@@ -29,6 +29,10 @@ import { fetchWallets, loadSmart } from './wallets.mjs';
 const OUT = process.env.OUT_DIR || 'docs/data';
 const readJson = (f, d) => { try { const j = JSON.parse(fs.readFileSync(f, 'utf8')); return Array.isArray(d) ? (Array.isArray(j) ? j : d) : (j && typeof j === 'object' && !Array.isArray(j) ? j : d); } catch { return d; } }; // wrong-shaped files fall back to the default
 const settings = readJson('config/settings.json', {});
+/* 1 Nov: RynoScan is a scanner only. "research": false in config/settings.json skips the paper-trading research steps (the forward test,
+   the degen desk's paper trades, the runner log and the strategy lab: about 90 seconds and half the data calls of a full scan). The
+   coin lists, charts, runners list, safety, holders and the regime are unchanged. "research": true brings them back. */
+const research = settings.research !== false;
 // phone: "health" (default) = only when something is broken (failed runs, overdue scans, data limits) plus the weekly report and bot news;
 // "all" = the trade alerts too (bid-ready, watch, one gate away, early, degen, edge books, digests). The bot trades; the phone does not.
 const tradeAlerts = settings.phoneAlerts === 'all';
@@ -185,7 +189,7 @@ log.sort((a, b) => String(b.signalAt || '').localeCompare(String(a.signalAt || '
 // Full scans only, so the extra candle calls stay small. Failure here never stops the scan.
 let fwdN = 0;
 let earlyNew = [];
-if (mode === 'full') { try {
+if (mode === 'full' && research) { try {
   const fwd0 = readJson(path.join(OUT, 'forward.json'), []).filter(s => s && typeof s === 'object'), fwd = []; let used = 0;
   for (const s of fwd0) { if ((s.status === 'open' || s.status === 'waiting for entry') && used < MAX_EVAL) { used++; try { fwd.push(await evalOne(s)); } catch { fwd.push(s); } } else fwd.push(s); }
   const fresh = pickCandidates(allRows, fwd, at, (p, t) => tagSig(C.newSignal(p, t), p), cfg.minOpp);
@@ -217,7 +221,7 @@ try {
   let dl = readJson(dpath, []).filter(x => x && typeof x === 'object'), usedD = 0, usedW = 0; const dout = [];
   const dueD = new Set(dl.map((s, i) => [s, i]).filter(([s]) => s.status === 'open' || s.status === 'waiting for entry').sort((a, b) => String(a[0].checkedAt).localeCompare(String(b[0].checkedAt))).slice(0, 12).map(([, i]) => i)); // least recently checked first, so a dead pool cannot hog the slots
   for (const [di, s] of dl.entries()) {
-    if (dueD.has(di)) {
+    if (research && dueD.has(di)) {
       usedD++; let r = s, b = null;
       try { b = await hourBars(netOf(s), s.pool); } catch { /* counted as a miss */ }
       if (b) r = D.evaluateDegen(s, b, nowIso); if (freshBars(b)) r = { ...r, miss: 0 }; else if (r.status === 'open' || r.status === 'waiting for entry') { r = onMiss(r, nowIso); if (r.dead) deadN++; }
@@ -227,7 +231,7 @@ try {
   }
   // runner log: every coin the runners list showed or dropped, tracked as a paper trade so the learning step can find which numbers matter
   const rlPath = path.join(OUT, 'runnerlog.json'); let rl = readJson(rlPath, []).filter(x => x && typeof x === 'object'), runnerItems = null, controlItems = [];
-  try {
+  if (research) try {
     const vDue = (x) => Date.parse(x.signalAt) + (L.EXIT_SET_HOURS + 2) * 3600e3 <= Date.now(), rlOpen = (x) => x.status === 'open' || x.status === 'waiting for entry'; // exit comparison waits until the longest rule (7 days) has played out, so no rule is judged early
     const openIdx = rl.map((x, i) => [x, i]).filter(([x]) => rlOpen(x) || (!x.variants && x.retPct != null && vDue(x))).sort((a, b) => String(a[0].checkedAt).localeCompare(String(b[0].checkedAt))).slice(0, 30);
     for (const [x, i] of openIdx) { try { let bars = null; try { bars = await hourBars(netOf(x), x.pool); } catch { /* miss */ } if (!bars) { if (rlOpen(x)) { rl[i] = onMiss(x, nowIso); if (rl[i].dead) deadN++; } continue; } let r = rlOpen(x) ? D.evaluateDegen(x, bars, nowIso) : x; if (!rlOpen(r) && !r.variants && vDue(r)) r = { ...r, variants: D.exitVariants(x, bars, nowIso) }; if (rlOpen(r)) { if (freshBars(bars)) r = { ...r, miss: 0 }; else { r = onMiss(r, nowIso); if (r.dead) deadN++; } } rl[i] = r; } catch { /* keep */ } }
@@ -247,13 +251,13 @@ try {
     degenNew = D.pickNew(cands, dout, nowIso, wallets); degenNew.forEach(x => { x.mkt = mktTag; }); dout.push(...degenNew);
     say(`degen desk: ${cands.length} runners met the volume and price rules, ${degenNew.length} new paper trades${degenNew.length ? ' (' + degenNew.map(x => x.coin).join(', ') + ')' : ''}`);
   }
-  try {
+  if (research) try {
     if (runnerItems) { const have = new Set(rl.map(x => x.signalId)); let nn = 0; for (const it of runnerItems) { const sg = D.runnerSignal(it, nowIso); if (have.has(sg.signalId) || nn >= 20) continue; rl.push(sg); have.add(sg.signalId); nn++; } let nc = 0; for (const it of controlItems) { const sg = D.runnerSignal(it, nowIso, undefined, { control: true }); if (have.has(sg.signalId)) continue; rl.push(sg); have.add(sg.signalId); nc++; } if (nc) say(`runner log: ${nc} random control coins added for comparison`); if (nn) say(`runner log: ${nn} runners added (${runnerItems.filter(x => x.vetoed.length).length} dropped by the risk rules, still tracked)`); }
     const isOpen = x => x.status === 'open' || x.status === 'waiting for entry'; fs.writeFileSync(rlPath, JSON.stringify([...rl.filter(x => !isOpen(x)).slice(-1500), ...rl.filter(isOpen)]));
   } catch (e) { say('runner log skipped: ' + (e.message || e)); }
   const topic0 = (process.env.NTFY_TOPIC || '').trim();
   // 4d. Strategy lab: more paper books. The degen desk's own coins replayed with other exits, careful rules on risky coins, and two scalpers.
-  try {
+  if (research) try {
     const labPath = path.join(OUT, 'lab.json'), since = readJson(path.resolve('docs/paper-config.json'), {}).since || null, sinceT = since ? Date.parse(since) : 0, isOpenL = (x) => x.status === 'open' || x.status === 'waiting for entry';
     let lab = readJson(labPath, []).filter(x => x && typeof x === 'object' && x.lid && L.BOOKS[x.book]); const have = new Set(lab.map(x => x.lid)), nAdd = { copies: 0, risky: 0, scalp: 0 };
     const newRows = []; const add = (row) => { if (have.has(row.lid)) return false; newRows.push(row); if (!row.mkt && Date.now() - Date.parse(row.signalAt) < 3 * 3600e3) row.mkt = mktTag; lab.push(row); have.add(row.lid); return true; };

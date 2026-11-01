@@ -1,7 +1,7 @@
 // THE PERPS PLANNER on the page (1 Nov): search or pick a ticker, and the plan is built live from Gate.io's USDT perpetual charts (free,
 // read straight from the page): a limit entry at real support, the stop past it, TPs at the next levels, and the money at your margin,
 // leverage and loss limit. Settings are remembered on this phone only. The maths lives in perps.mjs (tested).
-import { planTrade, sizeTrade, ticket, outcomes, pnlAt, fx, PERP } from './perps.mjs?v=d567230964';
+import { planTrade, sizeTrade, ticket, outcomes, pnlAt, fx, PERP } from './perps.mjs?v=069ff143e9';
 const GATE = 'https://api.gateio.ws/api/v4/futures/usdt';
 const $ = (id) => document.getElementById(id), el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 const store = { get: (k, d) => { try { const v = localStorage.getItem('rp-' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set: (k, v) => { try { localStorage.setItem('rp-' + k, JSON.stringify(v)); } catch { /* private mode */ } } };

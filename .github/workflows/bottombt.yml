@@ -20,7 +20,6 @@ jobs:
         with:
           node-version: 22
       - name: Replay a year of Solana meme coins through the bottomed-out entries and exits
-        env:
         run: node src/bottombt.mjs
       - name: Save results
         run: |

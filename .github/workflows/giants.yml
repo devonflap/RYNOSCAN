@@ -18,7 +18,6 @@ jobs:
         with:
           node-version: 22
       - name: Reverse-engineer the giants (src/giants.json lists them; edit it to add coins)
-        env:
         run: node src/giants.mjs
       - name: Save results
         run: |

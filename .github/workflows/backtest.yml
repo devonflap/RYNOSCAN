@@ -18,7 +18,6 @@ jobs:
         with:
           node-version: 22
       - name: Run backtest
-        env:
         run: node src/backtest.mjs
       - name: Weekly gate report to phone
         env:

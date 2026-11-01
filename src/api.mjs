@@ -1,7 +1,7 @@
 // Market-data client with pacing, retry and backoff.
 //   CG_API_KEY + CG_PLAN=pro   -> https://pro-api.coingecko.com/api/v3/onchain  (paid plans: Basic and up)
 //   CG_API_KEY + CG_PLAN=demo  -> https://api.coingecko.com/api/v3/onchain      (free Demo key)
-//   no key                     -> https://api.geckoterminal.com/api/v2          (free, slow: ~4 calls/min)
+//   no key                     -> https://api.geckoterminal.com/api/v2          (free: about 30 calls a minute)
 // The key is only ever read from the environment (a GitHub secret). It is never written to a file or logged.
 export function makeApi(env = process.env, fetchImpl = globalThis.fetch) {
   const key = (env.CG_API_KEY || '').trim();
@@ -14,7 +14,7 @@ export function makeApi(env = process.env, fetchImpl = globalThis.fetch) {
   else if (key) { base = 'https://pro-api.coingecko.com/api/v3/onchain'; headers['x-cg-pro-api-key'] = key; }
   else base = 'https://api.geckoterminal.com/api/v2';
   const keyed = !!key && plan !== 'demo';
-  const paceMs = Number(env.PACE_MS) || (keyed ? 250 : key ? 2500 : 4000); /* GeckoTerminal's free feed: about 30 calls a minute */
+  const paceMs = Number(env.PACE_MS) || (keyed ? 250 : 2200) /* GeckoTerminal's free feed takes about 30 calls a minute */; /* GeckoTerminal's free feed: about 30 calls a minute */
   const sleep = ms => new Promise(r => setTimeout(r, ms)), wait = ms => sleep(ms * (Number(env.RETRY_SCALE) >= 0 && env.RETRY_SCALE !== undefined ? Number(env.RETRY_SCALE) : 1)); // RETRY_SCALE shrinks retry delays in tests
   let last = 0, n429 = 0, nErr = 0, calls = 0, failStreak = 0; // failStreak: requests in a row that failed after every retry (feed down)
   const log = [];

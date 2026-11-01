@@ -13,9 +13,9 @@
     "robinhood": 55,
     "eth": 40
   },
-  "freeMaxPools": 60,
+  "freeMaxPools": 80,
   "freeCap": {
-    "solana": 40,
+    "solana": 50,
     "robinhood": 40,
     "eth": 12
   },
@@ -41,5 +41,6 @@
   "freshExtra": 12,
   "altsAlerts": true,
   "altsUniverse": 80,
-  "altsMinScore": 60
+  "altsMinScore": 60,
+  "research": false
 }

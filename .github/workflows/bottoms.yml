@@ -20,7 +20,6 @@ jobs:
         with:
           node-version: 22
       - name: Find the coins newly at a DCA level
-        env:
         run: node src/bottoms.mjs
       - name: Save the list
         run: |

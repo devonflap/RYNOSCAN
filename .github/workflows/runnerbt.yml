@@ -20,7 +20,6 @@ jobs:
         with:
           node-version: 22
       - name: Replay the runner list's coins through every entry and exit
-        env:
         run: node src/runnerbt.mjs
       - name: Save results
         run: |

@@ -20,7 +20,6 @@ jobs:
         with:
           node-version: 22
       - name: Replay the top alts through the DCA and trend rules
-        env:
         run: node src/altsbt.mjs
       - name: Save results
         run: |
