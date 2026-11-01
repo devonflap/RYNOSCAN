@@ -9,7 +9,7 @@
 //   7. the volume dies, we leave: an hour of trading far below the base's own pace and the whole position is sold, whatever the chart says.
 // Pure functions: the bot (bot/run.mjs, source 'volume') passes in GeckoTerminal's pools and 15-minute candles and gets candidates and setups.
 export const VOLR = {
-  minH6Usd: 250000, minLiqUsd: 30000, listMax: 30, spikeX: 3, // the list: $250k+ traded in 6 hours (or the hour 3x the day's pace), $30k+ pools, the top 30
+  minH6Usd: 250000, minLiqUsd: 30000, listMax: 30, spikeX: 3, maxFdvUsd: 300e6, // the list: $250k+ traded in 6 hours (or the hour 3x the day's pace), $30k+ pools, the top 30
   minPumpX: 1.8, zoneLo: 0.5, zoneHi: 0.85, againZoneLo: 0.3, // the move must be 1.8x+; the first dip into 0.5-0.786 (0.85 with a little slack); later entries also take shallower handles (0.3+)
   minSinceHighH: 1, baseBars: 12, baseRangePct: 22, // the high at least an hour old; the base: the last 3 hours (12 x 15 minutes) inside a 22% range
   baseVolMax: 0.6, baseVolMinUsdH: 5000, // the base's volume cooled to under 60% of the run's pace, but still $5k+ an hour
@@ -24,7 +24,8 @@ export function volCandidates(pages, cfg = VOLR) { const by = new Map();
   for (const { net, data, included } of pages) { const toks = {}; for (const t of included || []) toks[t.id] = t.attributes || {};
     for (const d of data || []) { const a = d.attributes || {}, pool = (d.id || '').split('_').slice(1).join('_') || a.address; if (!pool) continue;
       const bt = toks[d.relationships && d.relationships.base_token && d.relationships.base_token.data && d.relationships.base_token.data.id] || {}, sym = String(bt.symbol || String(a.name || '').split(' / ')[0] || '').toUpperCase().trim();
-      if (!sym || EXCLUDE.test(sym) || /Robinhood Token/i.test(bt.name || '')) continue; // the pairing token itself (SOL, HYPE, a stock token) is not the coin
+      if (!sym || EXCLUDE.test(sym) || /USD|BTC|^W?BNB$|^W?ETH/.test(sym) || /Robinhood Token|wrapped|stablecoin/i.test(bt.name || '')) continue;
+      if (cfg.maxFdvUsd && +a.fdv_usd > cfg.maxFdvUsd) continue; /* 1 Nov: big caps (PUMP, wrapped BTC and BNB) crowded the list; this is a meme-coin playbook */ // the pairing token itself (SOL, HYPE, a stock token) is not the coin
       const v = a.volume_usd || {}, h1 = +v.h1 || 0, h6 = +v.h6 || 0, h24 = +v.h24 || 0, liq = +a.reserve_in_usd || 0; if (liq < cfg.minLiqUsd) continue;
       const spike = h24 > 0 && h1 >= cfg.spikeX * (h24 / 24) && h1 >= cfg.minH6Usd / 6; if (h6 < cfg.minH6Usd && !spike) continue;
       const key = net + '|' + (bt.address || pool), had = by.get(key); if (had && had.liq >= liq) continue;
