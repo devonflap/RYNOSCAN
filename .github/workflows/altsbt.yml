@@ -21,8 +21,6 @@ jobs:
           node-version: 22
       - name: Replay the top alts through the DCA and trend rules
         env:
-          CG_API_KEY: ${{ secrets.CG_API_KEY }}
-          CG_PLAN: ${{ vars.CG_PLAN }}
         run: node src/altsbt.mjs
       - name: Save results
         run: |

@@ -19,8 +19,6 @@ jobs:
           node-version: 22
       - name: Reverse-engineer the giants (src/giants.json lists them; edit it to add coins)
         env:
-          CG_API_KEY: ${{ secrets.CG_API_KEY }}
-          CG_PLAN: ${{ vars.CG_PLAN }}
         run: node src/giants.mjs
       - name: Save results
         run: |

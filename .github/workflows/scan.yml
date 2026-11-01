@@ -29,8 +29,6 @@ jobs:
           node-version: 22
       - name: Run scan
         env:
-          CG_API_KEY: ${{ secrets.CG_API_KEY }}
-          CG_PLAN: ${{ vars.CG_PLAN }}
           RS_SOURCE: ${{ inputs.source }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: node src/scan.mjs

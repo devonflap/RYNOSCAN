@@ -19,8 +19,6 @@ jobs:
           node-version: 22
       - name: Run backtest
         env:
-          CG_API_KEY: ${{ secrets.CG_API_KEY }}
-          CG_PLAN: ${{ vars.CG_PLAN }}
         run: node src/backtest.mjs
       - name: Weekly gate report to phone
         env:

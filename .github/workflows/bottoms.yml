@@ -21,8 +21,6 @@ jobs:
           node-version: 22
       - name: Find the coins newly at a DCA level
         env:
-          CG_API_KEY: ${{ secrets.CG_API_KEY }}
-          CG_PLAN: ${{ vars.CG_PLAN }}
         run: node src/bottoms.mjs
       - name: Save the list
         run: |

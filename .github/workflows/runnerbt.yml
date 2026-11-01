@@ -21,8 +21,6 @@ jobs:
           node-version: 22
       - name: Replay the runner list's coins through every entry and exit
         env:
-          CG_API_KEY: ${{ secrets.CG_API_KEY }}
-          CG_PLAN: ${{ vars.CG_PLAN }}
         run: node src/runnerbt.mjs
       - name: Save results
         run: |

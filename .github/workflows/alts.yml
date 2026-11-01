@@ -22,8 +22,6 @@ jobs:
           node-version: 22
       - name: Scan the alts and memes for HTF setups
         env:
-          CG_API_KEY: ${{ secrets.CG_API_KEY }}
-          CG_PLAN: ${{ vars.CG_PLAN }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: node src/alts.mjs
       - name: Save the results
