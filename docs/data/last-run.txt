@@ -1,7 +1,4 @@
-Full scan 22:29 Brisbane: 54 scanned, 43 scored, 10 above 65. On-chain volume Poor (0.59x 7-day avg).
+Hourly refresh 23:12 Brisbane: 10 tracked coins refreshed, 10 scored, 8 above 65. On-chain volume Poor (0.59x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
-NEW watch: CATE (Solana) Falling wedge, opp 69, checks 4/6, stop 19.2% away, upside 57.7%; more sellers than buyers in the last hour; volume fading.
-NEW watch: HOOKR (Robinhood) Falling wedge, opp 67, checks 5/6, stop 32.2% away, upside 96.7%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: ANTFUN (Single holder ownership), CARDS (Top 10 holders high ownership), PUMP (top 10 wallets hold 60.6% (gate 30%)), FABLES (owner can mint more), FLOCK (owner can mint more), BONK (top 10 wallets hold 38.9% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
