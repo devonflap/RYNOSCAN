@@ -28,7 +28,7 @@ jobs:
         run: node src/watch.mjs
       - name: Volume list (the day's money, each coin watched 48 hours for its base)
         run: node src/volume.mjs || true
-      - name: Save (on a clash the newest data wins: -X theirs keeps this run's files)
+      - name: Save (on a clash the newest data wins)
         run: |
           git config user.name "rynoscan-bot"
           git config user.email "rynoscan-bot@users.noreply.github.com"
