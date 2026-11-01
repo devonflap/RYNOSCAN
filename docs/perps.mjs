@@ -5,10 +5,11 @@
 //          turned at before (daily and 4-hour swing points, merged when they sit within about 1.5% of each other). Never at the market.
 //   STOP   just past that level, by half the daily average range (ATR), 2% at least, so ordinary noise does not take it out.
 //   TPs    the resistance levels above the entry (supports below, for a short), each at least 1R further on; R multiples fill any gap.
-//   GRADE  A only with the trend on its side (20 over 50-day average, price over the 50, and over the 200 where there is one) and 2R+ to TP2.
+//   GRADE  A only with the trend on its side (20 over 50-day average, price over the 50, and over the 200 where there is one), 2.5R+ to
+//          TP2 and an entry level the daily chart has turned at twice or more. B: 2R+ to TP2 without all of that. C: skip.
 // Then the money: position size, the liquidation price, what the stop costs, what each TP pays, and the most leverage that keeps the
 // liquidation well past the stop. It is a plan to check, not a signal: the alts backtest found no rule that beat holding BTC on both halves.
-export const PERP = { pivotD: 3, pivot4: 4, mergePct: 1.5, nearPct: 1.2, farPct: 15, stopAtr: 0.5, minStopPct: 2, liqBuffer: 0.7, shares: [0.4, 0.3, 0.3], mmr: 0.005, makerFee: 0.0002, takerFee: 0.0005, minRR2: 2 };
+export const PERP = { pivotD: 3, pivot4: 4, mergePct: 1.5, nearPct: 1.2, farPct: 15, stopAtr: 0.5, minStopPct: 2, liqBuffer: 0.7, shares: [0.4, 0.3, 0.3], mmr: 0.005, makerFee: 0.0002, takerFee: 0.0005, minRR2: 2, minRR2A: 2.5 };
 const avg = (a) => a.reduce((x, y) => x + y, 0) / a.length;
 export function ema(xs, n) { if (xs.length < n) return null; let e = avg(xs.slice(0, n)); const k = 2 / (n + 1); for (const x of xs.slice(n)) e = x * k + e * (1 - k); return e; }
 export function atr(bars, n = 14) { if (bars.length < n + 1) return null; const tr = bars.slice(1).map((b, i) => Math.max(b[2] - b[3], Math.abs(b[2] - bars[i][4]), Math.abs(b[3] - bars[i][4]))); return avg(tr.slice(-n)); }
@@ -27,6 +28,7 @@ export function trendOf(daily) { const c = daily.map((b) => b[4]), px = c[c.leng
 // the plan. side: 'long' | 'short'. price: the live (mark) price.
 export function planTrade({ daily, h4, price, side = 'long', P = PERP }) {
   if (!daily || daily.length < 30 || !(price > 0)) return { none: 'not enough chart history yet (needs 30+ days)' };
+  { const c = daily.slice(-30), hi = Math.max(...c.map((b) => b[2])), lo = Math.min(...c.map((b) => b[3])); if (lo > 0 && hi / lo < 1.04) return { none: 'it barely moves (under 4% in 30 days): a stablecoin or a pegged token, nothing to trade' }; }
   const L = side === 'long', A = atr(daily) || price * 0.04, Z = levels(daily, h4, P), T = trendOf(daily), dist = (px) => (L ? (price - px) / price : (px - price) / price) * 100;
   // entry: the nearest zone on the right side of the price, at least nearPct away (a limit, not a chase) and no further than farPct
   const cands = Z.filter((z) => { const d = dist(L ? z.hi : z.lo); return d >= P.nearPct && d <= P.farPct; }).sort((a, b) => dist(L ? a.hi : a.lo) - dist(L ? b.hi : b.lo));
@@ -44,9 +46,10 @@ export function planTrade({ daily, h4, price, side = 'long', P = PERP }) {
   tps.length = Math.min(tps.length, 3);
   tps.forEach((t) => { t.r = +(Math.abs(t.px - entry) / R).toFixed(2); });
   const rr2 = tps[1] ? tps[1].r : tps[0] ? tps[0].r : 0, withTrend = L ? T.up : T.down, against = L ? T.down : T.up, stopPct = +((R / entry) * 100).toFixed(2);
-  const grade = against ? 'C' : withTrend && rr2 >= P.minRR2 ? 'A' : rr2 >= P.minRR2 ? 'B' : 'C';
+  /* 1 Nov: A is rare on purpose: the trend with the trade, 2.5R+ to TP2, and a level the DAILY chart has turned at twice or more */
+  const solid = strong.tfs.includes('1d') && strong.touches >= 2, grade = against ? 'C' : withTrend && rr2 >= P.minRR2A && solid ? 'A' : rr2 >= P.minRR2 ? 'B' : 'C';
   const why = [`${L ? 'support' : 'resistance'} ${fx(strong.lo)}-${fx(strong.hi)}: turned there ${strong.touches} time${strong.touches > 1 ? 's' : ''} (${strong.tfs.join(' and ')} chart), ${dist(entry).toFixed(1)}% from the price`, `trend: ${T.label} (20-day ${T.e20 > T.e50 ? 'over' : 'under'} the 50-day${T.e200 ? `, price ${T.px > T.e200 ? 'over' : 'under'} the 200-day` : ''})`, `TP2 is ${rr2}R`];
-  const verdict = grade === 'A' ? `A: the trend is with the trade and TP2 pays ${rr2}R. Set the limit and walk away.` : grade === 'B' ? `B: the levels work (${rr2}R to TP2) but the trend is ${T.label}: half size or wait.` : against ? `C: this ${side} fights the ${T.label}. Skip it, or look at the other side.` : `C: only ${rr2}R to TP2: not worth the risk. Wait for a better level.`;
+  const verdict = grade === 'A' ? `A: the trend is with the trade, the level has held on the daily chart before, and TP2 pays ${rr2}R. Set the limit and walk away.` : grade === 'B' ? `B: the levels work (${rr2}R to TP2) but ${withTrend ? 'the level is untested on the daily chart or TP2 is under 2.5R' : 'the trend is ' + T.label}: half size or wait.` : against ? `C: this ${side} fights the ${T.label}. Skip it, or look at the other side.` : `C: only ${rr2}R to TP2: not worth the risk. Wait for a better level.`;
   return { side, price, entry, stop, stopPct, tps, rr2, grade, verdict, why, trend: T, atr: A, zone: strong, zones: Z }; }
 const fx = (x) => (x == null ? '—' : Number(Number(x).toPrecision(5)).toString());
 // the money, for isolated margin on a linear USDT perpetual (a close estimate: the exchange's own figure differs slightly with fees)

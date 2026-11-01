@@ -1,16 +1,16 @@
 // RynoScan dashboard. Reads data/*.json written by src/scan.mjs (no build step, no libraries).
-import * as C from './core.mjs?v=069ff143e9';
-import { discoverPools } from './pools.mjs?v=069ff143e9';
-import { checkToken, applyOverlays } from './overlays.mjs?v=069ff143e9';
-import { debate } from './panel.mjs?v=069ff143e9';
-import { simulate, fwdSummary } from './paper.mjs?v=069ff143e9';
-import { book, statsBook, fromSignal, fromRun, PROFILES } from './exits.mjs?v=069ff143e9';
-import { BOOKS } from './strategies.mjs?v=069ff143e9';
-import { runnerBets, chillBets } from './bestbets.mjs?v=069ff143e9';
-import { evidence, exitHint } from './evidence.mjs?v=069ff143e9';
-import { botBook, BOT, BOT_RULES } from './botsim.mjs?v=069ff143e9';
-import { parseInfo } from './holders.mjs?v=069ff143e9';
-import { drawAlts, drawMemeSetups } from './alts.mjs?v=069ff143e9';
+import * as C from './core.mjs?v=43e67a4066';
+import { discoverPools } from './pools.mjs?v=43e67a4066';
+import { checkToken, applyOverlays } from './overlays.mjs?v=43e67a4066';
+import { debate } from './panel.mjs?v=43e67a4066';
+import { simulate, fwdSummary } from './paper.mjs?v=43e67a4066';
+import { book, statsBook, fromSignal, fromRun, PROFILES } from './exits.mjs?v=43e67a4066';
+import { BOOKS } from './strategies.mjs?v=43e67a4066';
+import { runnerBets, chillBets } from './bestbets.mjs?v=43e67a4066';
+import { evidence, exitHint } from './evidence.mjs?v=43e67a4066';
+import { botBook, BOT, BOT_RULES } from './botsim.mjs?v=43e67a4066';
+import { parseInfo } from './holders.mjs?v=43e67a4066';
+import { drawAlts, drawMemeSetups } from './alts.mjs?v=43e67a4066';
 
 const $ = (id) => document.getElementById(id);
 const NS = 'http://www.w3.org/2000/svg';
@@ -1033,7 +1033,7 @@ async function loadAll() {
   S.learned = obj(learned) && Array.isArray(learned.setups) ? { ...learned, promote: Array.isArray(learned.promote) ? learned.promote : [], demote: Array.isArray(learned.demote) ? learned.demote : [], insights: Array.isArray(learned.insights) ? learned.insights : [], total: obj(learned.total) || {} } : null; try { C.applyLearned(learned); } catch { /* ignore */ }
   S.pulse = watch && watch.pulse && Array.isArray(watch.pulse.items) ? watch.pulse : null; S.myPos = watch && Array.isArray(watch.positions) ? watch.positions : []; S.watch = new Map(arr(watch && watch.items).filter((w) => w.id != null).map((w) => [w.id, w])); S.watchAt = watch && watch.at && watch.scanAt === (meta && meta.scannedAt) ? watch.at : (watch && watch.at) || null;
   if (S.live && S.meta && S.live.at > Date.parse(S.meta.scannedAt)) { const m = S.live; S.setups = S.setups.map((r) => m.fresh.get(r.id) || r).filter((r) => r.mine || r.opp == null || r.opp > (S.meta.minOpp ?? 65) || !m.fresh.has(r.id)); m.charts.forEach((c, id) => S.charts.set(id, c)); }
-  header(); verdict(); draw(); fearGreed(); drawBacktest(); drawLearn(); try { drawRunners(); } catch { /* keep the page alive */ } try { drawScorecard(); } catch { /* keep the page alive */ } try { drawPaper(); } catch { /* keep the page alive */ } try { const bl = $('bidLosing'), b = ((S.council && S.council.books) || []).find((x) => x.key === 'bid'); if (bl) { if (b && b.call === 'losing') { bl.hidden = false; bl.textContent = `The council's verdict on these calls: LOSING. Bought as shown, they have made ${(b.avgR >= 0 ? '+' : '') + (+b.avgR).toFixed(2)}R a trade over ${b.n} paper trades, worse than buying at random. Kept here so the scanner keeps learning: not for trading by hand.`; } else bl.hidden = true; } } catch { /* optional */ } try { drawVolList(); } catch { /* keep the page alive */ } try { import('./planui.mjs?v=069ff143e9').then(async (m) => m.initPlanner({ desk: S.alts || await getJ('alts.json', null) })).catch(() => {}); } catch { /* keep the page alive */ } S.alts = alts && typeof alts === 'object' ? alts : null; try { drawAlts(S.alts, $('altsOut')); drawMemeSetups(S.alts, $('spotMemeOut')); } catch { /* keep the page alive */ } if (S.applyMode) S.applyMode(); stamp();
+  header(); verdict(); draw(); fearGreed(); drawBacktest(); drawLearn(); try { drawRunners(); } catch { /* keep the page alive */ } try { drawScorecard(); } catch { /* keep the page alive */ } try { drawPaper(); } catch { /* keep the page alive */ } try { const bl = $('bidLosing'), b = ((S.council && S.council.books) || []).find((x) => x.key === 'bid'); if (bl) { if (b && b.call === 'losing') { bl.hidden = false; bl.textContent = `The council's verdict on these calls: LOSING. Bought as shown, they have made ${(b.avgR >= 0 ? '+' : '') + (+b.avgR).toFixed(2)}R a trade over ${b.n} paper trades, worse than buying at random. Kept here so the scanner keeps learning: not for trading by hand.`; } else bl.hidden = true; } } catch { /* optional */ } try { drawVolList(); } catch { /* keep the page alive */ } try { import('./planui.mjs?v=43e67a4066').then(async (m) => m.initPlanner({ desk: S.alts || await getJ('alts.json', null) })).catch(() => {}); } catch { /* keep the page alive */ } S.alts = alts && typeof alts === 'object' ? alts : null; try { drawAlts(S.alts, $('altsOut')); drawMemeSetups(S.alts, $('spotMemeOut')); } catch { /* keep the page alive */ } if (S.applyMode) S.applyMode(); stamp();
 }
 // ---------- boot ----------
 function stamp() {
@@ -1065,7 +1065,7 @@ function wireModes() {
   const btns = [...document.querySelectorAll('.mode')]; if (!btns.length) return;
   const show = (k) => { btns.forEach((b) => { const on = b.dataset.mode === k; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
     document.querySelectorAll('[data-mode]').forEach((e) => { if (e.classList.contains('mode')) return; if (e.id === 'verdict' && e.dataset.mode === k) { e.hidden = !S.meta; return; } e.hidden = e.dataset.mode !== k; });
-    try { store.set('rynoMode2', k); } catch { /* optional */ } if (k === 'alts') document.querySelectorAll('#altsOut canvas').forEach((cv) => { try { if (cv._r) import('./alts.mjs?v=069ff143e9').then((m) => m.drawMwChart(cv, cv._r, cv._tf || '1d')); } catch { /* fine */ } }); };
+    try { store.set('rynoMode2', k); } catch { /* optional */ } if (k === 'alts') document.querySelectorAll('#altsOut canvas').forEach((cv) => { try { if (cv._r) import('./alts.mjs?v=43e67a4066').then((m) => m.drawMwChart(cv, cv._r, cv._tf || '1d')); } catch { /* fine */ } }); };
   S.applyMode = () => show(store.get('rynoMode2') || 'alts');
   btns.forEach((b) => b.addEventListener('click', () => { show(b.dataset.mode); window.scrollTo({ top: 0 }); }));
   let k = 'alts'; try { k = store.get('rynoMode2') || 'alts'; } catch { /* default */ } show(btns.some((b) => b.dataset.mode === k) ? k : 'alts'); /* 1 Nov: Alts & perps first (rynoMode2: everyone starts on it once) */

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>RynoScan</title>
 <link rel="icon" href="logo.png">
-<link rel="stylesheet" href="style.css?v=069ff143e9">
+<link rel="stylesheet" href="style.css?v=43e67a4066">
 <style>html.locked .shell,html.locked .wrap{display:none!important}#gate{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#1a1a1a;color:#eee;font-family:system-ui,sans-serif}#gate form{display:flex;flex-direction:column;gap:12px;width:min(320px,86vw);text-align:center}#gate img{width:72px;height:72px;margin:0 auto}#gate input{padding:12px;border-radius:8px;border:1px solid #555;background:#2a2a2a;color:#eee;font-size:16px;text-align:center}#gate button{padding:12px;border:0;border-radius:8px;background:#D64227;color:#fff;font-size:16px;cursor:pointer}#gate p{margin:0;min-height:1.2em;color:#ee6a4b;font-size:14px}</style>
 <script>
 /* Access code. This is a screen lock for casual visitors, not real security: the page and its data files are still public to anyone who knows how to look. */
@@ -127,14 +127,17 @@ crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)).then(function(b){if(
 
   <section class="card" data-mode="alts" id="planner">
     <h2>Perps planner <span class="sub">limits only, never chase</span></h2>
-    <p class="note">Type or pick a ticker. The plan is built live from Gate.io's USDT perpetual charts: a <b>limit entry</b> at the nearest real support (resistance for a short) that the daily and 4-hour charts have turned at before, the <b>stop</b> past it by half a day's average range, <b>TPs</b> at the next levels (40% / 30% / 30%, stop to entry after TP1), and the money at your margin and leverage, with the liquidation price. Graded A only with the trend on its side and 2R+ to TP2. Set the order, the stop and the TPs together, then leave it: if the limit never fills, there was no trade. This is a plan to check against the chart, not a signal; nothing here has been proven to beat the market.</p>
+    <p class="note">Type or pick a ticker. The plan is built live from Gate.io's USDT perpetual charts: a <b>limit entry</b> at the nearest real support (resistance for a short) that the daily and 4-hour charts have turned at before, the <b>stop</b> past it by half a day's average range, <b>TPs</b> at the next levels (40% / 30% / 30%, stop to entry after TP1), and the money at your margin and leverage: what the stop costs, what each TP pays, and the liquidation price. Graded A only with the trend on its side and 2R+ to TP2. Set the order, the stop and the TPs together, then leave it: if the limit never fills, there was no trade. This is a plan to check against the chart, not a signal; nothing here has been proven to beat the market.</p>
+    <h3 style="margin:.4rem 0">Setups now</h3>
+    <div id="planScan"><p class="meta">Checking the desk's alts…</p></div>
+    <h3 style="margin:1rem 0 .4rem">Plan a trade</h3>
     <form id="planForm" class="lookup"><input id="planQ" list="planList" type="search" placeholder="Ticker, e.g. UNI" aria-label="Ticker" autocomplete="off" autocapitalize="characters"><datalist id="planList"></datalist><button type="submit">Plan</button></form>
     <div class="chips" id="planPicks" style="margin-top:10px"></div>
     <div class="chips" id="planSide"><button type="button" class="chip" data-v="long">Long</button><button type="button" class="chip" data-v="short">Short</button></div>
     <div class="chips" id="planLev"><span class="meta" style="align-self:center">Leverage</span><button type="button" class="chip" data-v="3">3x</button><button type="button" class="chip" data-v="5">5x</button><button type="button" class="chip" data-v="7">7x</button><button type="button" class="chip" data-v="10">10x</button></div>
-    <div class="chips"><label class="meta" style="align-self:center">Margin $ <input id="planMargin" type="number" inputmode="decimal" min="1" step="10" style="width:5.5em" class="chip"></label><label class="meta" style="align-self:center">Most I'll lose $ <input id="planLoss" type="number" inputmode="decimal" min="0" step="5" style="width:5.5em" class="chip"></label></div>
+    <div class="chips" id="planMarginChips"><span class="meta" style="align-self:center">Margin</span><button type="button" class="chip" data-v="25">$25</button><button type="button" class="chip" data-v="50">$50</button><button type="button" class="chip" data-v="100">$100</button><label class="meta" style="align-self:center">or $ <input id="planMargin" type="number" inputmode="decimal" min="1" step="10" style="width:5.5em" class="chip"></label></div>
     <div id="planOut"></div>
-    <details class="fold"><summary>The rules for every trade</summary><p class="note">1. Limit orders only, at the planned level: no market buys, no chasing a candle. 2. The stop goes in with the entry, never moved further away. 3. Size from the loss limit, not the margin: decide what a stop-out may cost first. 4. Two positions at most at a time. 5. Two stop-outs in a day: done for the day. 6. Leverage no higher than the planner's safe figure, so the liquidation sits well past the stop. 7. An A grade is a reason to place the order, not a promise.</p></details>
+    <details class="fold"><summary>The rules for every trade</summary><p class="note">1. Limit orders only, at the planned level: no market buys, no chasing a candle. 2. The stop goes in with the entry, never moved further away. 3. Check what the stop costs (it's in the plan) before placing the order; if that's more than you'd shrug off, use less margin or lower leverage. 4. Two positions at most at a time. 5. Two stop-outs in a day: done for the day. 6. Leverage no higher than the planner's safe figure, so the liquidation sits well past the stop. 7. An A grade is a reason to place the order, not a promise.</p></details>
   </section>
 
   <section class="card" data-mode="alts" id="alts">
@@ -185,6 +188,6 @@ crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)).then(function(b){if(
   <p class="foot">Rule-based screen, not financial advice. Rules are untested until the signal log has about 30 closed signals. Meme coins can go to zero and stops can gap on thin liquidity.</p>
 </div>
 </div>
-<script type="module" src="app.js?v=069ff143e9"></script>
+<script type="module" src="app.js?v=43e67a4066"></script>
 </body>
 </html>
