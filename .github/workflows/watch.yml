@@ -28,12 +28,12 @@ jobs:
         run: node src/watch.mjs
       - name: Volume list (the day's money, each coin watched 48 hours for its base)
         run: node src/volume.mjs || true
-      - name: Save
+      - name: Save (on a clash the newest data wins: -X theirs keeps this run's files)
         run: |
           git config user.name "rynoscan-bot"
           git config user.email "rynoscan-bot@users.noreply.github.com"
           git add docs/data/watch.json docs/data/volume.json
-          git diff --cached --quiet && echo "no changes" || (git commit -m "watch $(date -u +%Y-%m-%dT%H:%MZ)" && (for i in 1 2 3 4 5; do git pull --rebase -q && git push && break; sleep $((i*5)); done; git fetch -q && [ "$(git rev-parse HEAD)" = "$(git rev-parse @{u})" ]))
+          git diff --cached --quiet && echo "no changes" || (git commit -m "watch $(date -u +%Y-%m-%dT%H:%MZ)" && (for i in 1 2 3 4 5; do git pull --rebase -X theirs -q && git push && break; sleep $((i*5)); done; git fetch -q && [ "$(git rev-parse HEAD)" = "$(git rev-parse @{u})" ]))
       - name: Tell me if this failed
         if: failure()
         env:

@@ -25,6 +25,7 @@ export function volCandidates(pages, cfg = VOLR) { const by = new Map();
     for (const d of data || []) { const a = d.attributes || {}, pool = (d.id || '').split('_').slice(1).join('_') || a.address; if (!pool) continue;
       const bt = toks[d.relationships && d.relationships.base_token && d.relationships.base_token.data && d.relationships.base_token.data.id] || {}, sym = String(bt.symbol || String(a.name || '').split(' / ')[0] || '').toUpperCase().trim();
       if (!sym || EXCLUDE.test(sym) || /USD|BTC|^W?BNB$|^W?ETH/.test(sym) || /Robinhood Token|wrapped|stablecoin/i.test(bt.name || '')) continue;
+      if (/n[i1]gg|f[a@]gg[o0]t|k[i1]ke\b|r[e3]t[a@]rd/i.test(sym + ' ' + (bt.name || ''))) continue; /* coins named after slurs: kept off the list */
       if (cfg.maxFdvUsd && +a.fdv_usd > cfg.maxFdvUsd) continue; /* 1 Nov: big caps (PUMP, wrapped BTC and BNB) crowded the list; this is a meme-coin playbook */ // the pairing token itself (SOL, HYPE, a stock token) is not the coin
       const v = a.volume_usd || {}, h1 = +v.h1 || 0, h6 = +v.h6 || 0, h24 = +v.h24 || 0, liq = +a.reserve_in_usd || 0; if (liq < cfg.minLiqUsd) continue;
       const spike = h24 > 0 && h1 >= cfg.spikeX * (h24 / 24) && h1 >= cfg.minH6Usd / 6; if (h6 < cfg.minH6Usd && !spike) continue;
