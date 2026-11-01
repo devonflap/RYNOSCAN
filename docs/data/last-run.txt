@@ -1,5 +1,4 @@
-Full scan 02:33 Brisbane: 55 scanned, 48 scored, 9 above 65. On-chain volume Below normal (0.76x 7-day avg).
+Hourly refresh 03:12 Brisbane: 8 tracked coins refreshed, 8 scored, 7 above 65. On-chain volume Below normal (0.76x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: ANTFUN (Single holder ownership), PUMP (top 10 wallets hold 60.6% (gate 30%)), ANSEM (Single holder ownership), FARTCOIN (top 10 wallets hold 34.6% (gate 30%)), CARDS (Top 10 holders high ownership), TRUMP (Top 10 holders high ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
