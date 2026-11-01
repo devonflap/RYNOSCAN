@@ -1,7 +1,4 @@
-Full scan 18:33 Brisbane: 50 scanned, 40 scored, 8 above 65. On-chain volume Poor (0.54x 7-day avg).
+Hourly refresh 19:12 Brisbane: 8 tracked coins refreshed, 8 scored, 6 above 65. On-chain volume Poor (0.54x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
-NEW watch: JEANPHIL (Solana) Falling wedge, opp 76, checks 4/6, stop 15% away, upside 63.8%; more sellers than buyers in the last hour; volume fading.
-NEW watch: CATE (Solana) Bottom reversal, opp 71, checks 6/6, stop 18.4% away, upside 36.9%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: CASHCAT (top 10 wallets hold 34.4% (gate 30%)), ANTFUN (Single holder ownership), CARDS (Top 10 holders high ownership), PUMP (top 10 wallets hold 60.6% (gate 30%)), ANSEM (Single holder ownership), FABLES (owner can mint more).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
