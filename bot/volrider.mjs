@@ -36,7 +36,7 @@ export function volSetup(bars, price, nowSec, cfg = VOLR, { entryN = 1 } = {}) {
   const B = (bars || []).filter((b) => b[0] + 900 <= nowSec + 1); if (B.length < cfg.baseBars + 8 || !(price > 0)) return null;
   // the run: its high, and the low it started from (the lowest low before the high)
   let hi = 0, hiI = -1; B.forEach((b, i) => { if (b[2] > hi) { hi = b[2]; hiI = i; } });
-  if (hiI < 1) return null; let lo = Infinity, loI = 0; for (let i = 0; i < hiI; i++) if (B[i][3] < lo) { lo = B[i][3]; loI = i; }
+  if (hiI < 1) return { none: 'no real run yet (its high was the first candle)' }; let lo = Infinity, loI = 0; for (let i = 0; i < hiI; i++) if (B[i][3] < lo) { lo = B[i][3]; loI = i; }
   if (!(lo > 0) || hi / lo < cfg.minPumpX) return { none: `no real run yet (${(hi / lo).toFixed(1)}x)` };
   if (nowSec - B[hiI][0] < cfg.minSinceHighH * 3600) return { none: 'still running: no first dip yet' };
   // the dip: how deep it came back into the run

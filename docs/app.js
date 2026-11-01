@@ -1,16 +1,16 @@
 // RynoScan dashboard. Reads data/*.json written by src/scan.mjs (no build step, no libraries).
-import * as C from './core.mjs?v=207bcdf506';
-import { discoverPools } from './pools.mjs?v=207bcdf506';
-import { checkToken, applyOverlays } from './overlays.mjs?v=207bcdf506';
-import { debate } from './panel.mjs?v=207bcdf506';
-import { simulate, fwdSummary } from './paper.mjs?v=207bcdf506';
-import { book, statsBook, fromSignal, fromRun, PROFILES } from './exits.mjs?v=207bcdf506';
-import { BOOKS } from './strategies.mjs?v=207bcdf506';
-import { runnerBets, chillBets } from './bestbets.mjs?v=207bcdf506';
-import { evidence, exitHint } from './evidence.mjs?v=207bcdf506';
-import { botBook, BOT, BOT_RULES } from './botsim.mjs?v=207bcdf506';
-import { parseInfo } from './holders.mjs?v=207bcdf506';
-import { drawAlts, drawMemeSetups } from './alts.mjs?v=207bcdf506';
+import * as C from './core.mjs?v=7ad9a54d46';
+import { discoverPools } from './pools.mjs?v=7ad9a54d46';
+import { checkToken, applyOverlays } from './overlays.mjs?v=7ad9a54d46';
+import { debate } from './panel.mjs?v=7ad9a54d46';
+import { simulate, fwdSummary } from './paper.mjs?v=7ad9a54d46';
+import { book, statsBook, fromSignal, fromRun, PROFILES } from './exits.mjs?v=7ad9a54d46';
+import { BOOKS } from './strategies.mjs?v=7ad9a54d46';
+import { runnerBets, chillBets } from './bestbets.mjs?v=7ad9a54d46';
+import { evidence, exitHint } from './evidence.mjs?v=7ad9a54d46';
+import { botBook, BOT, BOT_RULES } from './botsim.mjs?v=7ad9a54d46';
+import { parseInfo } from './holders.mjs?v=7ad9a54d46';
+import { drawAlts, drawMemeSetups } from './alts.mjs?v=7ad9a54d46';
 
 const $ = (id) => document.getElementById(id);
 const NS = 'http://www.w3.org/2000/svg';
@@ -447,6 +447,25 @@ function drawScorecard() {
   box.append(d);
 }
 // BEST BETS (30 Oct): only what beats random, with its plan and the red flags (docs/bestbets.mjs)
+// THE VOLUME LIST (1 Nov: the scanner is for Ryan's own trading now): the coins basing after their first dip, with the plan, then every
+// coin on or recently on the volume list and where it is up to (src/volume.mjs, every 15 minutes)
+async function drawVolList() { const host = $('volOut'); if (!host) return; const v = await getJ('volume.json', null); host.replaceChildren();
+  if (!v || !Array.isArray(v.items)) { host.append(el('p', 'note', 'The volume list fills in within 15 minutes of the next watcher run.')); return; }
+  const fx = (x) => (x == null ? '—' : Number(Number(x).toPrecision(4)).toString()), k = (x) => (x >= 1e6 ? '$' + (x / 1e6).toFixed(1) + 'm' : '$' + Math.round(x / 1000) + 'k'), ago = (t) => { const m = Math.round((Date.now() - Date.parse(t)) / 60000); return m < 60 ? m + ' min ago' : Math.round(m / 60) + ' h ago'; };
+  const net = (c) => (c === 'robinhood' ? 'robinhood' : 'solana'), dex = (x) => `https://dexscreener.com/${net(x.chain)}/${x.pool}`;
+  const link = (x) => { const a = el('a', 'mw-name', x.coin); a.href = dex(x); a.target = '_blank'; a.rel = 'noopener'; return a; };
+  host.append(el('p', 'meta', `Updated ${ago(v.at)} · ${v.listN} on the list, ${v.watchedN} watched from the last 48 hours`));
+  const S = v.items.filter((x) => x.status === 'setup');
+  if (!S.length) host.append(el('p', 'note', 'Nothing basing right now. The list below shows where each coin is up to.'));
+  for (const x of S) { const b = el('div', 'bb-block'), h = el('h3', null, ''); h.append(link(x), ` · ${x.chain === 'robinhood' ? 'Robinhood' : 'Solana'}${x.pair ? ' · ' + x.pair : ''} · ${x.stage}`); b.append(h);
+    const P = x.plan; b.append(el('p', null, `Bid around ${fx(P.entry)} · stop ${fx(P.stop)} (−${P.stopPct}%) · sell ${P.sells.map((s) => `${s.share}% at ${fx(s.px)} (+${s.pct}%)`).join(', ')} · keep ${P.moonbag}% as a moonbag (trail ${P.trailPct}%) · out if the volume dies`));
+    b.append(el('p', 'meta', (x.why || []).join(' · ')));
+    const hold = []; if (x.holders != null) hold.push(`${x.holders.toLocaleString('en')} holders${x.holderGrowthPct != null ? ` (${x.holderGrowthPct >= 0 ? '+' : ''}${x.holderGrowthPct}% in 90+ min)` : ''}`); if (x.top10 != null) hold.push(`top 10 hold ${x.top10}%`); if (x.top10 != null && x.top10 > 30) hold.push('top 10 over 30%: check the bubble map');
+    if (x.holderGrowthPct != null && x.holderGrowthPct < 2) hold.push('holders flat while it trades: possible wash, check the holder chart'); b.append(el('p', 'meta', (hold.join(' · ') || 'no holder read') + ` · ${x.onList ? 'on the volume list now' : 'off the list since ' + ago(x.lastOnList)} · ${k(x.h6)} in 6 hours at its busiest`)); host.append(b); }
+  const W = v.items.filter((x) => x.status !== 'setup'); if (!W.length) return;
+  const d = el('details', 'fold'), sm = el('summary', null, `Watching ${W.length} more coins`); d.append(sm); const t = el('table', 'tbl'), th = el('thead'), tr = el('tr'); for (const c of ['Coin', 'Chain', '6h volume', 'Up to', 'Why not yet']) tr.append(el('th', null, c)); th.append(tr); t.append(th); const tb = el('tbody');
+  for (const x of W) { const r = el('tr'), c0 = el('td'); c0.append(link(x)); r.append(c0, el('td', null, x.chain === 'robinhood' ? 'Robinhood' : 'Solana'), el('td', 'n', k(x.h6) + (x.onList ? '' : ' (earlier)')), el('td', null, x.stage), el('td', null, x.why || '')); tb.append(r); }
+  t.append(tb); const wrap = el('div', 'tblwrap'); wrap.style.overflowX = 'auto'; wrap.append(t); d.append(wrap); host.append(d); }
 async function drawBest() { const host = $('bestOut'); if (!host) return; const [runnerBt, bottoms, bottomBt] = await Promise.all([getJ('runner-bt.json', null), getJ('bottoms.json', null), getJ('bottom-bt.json', null)]); host.replaceChildren();
   const px = (x) => (x >= 1 ? x.toFixed(4) : (+x).toPrecision(4)), A = runnerBets({ runners: S.runners, council: S.council, runnerBt }), B = chillBets({ bottoms, bottomBt });
   const block = (x, body) => { const d = el('div', 'bb-block' + (x.beats ? '' : ' bb-off')); d.append(el('h3', null, (x.beats ? '★ ' : '') + x.title), el('p', 'meta', x.record), el('p', 'meta', x.why)); body(d); host.append(d); };
@@ -1014,7 +1033,7 @@ async function loadAll() {
   S.learned = obj(learned) && Array.isArray(learned.setups) ? { ...learned, promote: Array.isArray(learned.promote) ? learned.promote : [], demote: Array.isArray(learned.demote) ? learned.demote : [], insights: Array.isArray(learned.insights) ? learned.insights : [], total: obj(learned.total) || {} } : null; try { C.applyLearned(learned); } catch { /* ignore */ }
   S.pulse = watch && watch.pulse && Array.isArray(watch.pulse.items) ? watch.pulse : null; S.myPos = watch && Array.isArray(watch.positions) ? watch.positions : []; S.watch = new Map(arr(watch && watch.items).filter((w) => w.id != null).map((w) => [w.id, w])); S.watchAt = watch && watch.at && watch.scanAt === (meta && meta.scannedAt) ? watch.at : (watch && watch.at) || null;
   if (S.live && S.meta && S.live.at > Date.parse(S.meta.scannedAt)) { const m = S.live; S.setups = S.setups.map((r) => m.fresh.get(r.id) || r).filter((r) => r.mine || r.opp == null || r.opp > (S.meta.minOpp ?? 65) || !m.fresh.has(r.id)); m.charts.forEach((c, id) => S.charts.set(id, c)); }
-  header(); verdict(); draw(); fearGreed(); drawBacktest(); drawLearn(); try { drawRunners(); } catch { /* keep the page alive */ } try { drawScorecard(); } catch { /* keep the page alive */ } try { drawPaper(); } catch { /* keep the page alive */ } try { const bl = $('bidLosing'), b = ((S.council && S.council.books) || []).find((x) => x.key === 'bid'); if (bl) { if (b && b.call === 'losing') { bl.hidden = false; bl.textContent = `The council's verdict on these calls: LOSING. Bought as shown, they have made ${(b.avgR >= 0 ? '+' : '') + (+b.avgR).toFixed(2)}R a trade over ${b.n} paper trades, worse than buying at random. Kept here so the scanner keeps learning: not for trading by hand.`; } else bl.hidden = true; } } catch { /* optional */ } try { drawBest(); } catch { /* keep the page alive */ } S.alts = alts && typeof alts === 'object' ? alts : null; try { drawAlts(S.alts, $('altsOut')); drawMemeSetups(S.alts, $('spotMemeOut')); } catch { /* keep the page alive */ } if (S.applyMode) S.applyMode(); stamp();
+  header(); verdict(); draw(); fearGreed(); drawBacktest(); drawLearn(); try { drawRunners(); } catch { /* keep the page alive */ } try { drawScorecard(); } catch { /* keep the page alive */ } try { drawPaper(); } catch { /* keep the page alive */ } try { const bl = $('bidLosing'), b = ((S.council && S.council.books) || []).find((x) => x.key === 'bid'); if (bl) { if (b && b.call === 'losing') { bl.hidden = false; bl.textContent = `The council's verdict on these calls: LOSING. Bought as shown, they have made ${(b.avgR >= 0 ? '+' : '') + (+b.avgR).toFixed(2)}R a trade over ${b.n} paper trades, worse than buying at random. Kept here so the scanner keeps learning: not for trading by hand.`; } else bl.hidden = true; } } catch { /* optional */ } try { drawVolList(); } catch { /* keep the page alive */ } S.alts = alts && typeof alts === 'object' ? alts : null; try { drawAlts(S.alts, $('altsOut')); drawMemeSetups(S.alts, $('spotMemeOut')); } catch { /* keep the page alive */ } if (S.applyMode) S.applyMode(); stamp();
 }
 // ---------- boot ----------
 function stamp() {
@@ -1046,7 +1065,7 @@ function wireModes() {
   const btns = [...document.querySelectorAll('.mode')]; if (!btns.length) return;
   const show = (k) => { btns.forEach((b) => { const on = b.dataset.mode === k; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on)); });
     document.querySelectorAll('[data-mode]').forEach((e) => { if (e.classList.contains('mode')) return; if (e.id === 'verdict' && e.dataset.mode === k) { e.hidden = !S.meta; return; } e.hidden = e.dataset.mode !== k; });
-    try { store.set('rynoMode', k); } catch { /* optional */ } if (k === 'alts') document.querySelectorAll('#altsOut canvas').forEach((cv) => { try { if (cv._r) import('./alts.mjs?v=207bcdf506').then((m) => m.drawMwChart(cv, cv._r, cv._tf || '1d')); } catch { /* fine */ } }); };
+    try { store.set('rynoMode', k); } catch { /* optional */ } if (k === 'alts') document.querySelectorAll('#altsOut canvas').forEach((cv) => { try { if (cv._r) import('./alts.mjs?v=7ad9a54d46').then((m) => m.drawMwChart(cv, cv._r, cv._tf || '1d')); } catch { /* fine */ } }); };
   S.applyMode = () => show(store.get('rynoMode') || 'memes');
   btns.forEach((b) => b.addEventListener('click', () => { show(b.dataset.mode); window.scrollTo({ top: 0 }); }));
   let k = 'memes'; try { k = store.get('rynoMode') || 'memes'; } catch { /* default */ } show(btns.some((b) => b.dataset.mode === k) ? k : 'memes');

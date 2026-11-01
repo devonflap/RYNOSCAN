@@ -10,7 +10,7 @@ t(seen[0][1]['x-cg-pro-api-key'] === 'SECRET123', 'paid key sent in the header o
 t(!seen[0][0].includes('SECRET123'), 'key never appears in the URL');
 t(a.stats().n429 === 1, 'counts rate-limit hits');
 seen = []; n = 5; a = makeApi({ CG_API_KEY: 'k', CG_PLAN: 'demo', PACE_MS: '1' }, f); await a.get('/x');
-t(seen[0][0].startsWith('https://api.coingecko.com/api/v3/onchain/') && seen[0][1]['x-cg-demo-api-key'] === 'k', 'demo plan uses the demo URL and header');
+await a.getCG('/coins/markets'); t(seen[0][0].startsWith('https://api.geckoterminal.com/api/v2/') && !seen[0][1]['x-cg-demo-api-key'] && seen[1][0].startsWith('https://api.coingecko.com/api/v3/coins') && seen[1][1]['x-cg-demo-api-key'] === 'k', 'free Demo key (1 Nov): on-chain calls on the free GeckoTerminal feed (no monthly cap), the key only on CoinGecko\'s main API');
 seen = []; a = makeApi({ PACE_MS: '1' }, f); await a.get('/x');
 t(seen[0][0].startsWith('https://api.geckoterminal.com/api/v2/') && !seen[0][1]['x-cg-pro-api-key'], 'no key falls back to the free feed');
 t(a.paceMs === 1 && makeApi({}, f).paceMs === 4000 && makeApi({ CG_API_KEY: 'k' }, f).paceMs === 250, 'default pacing: 4s free, 0.25s with a key');

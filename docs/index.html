@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>RynoScan</title>
 <link rel="icon" href="logo.png">
-<link rel="stylesheet" href="style.css?v=207bcdf506">
+<link rel="stylesheet" href="style.css?v=7ad9a54d46">
 <style>html.locked .shell,html.locked .wrap{display:none!important}#gate{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#1a1a1a;color:#eee;font-family:system-ui,sans-serif}#gate form{display:flex;flex-direction:column;gap:12px;width:min(320px,86vw);text-align:center}#gate img{width:72px;height:72px;margin:0 auto}#gate input{padding:12px;border-radius:8px;border:1px solid #555;background:#2a2a2a;color:#eee;font-size:16px;text-align:center}#gate button{padding:12px;border:0;border-radius:8px;background:#D64227;color:#fff;font-size:16px;cursor:pointer}#gate p{margin:0;min-height:1.2em;color:#ee6a4b;font-size:14px}</style>
 <script>
 /* Access code. This is a screen lock for casual visitors, not real security: the page and its data files are still public to anyone who knows how to look. */
@@ -24,11 +24,11 @@ crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)).then(function(b){if(
 <body>
 <div class="shell">
 <aside class="side" id="side" aria-label="Features">
-  <div class="modes" role="tablist" aria-label="Desk"><button type="button" class="mode" data-mode="memes" role="tab">Memes</button><button type="button" class="mode" data-mode="alts" role="tab">Alts</button><button type="button" class="mode" data-mode="paper" role="tab">Paper &amp; research</button></div>
+  <div class="modes" role="tablist" aria-label="Desk"><button type="button" class="mode" data-mode="memes" role="tab">Memes</button><button type="button" class="mode" data-mode="alts" role="tab">Alts</button></div>
   <div class="sgroup" data-mode="memes">Overview</div>
   <button type="button" class="sitem vtab" data-mode="memes" data-tab="zone" title="Buy zone" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".8" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><span>Buy zone</span></button><button type="button" class="sitem vtab" data-mode="memes" data-tab="mkt" title="Market" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg><span>Market</span></button><button type="button" class="sitem vtab" data-mode="memes" data-tab="vol" title="Volume" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V11M10 20V5M16 20v-7M22 20H2"/></svg><span>Volume</span></button><button type="button" class="sitem vtab" data-mode="memes" data-tab="scan" title="Scan info" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 12l6-6"/><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></svg><span>Scan info</span></button>
   <div class="sgroup" data-mode="memes">Trades</div>
-  <a class="sitem" data-mode="memes" href="#best" data-sec="best" title="Best bets right now"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg><span>Best bets</span></a>
+  <a class="sitem" data-mode="memes" href="#volume" data-sec="volume" title="Volume list"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg><span>Best bets</span></a>
   <a class="sitem" data-mode="memes" href="#bid" data-sec="bid" title="Bid-ready"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/></svg><span>Bid-ready</span></a>
   <a class="sitem" data-mode="memes" href="#runners" data-sec="runners" title="High risk runners"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3 4 4.5 4 8a4 4 0 0 1-8 0c0-1.5.6-2.4 1.4-3.4"/><path d="M12 21a6 6 0 0 0 6-6"/></svg><span>Runners</span></a>
   <a class="sitem" data-mode="memes" href="#spotmeme" data-sec="spotmeme" title="Spot &amp; chill setups"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18L9 8l4 6 3-4 5 8"/><path d="M3 6l18 10"/></svg><span>Spot &amp; chill</span></a>
@@ -59,10 +59,10 @@ crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)).then(function(b){if(
       <p class="meta" id="rNote">Scan now re-scores your tracked coins here in about 2 minutes. Nothing leaves this page and no GitHub run is needed.</p>
     </div>
   </header>
-  <section class="card" data-mode="memes" id="best">
-    <h2>Best bets right now</h2>
-    <p class="note">Only the setups whose record beats random entries, each with the exact plan that record was earned with. A setup drops off by itself when it stops beating random. Every coin is checked against the red flags the research confirmed; a coin with one is held back and says why. Paper-tested only: small size, your own call.</p>
-    <div id="bestOut"></div>
+  <section class="card" data-mode="memes" id="volume">
+    <h2>Volume list <span class="sub">follow the money</span></h2>
+    <p class="note">The day's biggest-volume coins on Solana and Robinhood, each watched for 48 hours after it was last on the list. A coin shows as <b>basing now</b> when it has run, pulled back into the 0.5-0.786 zone and gone sideways for 3 hours with its volume cooled but alive: bid the base, stop under it, sell 30% half-way back to the high and 40% at the high, keep 30% as a moonbag, and get out if the volume dies. Updated every 15 minutes. A shortlist, not a signal: most coins still go to zero, so size small.</p>
+    <div id="volOut"></div>
   </section>
   <p class="health" id="health" hidden></p>
   <p class="hint" id="setupHint" hidden></p>
@@ -172,6 +172,6 @@ crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)).then(function(b){if(
   <p class="foot">Rule-based screen, not financial advice. Rules are untested until the signal log has about 30 closed signals. Meme coins can go to zero and stops can gap on thin liquidity.</p>
 </div>
 </div>
-<script type="module" src="app.js?v=207bcdf506"></script>
+<script type="module" src="app.js?v=7ad9a54d46"></script>
 </body>
 </html>

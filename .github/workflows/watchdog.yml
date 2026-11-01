@@ -1,7 +1,7 @@
 name: RynoScan watchdog
 # Safeguard 1: GitHub sometimes skips scheduled runs. This separate workflow, on its own schedule, checks the dashboard data
 # and restarts the scan if the last one is more than 95 minutes old (6am-10pm Brisbane), then tells your phone.
-# Safeguard 2: it also checks RynoBot's heartbeat and tells your phone if the bot server goes quiet (src/botwatch.mjs).
+# (1 Nov: the RynoBot heartbeat check is off: the bots were wound down and the server is being cancelled. src/botwatch.mjs is kept.)
 on:
   schedule:
     - cron: '17,47 * * * *'
@@ -31,10 +31,6 @@ jobs:
       - name: Check freshness
         id: d
         run: node src/watchdog.mjs
-      - name: Is RynoBot alive? (heartbeat on the silent <topic>-hb ntfy topic)
-        env:
-          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
-        run: node src/botwatch.mjs || true
       - name: Restart the scan and tell my phone
         if: steps.d.outputs.action == 'restart'
         env:
