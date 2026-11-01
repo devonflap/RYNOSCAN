@@ -1,0 +1,16 @@
+# Diagnostic for the Volume rider (src/voldiag.mjs): run by hand, writes nothing to the repo.
+name: Volume rider diagnostic
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: node src/voldiag.mjs
