@@ -1,0 +1,28 @@
+# One-off check (1 Nov): which free exchange APIs a web page may call directly (CORS). Writes nothing.
+name: CORS check
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          for u in \
+            "https://api.gateio.ws/api/v4/futures/usdt/candlesticks?contract=UNI_USDT&interval=4h&limit=2" \
+            "https://api.gateio.ws/api/v4/spot/candlesticks?currency_pair=UNI_USDT&interval=4h&limit=2" \
+            "https://api.binance.com/api/v3/klines?symbol=UNIUSDT&interval=4h&limit=2" \
+            "https://fapi.binance.com/fapi/v1/klines?symbol=UNIUSDT&interval=4h&limit=2" \
+            "https://data-api.binance.vision/api/v3/klines?symbol=UNIUSDT&interval=4h&limit=2" \
+            "https://api.bybit.com/v5/market/kline?category=linear&symbol=UNIUSDT&interval=240&limit=2" \
+            "https://www.okx.com/api/v5/market/candles?instId=UNI-USDT-SWAP&bar=4H&limit=2" \
+            "https://api.mexc.com/api/v3/klines?symbol=UNIUSDT&interval=4h&limit=2" \
+            "https://api.kucoin.com/api/v1/market/candles?type=4hour&symbol=UNI-USDT" \
+            "https://api.exchange.coinbase.com/products/UNI-USD/candles?granularity=21600" \
+            "https://api.hyperliquid.xyz/info" ; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" -H "Origin: https://scan.rynoscan.com" "$u")
+            acao=$(curl -s -D - -o /dev/null -H "Origin: https://scan.rynoscan.com" "$u" | grep -i "^access-control-allow-origin" | tr -d '\r')
+            echo "$code | ${acao:-NO CORS HEADER} | $u"
+          done
+          echo "hyperliquid POST:"; curl -s -D - -o /dev/null -X POST -H "Origin: https://scan.rynoscan.com" -H "content-type: application/json" -d '{"type":"metaAndAssetCtxs"}' https://api.hyperliquid.xyz/info | grep -iE "^HTTP|access-control-allow-origin"
