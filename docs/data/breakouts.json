@@ -1,1 +1,1 @@
-[]
+[{"id":"ROB:CHOP","coin":"CHOP","chain":"Robinhood","pool":"0x8111082d181841cbd123e82bced032b1331140332b6ce3da37f53a6b24ed736c","token":"0x100765a16f42636bd84ee1e86bc5107b84bcdba3","signal":"No trade","liquidity":225546,"rug":"warn","at":"2026-11-02T12:25:51Z","zoneLow":0.0000126099,"zoneHigh":0.0000136252,"stop":0.0000112511,"tp1":0.0000155669,"tp2":0.0000184881,"tp3":0.0000214092,"rr2":2.88,"riskPct":14.2,"volDay":"Strong","opp":59,"expireH":48}]
