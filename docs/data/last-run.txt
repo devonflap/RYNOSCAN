@@ -1,4 +1,5 @@
-Hourly refresh 08:10 Brisbane: 3 tracked coins refreshed, 3 scored, 1 above 65. On-chain volume Strong (23.74x 7-day avg).
-NEW watch: DACITY (Solana) Falling wedge, opp 78, checks 5/6, stop 13.6% away, upside 81%; weak last 6h.
+Full scan 09:28 Brisbane: 52 scanned, 44 scored, 5 above 65. On-chain volume Strong (23.28x 7-day avg).
+NEW watch: OTC (Solana) Falling wedge, opp 71, checks 5/6, stop 10.6% away, upside 54%; weak last 6h.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: SPCX (Mint Authority still enabled), CYBERLEEK (top 10 wallets hold 37.3% (gate 30%)), DJT (Mint Authority still enabled), ANSEM (Single holder ownership), PUMP (top 10 wallets hold 59.4% (gate 30%)), CASHCAT (top 10 wallets hold 34.3% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
