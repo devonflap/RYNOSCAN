@@ -1,4 +1,4 @@
-Hourly refresh 11:10 Brisbane: 6 tracked coins refreshed, 6 scored, 6 above 65. On-chain volume Normal (0.88x 7-day avg).
-NEW watch: JEANPHIL (Solana) Double bottom, opp 85, checks 6/6, stop 31.7% away, upside 95%.
+Hourly refresh 12:13 Brisbane: 5 tracked coins refreshed, 5 scored, 5 above 65. On-chain volume Normal (0.88x 7-day avg).
+NEW watch: CATE (Solana) Falling wedge, opp 79, checks 4/6, stop 13.2% away, upside 45.6%; more sellers than buyers in the last hour; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
