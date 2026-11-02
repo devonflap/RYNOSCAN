@@ -1,4 +1,4 @@
-Hourly refresh 05:10 Brisbane: 5 tracked coins refreshed, 5 scored, 4 above 65. On-chain volume Normal (0.92x 7-day avg).
-NEW watch: OTC (Solana) Trend pullback, opp 80, checks 6/6, stop 19.1% away, upside 46.1%.
+Full scan 06:21 Brisbane: 47 scanned, 41 scored, 3 above 65. On-chain volume Strong (23.74x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: SPCX (Mint Authority still enabled), CYBERLEEK (top 10 wallets hold 37.3% (gate 30%)), CASHCAT (top 10 wallets hold 34.3% (gate 30%)), ANSEM (Single holder ownership), PUMP (top 10 wallets hold 59.4% (gate 30%)), CARDS (Top 10 holders high ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
