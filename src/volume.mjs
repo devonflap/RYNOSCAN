@@ -20,9 +20,11 @@ export async function volumeList({ fetchJson, now = Date.now(), prev = null, cfg
   const onList = new Set(list.map((c) => c.pool)), watched = Object.entries(seen).filter(([p]) => !onList.has(p)).sort((a, b) => Date.parse(b[1].last) - Date.parse(a[1].last)).map(([pool, o]) => ({ pool, chain: o.chain, coin: o.coin, token: o.token, pair: o.pair, h6: o.h6max, watched: true }));
   const items = [], nowSec = now / 1000;
   const prevItems = new Map((((prev && prev.items) || [])).map((x) => [x.pool, x])); let skipped = 0;
+  /* the watched coins read longest ago go first, so a coin skipped for time one run is read the next */
+  watched.sort((a, b) => (Date.parse((prevItems.get(a.pool) || {}).readAt || 0) || 0) - (Date.parse((prevItems.get(b.pool) || {}).readAt || 0) || 0));
   for (const c of [...list, ...watched].slice(0, L.maxScan)) { if (clock() - t0 > L.budgetMs) { const old = prevItems.get(c.pool); if (old) items.push({ ...old, stale: true }); skipped++; continue; } const j = await fetchJson(`${GT}/networks/${c.chain}/pools/${c.pool}/ohlcv/minute?aggregate=15&limit=400&currency=usd&token=base`), raw = j && j.data && j.data.attributes && j.data.attributes.ohlcv_list;
     const B = Array.isArray(raw) ? raw.map((b) => b.map(Number)).sort((a, b) => a[0] - b[0]) : null, o = seen[c.pool] || {};
-    const base = { coin: c.coin, chain: c.chain, pool: c.pool, token: c.token || null, pair: c.pair || null, h6: Math.round(c.h6 || 0), onList: !c.watched, firstSeen: o.first || null, lastOnList: o.last || null };
+    const base = { readAt: iso, coin: c.coin, chain: c.chain, pool: c.pool, token: c.token || null, pair: c.pair || null, h6: Math.round(c.h6 || 0), onList: !c.watched, firstSeen: o.first || null, lastOnList: o.last || null };
     if (!B || !B.length) { items.push({ ...base, status: 'waiting', stage: 'no chart', why: 'no chart from GeckoTerminal' }); continue; }
     const px = B[B.length - 1][4], r = volSetup(B, px, nowSec, cfg, { entryN: 1 }), again = r && r.none && /only \d+% back/.test(r.none) && Date.parse(o.first || iso) < now - 6 * 3600e3 ? volSetup(B, px, nowSec, cfg, { entryN: 2 }) : null, R = again && !again.none ? again : r;
     if (R && !R.none) { const sells = R.mults.map((m, i) => ({ px: +(px * m).toPrecision(5), pct: Math.round((m - 1) * 100), share: Math.round((R.shares[i] || 0) * 100) }));
