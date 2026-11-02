@@ -19,4 +19,7 @@ ok(old && old.status === 'setup' && !old.onList, 'OLD has left the list but is b
 ok(fl && fl.status === 'waiting' && fl.stage === 'no run yet', 'FLAT never ran: waiting, "no run yet"');
 ok(hi.holders === 1080 && hi.top10 === 21 && hi.holderGrowthPct === 8 && r.items[0].status === 'setup', 'holders for the coins basing: 1,080, top 10 at 21%, +8% since 100 minutes ago; setups listed first');
 ok(stageOf('still running: no first dip yet') === 'running' && stageOf('gave back 95% of the run: broken, not a dip') === 'broken' && stageOf('not a base yet (40% range over 3 hours)') === 'dip, no base yet', 'each waiting coin says where it is up to');
+{ let t = 0; const slow = async (u) => { t += 60e3; return fetchJson(u); }, prev2 = { ...r, at: new Date(now - 3600e3).toISOString() };
+  const r2 = await volumeList({ fetchJson: slow, now, prev: prev2, clock: () => t, L: { watchH: 48, maxScan: 60, paceMs: 0, budgetMs: 4 * 60e3, nets: ['solana'] } });
+  ok(r2.skipped >= 1 && r2.items.some((x) => x.stale) && r2.items.length === r.items.length, `out of time (2 Nov: the watcher was cancelled at 15 minutes): ${r2.skipped} coin(s) not reached keep their last reading, nothing lost`); }
 process.exit(f);

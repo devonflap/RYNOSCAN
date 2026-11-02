@@ -1,7 +1,7 @@
 // THE PERPS PLANNER on the page (1 Nov): search or pick a ticker, and the plan is built live from Gate.io's USDT perpetual charts (free,
 // read straight from the page): a limit entry at real support, the stop past it, TPs at the next levels, and the money at your margin,
 // leverage and loss limit. Settings are remembered on this phone only. The maths lives in perps.mjs (tested).
-import { planTrade, sizeTrade, ticket, outcomes, pnlAt, fx, PERP } from './perps.mjs?v=43e67a4066';
+import { planTrade, sizeTrade, ticket, outcomes, pnlAt, fx, PERP } from './perps.mjs?v=d28fa405ea';
 const GATE = 'https://api.gateio.ws/api/v4/futures/usdt';
 const $ = (id) => document.getElementById(id), el = (tag, cls, txt) => { const e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; };
 const store = { get: (k, d) => { try { const v = localStorage.getItem('rp-' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set: (k, v) => { try { localStorage.setItem('rp-' + k, JSON.stringify(v)); } catch { /* private mode */ } } };
@@ -31,10 +31,16 @@ export async function initPlanner({ desk = null } = {}) {
       rows.push({ sym: r.symbol, side, grade: p.grade, away: Math.abs(price - p.entry) / price * 100, entry: p.entry, stopPct: p.stopPct, rr2: p.rr2, trend: p.trend.label }); }
     rows.sort((a, b) => (a.grade > b.grade ? 1 : a.grade < b.grade ? -1 : 0) || a.away - b.away); box.replaceChildren();
     if (!rows.length) { box.append(el('p', 'meta', 'No A or B setups on the desk right now. Search any ticker above.')); return; }
-    const t = el('table', 'tbl'), th = el('thead'), hr = el('tr'); for (const h of ['', 'Coin', 'Side', 'Limit at', 'Away', 'Stop', 'TP2']) hr.append(el('th', null, h)); th.append(hr); t.append(th); const tb = el('tbody');
-    for (const x of rows.slice(0, 15)) { const r = el('tr'), g = el('td', null, x.grade); g.style.color = x.grade === 'A' ? 'var(--ok)' : 'var(--warn)'; g.style.fontWeight = '700'; const a = el('a', 'mw-name', x.sym); a.href = '#planner'; a.onclick = (e) => { e.preventDefault(); if (S.side !== x.side) { S.side = x.side; store.set('side', S.side); paint(); } $('planQ').value = x.sym; run(x.sym); $('planOut').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
-      const c0 = el('td'); c0.append(a); r.append(g, c0, el('td', null, x.side === 'long' ? 'Long' : 'Short'), el('td', 'n', fx(x.entry)), el('td', 'n', x.away.toFixed(1) + '%'), el('td', 'n', '−' + x.stopPct.toFixed(1) + '%'), el('td', 'n', x.rr2 + 'R')); tb.append(r); }
-    t.append(tb); const w = el('div'); w.style.overflowX = 'auto'; w.append(t); box.append(el('p', 'meta', `${rows.filter((x) => x.grade === 'A').length} A and ${rows.filter((x) => x.grade === 'B').length} B setups across the desk's ${desk.results.length} alts (daily chart; tap a coin for the full plan). Closest to its limit first.`), w); }
+    /* 2 Nov: fits a phone: grade and side in the coin cell, short price figures, A setups first and B behind a button */
+    const nA = rows.filter((x) => x.grade === 'A').length, nB = rows.length - nA, f4 = (x) => Number(Number(x).toPrecision(4)).toString();
+    const table = (list) => { const t = el('table', 'tbl'); t.style.fontSize = '.8rem'; const th = el('thead'), hr = el('tr'); for (const h of ['Coin', 'Limit', 'Away', 'Stop', 'TP2']) hr.append(el('th', null, h)); th.append(hr); t.append(th); const tb = el('tbody');
+      for (const x of list) { const r = el('tr'), c0 = el('td'), a = el('a', 'mw-name', x.sym); a.href = '#planner'; a.onclick = (e) => { e.preventDefault(); if (S.side !== x.side) { S.side = x.side; store.set('side', S.side); paint(); } $('planQ').value = x.sym; run(x.sym); $('planOut').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+        const gr = el('b', null, x.grade + ' '); gr.style.color = x.grade === 'A' ? 'var(--ok)' : 'var(--warn)'; const sd = el('span', 'meta', x.side === 'long' ? ' long' : ' short'); sd.style.color = x.side === 'long' ? 'var(--ok)' : 'var(--bad)'; c0.append(gr, a, sd);
+        r.append(c0, el('td', 'n', f4(x.entry)), el('td', 'n', x.away.toFixed(1) + '%'), el('td', 'n', '−' + x.stopPct.toFixed(1) + '%'), el('td', 'n', x.rr2 + 'R')); for (const td of r.children) td.style.padding = '7px 5px'; tb.append(r); }
+      t.append(tb); const w = el('div'); w.style.overflowX = 'auto'; w.append(t); return w; };
+    box.append(el('p', 'meta', `${nA} A setup${nA === 1 ? '' : 's'} across the desk's ${desk.results.length} alts, closest to its limit first (daily chart; tap a coin for the full plan).`));
+    const A = rows.filter((x) => x.grade === 'A'); if (A.length) box.append(table(A.slice(0, 12))); else box.append(el('p', 'meta', 'No A setups right now.'));
+    if (nB) { const d = el('details', 'fold'); d.append(el('summary', null, `${nB} B setups (half size or wait)`), table(rows.filter((x) => x.grade === 'B').slice(0, 25))); box.append(d); } }
   async function run(sym) { S.sym = sym; store.set('sym', sym); host.replaceChildren(el('p', 'meta', `Reading ${sym} from Gate.io…`));
     const c = C.get(sym); if (C.size && !c) { host.replaceChildren(el('p', 'warnline', `${sym} has no USDT perpetual on Gate.io. Check the ticker (e.g. UNI, LINK, HYPE).`)); return; }
     try { const name = sym + '_USDT', [d, h] = await Promise.all([getJ(`${GATE}/candlesticks?contract=${name}&interval=1d&limit=300`), getJ(`${GATE}/candlesticks?contract=${name}&interval=4h&limit=300`)]);
