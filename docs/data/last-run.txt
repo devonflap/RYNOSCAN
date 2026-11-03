@@ -1,5 +1,4 @@
-Full scan 18:30 Brisbane: 55 scanned, 44 scored, 1 above 65. On-chain volume Strong (25.59x 7-day avg).
-NEW watch: OTC (Solana) Bottom reversal, opp 69, checks 6/6, stop 8.1% away, upside 55.3%.
+Full scan 19:32 Brisbane: 54 scanned, 42 scored, 1 above 65. On-chain volume Strong (26.61x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: ANSEM (Single holder ownership), CARDS (Top 10 holders high ownership), CYBERLEEK (top 10 wallets hold 35.2% (gate 30%)), STANDARD (owner can mint more).
+Removed for token safety: PUMP (top 10 wallets hold 59.4% (gate 30%)), ANSEM (Single holder ownership), CYBERLEEK (top 10 wallets hold 35.2% (gate 30%)), USELESS (top 10 wallets hold 37.1% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
