@@ -1,4 +1,5 @@
-Hourly refresh 17:10 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Normal (0.97x 7-day avg).
-NEW watch: FONE (Solana) Breakout retest, opp 82, checks 5/6, stop 14.6% away, upside 50.3%; volume fading.
+Full scan 18:30 Brisbane: 55 scanned, 44 scored, 1 above 65. On-chain volume Strong (25.59x 7-day avg).
+NEW watch: OTC (Solana) Bottom reversal, opp 69, checks 6/6, stop 8.1% away, upside 55.3%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: ANSEM (Single holder ownership), CARDS (Top 10 holders high ownership), CYBERLEEK (top 10 wallets hold 35.2% (gate 30%)), STANDARD (owner can mint more).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
