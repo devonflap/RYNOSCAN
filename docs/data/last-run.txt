@@ -1,4 +1,6 @@
-Full scan 19:32 Brisbane: 54 scanned, 42 scored, 1 above 65. On-chain volume Strong (26.61x 7-day avg).
+Full scan 20:28 Brisbane: 53 scanned, 43 scored, 2 above 65. On-chain volume Strong (27.53x 7-day avg).
+NEW watch: DACITY (Solana) Bottom reversal, opp 68, checks 5/6, stop 11.7% away, upside 91%; volume fading.
+NEW watch: DESSA (Solana) Bottom reversal, opp 67, checks 5/6, stop 31% away, upside 157.9%; more sellers than buyers in the last hour; paid DexScreener boost active (promotion, not organic demand).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: PUMP (top 10 wallets hold 59.4% (gate 30%)), ANSEM (Single holder ownership), CYBERLEEK (top 10 wallets hold 35.2% (gate 30%)), USELESS (top 10 wallets hold 37.1% (gate 30%)).
+Removed for token safety: ANSEM (Single holder ownership), PUMP (top 10 wallets hold 59.4% (gate 30%)), CYBERLEEK (top 10 wallets hold 35.2% (gate 30%)), USELESS (top 10 wallets hold 37.1% (gate 30%)), CASHCAT (top 10 wallets hold 33.5% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
