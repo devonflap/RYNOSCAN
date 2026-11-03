@@ -1,3 +1,6 @@
-Hourly refresh 05:10 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Strong (1.31x 7-day avg).
+Full scan 06:22 Brisbane: 54 scanned, 42 scored, 7 above 65. On-chain volume Strong (1.34x 7-day avg).
+NEW watch: CATE (Solana) Falling wedge, opp 75, checks 4/6, stop 6.1% away, upside 64.5%; more sellers than buyers in the last hour; volume fading.
+NEW watch: PRIORS (Robinhood) Falling wedge, opp 75, checks 6/6, stop 20.9% away, upside 75.2%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: ANSEM (Single holder ownership), PUMP (top 10 wallets hold 59.4% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
