@@ -1,4 +1,4 @@
-Hourly refresh 00:10 Brisbane: 4 tracked coins refreshed, 4 scored, 2 above 65. On-chain volume Normal (1.14x 7-day avg).
-NEW watch: DACITY (Solana) Liquidity sweep reclaim, opp 83, checks 6/6, stop 22.1% away, upside 68.5%; paid DexScreener boost active (promotion, not organic demand).
+Full scan 01:32 Brisbane: 55 scanned, 47 scored, 3 above 65. On-chain volume Strong (1.27x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: CARDS (Top 10 holders high ownership), ANSEM (Single holder ownership), DJT (Mint Authority still enabled), SPX (Mint Authority still enabled), PUMP (top 10 wallets hold 59.4% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
