@@ -1,4 +1,5 @@
-Hourly refresh 11:11 Brisbane: 5 tracked coins refreshed, 5 scored, 2 above 65. On-chain volume Strong (23.28x 7-day avg).
-NEW watch: NIO (Solana) Trend pullback, opp 78, checks 5/6, stop 73% away, upside 218.9%; more sellers than buyers in the last hour.
+Full scan 12:33 Brisbane: 54 scanned, 45 scored, 7 above 65. On-chain volume Strong (22.73x 7-day avg).
+NEW watch: TRUMP (Solana) Breakout retest, opp 81, checks 6/6, stop 5% away, upside 10.7%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: ANSEM (Single holder ownership), CYBERLEEK (top 10 wallets hold 37.3% (gate 30%)), CARDS (Top 10 holders high ownership), CASHCAT (top 10 wallets hold 34.3% (gate 30%)), DJT (Mint Authority still enabled), SPCX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
