@@ -1,3 +1,4 @@
-Hourly refresh 23:11 Brisbane: 6 tracked coins refreshed, 6 scored, 4 above 65. On-chain volume Strong (1.73x 7-day avg).
+Hourly refresh 00:11 Brisbane: 4 tracked coins refreshed, 4 scored, 2 above 65. On-chain volume Strong (1.73x 7-day avg).
+NEW watch: DACITY (Solana) Bottom reversal, opp 74, checks 6/6, stop 27.4% away, upside 55.8%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
