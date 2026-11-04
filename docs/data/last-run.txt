@@ -1,6 +1,4 @@
-Hourly refresh 03:12 Brisbane: 10 tracked coins refreshed, 10 scored, 8 above 65. On-chain volume Poor (0.45x 7-day avg).
+Hourly refresh 05:12 Brisbane: 9 tracked coins refreshed, 9 scored, 5 above 65. On-chain volume Poor (0.45x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
-No longer bid-ready: STONKBROKER (Robinhood).
-Signal STONKBROKER: open, open -0.13R.
 Market: SOL risk-off, ETH risk-on. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
