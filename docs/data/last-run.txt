@@ -1,4 +1,3 @@
-Hourly refresh 16:10 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Strong (1.44x 7-day avg).
-NEW watch: PRIORS (Robinhood) Falling wedge, opp 88, checks 6/6, stop 19.4% away, upside 78.3%.
+Hourly refresh 17:10 Brisbane: 3 tracked coins refreshed, 3 scored, 2 above 65. On-chain volume Strong (1.44x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
