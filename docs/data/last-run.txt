@@ -1,9 +1,3 @@
-Full scan 18:35 Brisbane: 57 scanned, 50 scored, 9 above 65. On-chain volume Strong (1.68x 7-day avg).
-NEW watch: JEANPHIL (Solana) Breakout retest, opp 82, checks 5/6, stop 20% away, upside 43.6%; volume fading.
-NEW watch: DACITY (Solana) Falling wedge, opp 78, checks 5/6, stop 25.2% away, upside 60.1%; volume fading; paid DexScreener boost active (promotion, not organic demand).
-NEW watch: AI (Robinhood) Liquidity sweep reclaim, opp 71, checks 5/6, stop 20.3% away, upside 52.3%; more sellers than buyers in the last hour.
-NEW watch: STONK (Solana) Liquidity sweep reclaim, opp 67, checks 4/6, stop 19% away, upside 57.1%; more sellers than buyers in the last hour; volume fading.
-NEW watch: GLDSTN (Robinhood) Cup & handle, opp 67, checks 5/6, stop 13.7% away, upside 41%; more sellers than buyers in the last hour.
+Hourly refresh 19:12 Brisbane: 9 tracked coins refreshed, 9 scored, 5 above 65. On-chain volume Strong (1.68x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: USELESS (top 10 wallets hold 37% (gate 30%)), AMD (Mint Authority still enabled), SPCX (Mint Authority still enabled), ANSEM (Single holder ownership), PUMP (top 10 wallets hold 59.4% (gate 30%)), BONK (top 10 wallets hold 39.1% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
