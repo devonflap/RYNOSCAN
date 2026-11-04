@@ -1,6 +1,6 @@
-Hourly refresh 02:13 Brisbane: 14 tracked coins refreshed, 14 scored, 10 above 65. On-chain volume Poor (0.45x 7-day avg).
+Hourly refresh 03:12 Brisbane: 10 tracked coins refreshed, 10 scored, 8 above 65. On-chain volume Poor (0.45x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
-NEW bid-ready: STONKBROKER (Robinhood) Base breakout, opp 82, checks 6/6, stop 21.4% away, upside 64.1%. Entry 0.0075858-0.0078198, stop 0.0060581, TP 0.0093475 / 0.010992 / 0.012637.
-NEW watch: MOW (Robinhood) Falling wedge, opp 70, checks 5/6, stop 9.6% away, upside 28.9%; no socials/website listed.
+No longer bid-ready: STONKBROKER (Robinhood).
+Signal STONKBROKER: open, open -0.13R.
 Market: SOL risk-off, ETH risk-on. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
