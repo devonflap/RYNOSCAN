@@ -1,4 +1,7 @@
-Hourly refresh 05:12 Brisbane: 9 tracked coins refreshed, 9 scored, 5 above 65. On-chain volume Poor (0.45x 7-day avg).
-On-chain volume is weak today, so keep trades at none or minimum.
+Full scan 06:34 Brisbane: 62 scanned, 58 scored, 8 above 65. On-chain volume Strong (1.96x 7-day avg).
+NEW watch: DACITY (Solana) Falling wedge, opp 83, checks 6/6, stop 32.3% away, upside 97%.
+NEW watch: VRAX (Robinhood) Trend pullback, opp 74, checks 6/6, stop 45.3% away, upside 135.8%.
+NEW watch: CHOO (Solana) Breakout retest, opp 68, checks 4/6, stop null% away, upside null%; volume fading; weak last 6h.
 Market: SOL risk-off, ETH risk-on. Reversals fail more often in a falling market, so size down.
+Removed for token safety: PUMP (top 10 wallets hold 59.4% (gate 30%)), UP (owner can mint more), ANSEM (Single holder ownership), CYBERLEEK (top 10 wallets hold 35.5% (gate 30%)), USELESS (top 10 wallets hold 37% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
