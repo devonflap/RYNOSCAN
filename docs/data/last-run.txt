@@ -1,4 +1,10 @@
-Hourly refresh 00:11 Brisbane: 4 tracked coins refreshed, 4 scored, 2 above 65. On-chain volume Strong (1.73x 7-day avg).
-NEW watch: DACITY (Solana) Bottom reversal, opp 74, checks 6/6, stop 27.4% away, upside 55.8%.
-Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Full scan 01:29 Brisbane: 58 scanned, 53 scored, 14 above 65. On-chain volume Poor (0.45x 7-day avg).
+On-chain volume is weak today, so keep trades at none or minimum.
+NEW watch: BONER (Robinhood) Liquidity sweep reclaim, opp 80, checks 6/6, stop 21.1% away, upside 73.2%.
+NEW watch: AI (Robinhood) Liquidity sweep reclaim, opp 72, checks 5/6, stop 22.3% away, upside 48.1%; more sellers than buyers in the last hour.
+NEW watch: STONKBROKER (Robinhood) Liquidity sweep reclaim, opp 72, checks 5/6, stop 11.6% away, upside 34.9%; more sellers than buyers in the last hour.
+NEW watch: ORBIO (Robinhood) Falling wedge, opp 72, checks 5/6, stop 43.1% away, upside 129.4%; more sellers than buyers in the last hour.
+NEW watch: INDEX (Robinhood) Bottom reversal, opp 67, checks 6/6, stop 37.4% away, upside 112.2%.
+Market: SOL risk-off, ETH neutral. Reversals fail more often in a falling market, so size down.
+Removed for token safety: DJT (Mint Authority still enabled), CRCLX (Mint Authority still enabled), PUMP (top 10 wallets hold 59.4% (gate 30%)), SPCX (Mint Authority still enabled), CARDS (Top 10 holders high ownership), CASHCAT (top 10 wallets hold 33.2% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
