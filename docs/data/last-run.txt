@@ -1,4 +1,4 @@
-Hourly refresh 16:10 Brisbane: 5 tracked coins refreshed, 5 scored, 3 above 65. On-chain volume Poor (0.47x 7-day avg).
+Hourly refresh 17:10 Brisbane: 5 tracked coins refreshed, 5 scored, 2 above 65. On-chain volume Poor (0.47x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
 Market: SOL risk-off, ETH risk-on. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
