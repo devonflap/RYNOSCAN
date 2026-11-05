@@ -1,9 +1,3 @@
-Full scan 02:27 Brisbane: 54 scanned, 48 scored, 5 above 65. On-chain volume Strong (1.83x 7-day avg).
-NEW watch: DACITY (Solana) Falling wedge, opp 80, checks 4/6, stop 27.3% away, upside 61.2%; volume fading; weak last 6h.
-NEW watch: BATON (Solana) Volume breakout, opp 77, checks 5/6, stop 52.3% away, upside 156.8%; more sellers than buyers in the last hour.
-NEW watch: JEANPHIL (Solana) Breakout retest, opp 73, checks 5/6, stop 32.2% away, upside 96.6%; weak last 6h.
-NEW watch: GATO (Solana) Breakout retest, opp 71, checks 4/6, stop 17.6% away, upside 78.5%; more sellers than buyers in the last hour; weak last 6h; paid DexScreener boost active (promotion, not organic demand).
-Signal PRIORS: stopped out, result -1.08R.
+Hourly refresh 03:11 Brisbane: 6 tracked coins refreshed, 6 scored, 4 above 65. On-chain volume Strong (1.83x 7-day avg).
 Market: SOL risk-off, ETH neutral. Reversals fail more often in a falling market, so size down.
-Removed for token safety: UP (owner can mint more), PUMP (top 10 wallets hold 59.4% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
