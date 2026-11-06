@@ -1,4 +1,3 @@
-Full scan 05:32 Brisbane: 49 scanned, 42 scored, 3 above 65. On-chain volume Strong (1.3x 7-day avg).
-Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: BIRB (Top 10 holders high ownership), SKHY (Mint Authority still enabled), CARDS (Top 10 holders high ownership), ANSEM (Single holder ownership), USELESS (top 10 wallets hold 38% (gate 30%)), TRUMP (Top 10 holders high ownership).
+Hourly refresh 06:10 Brisbane: 3 tracked coins refreshed, 3 scored, 2 above 65. On-chain volume Strong (1.3x 7-day avg).
+Market: SOL risk-off, ETH neutral. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
