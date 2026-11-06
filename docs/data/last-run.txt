@@ -1,5 +1,4 @@
-Full scan 08:24 Brisbane: 46 scanned, 41 scored, 1 above 65. On-chain volume Strong (1.22x 7-day avg).
-NEW watch: JEANPHIL (Solana) Breakout retest, opp 82, checks 6/6, stop 26.9% away, upside 80.7%.
+Full scan 09:28 Brisbane: 48 scanned, 44 scored, 2 above 65. On-chain volume Strong (1.23x 7-day avg).
 Market: SOL risk-off, ETH neutral. Reversals fail more often in a falling market, so size down.
-Removed for token safety: BIRB (Top 10 holders high ownership), CARDS (Top 10 holders high ownership), USELESS (top 10 wallets hold 38% (gate 30%)), FABLES (owner can mint more), TRUMP (Top 10 holders high ownership), CASHCAT (top 10 wallets hold 32% (gate 30%)).
+Removed for token safety: BIRB (Top 10 holders high ownership), CARDS (Top 10 holders high ownership), USELESS (top 10 wallets hold 38% (gate 30%)), TRUMP (Top 10 holders high ownership), FABLES (owner can mint more), CASHCAT (top 10 wallets hold 32% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
