@@ -1,1 +1,1 @@
-[]
+[{"id":"ROB:VRAX","coin":"VRAX","chain":"Robinhood","pool":"0x338fce553e60c8b0acccde1956bc378586ef6f2935339ebae5804d429d461e44","token":"0x94641b97010608c3827fb058074889f19868ff33","signal":"Watch","liquidity":185468,"rug":"warn","at":"2026-11-06T00:25:49Z","zoneLow":0.00497539,"zoneHigh":0.00528854,"stop":0.00437097,"tp1":0.00643628,"tp2":0.00770943,"tp3":0.00898259,"rr2":3.39,"riskPct":14.8,"volDay":"Strong","opp":79,"expireH":48}]
