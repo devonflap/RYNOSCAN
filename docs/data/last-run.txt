@@ -1,3 +1,5 @@
-Hourly refresh 11:10 Brisbane: 4 tracked coins refreshed, 4 scored, 2 above 65. On-chain volume Strong (1.76x 7-day avg).
+Full scan 12:31 Brisbane: 48 scanned, 44 scored, 5 above 65. On-chain volume Strong (1.77x 7-day avg).
+NEW watch: BONER (Robinhood) Bottom reversal, opp 73, checks 5/6, stop 19.1% away, upside 267.8%; more sellers than buyers in the last hour.
 Market: SOL risk-off, ETH neutral. Reversals fail more often in a falling market, so size down.
+Removed for token safety: BIRB (Top 10 holders high ownership), TRUMP (Top 10 holders high ownership), PUMP (top 10 wallets hold 59.4% (gate 30%)), ANSEM (Single holder ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
