@@ -1,4 +1,3 @@
-Hourly refresh 00:10 Brisbane: 5 tracked coins refreshed, 5 scored, 3 above 65. On-chain volume Strong (1.61x 7-day avg).
-NEW watch: DACITY (Solana) Breakout retest, opp 91, checks 6/6, stop 24.5% away, upside 56.9%.
+Hourly refresh 01:11 Brisbane: 4 tracked coins refreshed, 4 scored, 2 above 65. On-chain volume Strong (1.61x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
