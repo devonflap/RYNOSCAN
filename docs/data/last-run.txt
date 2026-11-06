@@ -1,7 +1,4 @@
-Full scan 02:30 Brisbane: 46 scanned, 40 scored, 4 above 65. On-chain volume Poor (0.39x 7-day avg).
+Hourly refresh 03:10 Brisbane: 5 tracked coins refreshed, 5 scored, 3 above 65. On-chain volume Poor (0.39x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
-NEW watch: VRAX (Robinhood) Breakout retest, opp 71, checks 5/6, stop 34.3% away, upside 102.8%; volume fading.
-NEW watch: FOREVER (Robinhood) Bottom reversal, opp 68, checks 6/6, stop 33.5% away, upside 137.7%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: BIRB (Top 10 holders high ownership), SPCX (Mint Authority still enabled), CARDS (Top 10 holders high ownership), ANSEM (Single holder ownership), TRUMP (Top 10 holders high ownership), USELESS (top 10 wallets hold 38% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
