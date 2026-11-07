@@ -1,4 +1,5 @@
-Full scan 18:30 Brisbane: 53 scanned, 45 scored, 1 above 65. On-chain volume Normal (1.09x 7-day avg).
+Full scan 19:31 Brisbane: 53 scanned, 45 scored, 3 above 65. On-chain volume Normal (1.08x 7-day avg).
+NEW watch: ANTFUN (Solana) Bottom reversal, opp 67, checks 5/6, stop 5% away, upside 42.8%; weak last 6h.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: BIRB (Top 10 holders high ownership), ANSEM (Single holder ownership), USELESS (top 10 wallets hold 38.4% (gate 30%)), PUMP (top 10 wallets hold 59.4% (gate 30%)), TRUMP (Top 10 holders high ownership).
+Removed for token safety: BIRB (Top 10 holders high ownership), ANSEM (Single holder ownership), USELESS (top 10 wallets hold 38.4% (gate 30%)), PUMP (top 10 wallets hold 59.4% (gate 30%)), FABLES (owner can mint more).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
