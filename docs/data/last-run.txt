@@ -1,5 +1,4 @@
-Full scan 08:29 Brisbane: 51 scanned, 43 scored, 3 above 65. On-chain volume Strong (1.24x 7-day avg).
-Signal STONKBROKER: stopped out, result -1.07R.
+Hourly refresh 09:10 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Strong (1.24x 7-day avg).
+NEW watch: DACITY (Solana) Bottom reversal, opp 77, checks 5/6, stop 30.3% away, upside 91%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: BIRB (Top 10 holders high ownership), ACT (Top 10 holders high ownership), CASHCAT (top 10 wallets hold 32.5% (gate 30%)), CARDS (Top 10 holders high ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
