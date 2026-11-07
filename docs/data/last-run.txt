@@ -1,6 +1,3 @@
-Full scan 16:29 Brisbane: 49 scanned, 43 scored, 3 above 65. On-chain volume Strong (1.18x 7-day avg).
-NEW watch: ORBIO (Robinhood) Trend pullback, opp 70, checks 6/6, stop null% away, upside null%.
-NEW watch: NIO (Solana) Bottom reversal, opp 69, checks 5/6, stop 78.3% away, upside 234.9%; more sellers than buyers in the last hour.
+Hourly refresh 17:10 Brisbane: 4 tracked coins refreshed, 4 scored, 1 above 65. On-chain volume Strong (1.18x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: BTC (Top 10 holders high ownership), BIRB (Top 10 holders high ownership), TRUMP (Top 10 holders high ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
