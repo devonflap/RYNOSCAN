@@ -1,3 +1,8 @@
-Hourly refresh 11:10 Brisbane: 3 tracked coins refreshed, 3 scored, 1 above 65. On-chain volume Strong (1.22x 7-day avg).
+Full scan 12:31 Brisbane: 50 scanned, 46 scored, 5 above 65. On-chain volume Strong (1.26x 7-day avg).
+NEW watch: THREE (Solana) Breakout retest, opp 75, checks 4/6, stop 14.9% away, upside 47.6%; volume fading; weak last 6h; paid DexScreener boost active (promotion, not organic demand).
+NEW watch: ORBIO (Robinhood) Liquidity sweep reclaim, opp 70, checks 6/6, stop null% away, upside null%.
+NEW watch: STONK (Solana) Bottom reversal, opp 68, checks 6/6, stop 5% away, upside 36.7%.
+NEW watch: GATO (Solana) Bottom reversal, opp 67, checks 6/6, stop 39.2% away, upside 117.6%; paid DexScreener boost active (promotion, not organic demand).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: ANSEM (Single holder ownership), BTC (Top 10 holders high ownership), BIRB (Top 10 holders high ownership), GTR (Top 10 holders high ownership), CASHCAT (top 10 wallets hold 32% (gate 30%)), CARDS (Top 10 holders high ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
