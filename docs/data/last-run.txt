@@ -1,4 +1,4 @@
-Full scan 00:29 Brisbane: 49 scanned, 43 scored, 0 above 65. On-chain volume Normal (1.07x 7-day avg).
+Full scan 01:28 Brisbane: 49 scanned, 42 scored, 1 above 65. On-chain volume Normal (1.12x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: BIRB (Top 10 holders high ownership), TRUMP (Top 10 holders high ownership), ANSEM (Single holder ownership), FABLES (owner can mint more), CARDS (Top 10 holders high ownership).
+Removed for token safety: BIRB (Top 10 holders high ownership), ANSEM (Single holder ownership), ACT (Top 10 holders high ownership), ZEREBRO (Top 10 holders high ownership), FABLES (owner can mint more).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
