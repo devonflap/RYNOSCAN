@@ -1,3 +1,4 @@
-Hourly refresh 13:11 Brisbane: 6 tracked coins refreshed, 6 scored, 1 above 65. On-chain volume Strong (1.26x 7-day avg).
+Full scan 14:32 Brisbane: 52 scanned, 46 scored, 0 above 65. On-chain volume Strong (1.19x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: BTC (Top 10 holders high ownership), BIRB (Top 10 holders high ownership), TRUMP (Top 10 holders high ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
