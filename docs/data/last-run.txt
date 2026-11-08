@@ -1,3 +1,7 @@
-Hourly refresh 16:11 Brisbane: 4 tracked coins refreshed, 4 scored, 2 above 65. On-chain volume Strong (1.27x 7-day avg).
+Full scan 17:33 Brisbane: 56 scanned, 49 scored, 6 above 65. On-chain volume Poor (0.27x 7-day avg).
+On-chain volume is weak today, so keep trades at none or minimum.
+NEW watch: CLAUDIA (Solana) Falling wedge, opp 77, checks 5/6, stop null% away, upside null%; more sellers than buyers in the last hour.
+NEW watch: TORCH (Robinhood) Bottom reversal, opp 75, checks 5/6, stop 20.4% away, upside 87.8%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: ACT (Top 10 holders high ownership), MET (top 10 wallets hold 81.1% (gate 30%)), UP (owner can mint more), SPCXX (Mint Authority still enabled), PUMP (top 10 wallets hold 59.4% (gate 30%)), ANSEM (Single holder ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
