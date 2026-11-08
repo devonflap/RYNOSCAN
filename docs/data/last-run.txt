@@ -1,5 +1,6 @@
-Hourly refresh 13:11 Brisbane: 7 tracked coins refreshed, 7 scored, 5 above 65. On-chain volume Strong (1.22x 7-day avg).
-NEW watch: RAETO (Robinhood) Breakout retest, opp 81, checks 5/6, stop 8.6% away, upside 104.6%; weak last 6h.
-NEW watch: WALLET (Robinhood) Liquidity sweep reclaim, opp 79, checks 5/6, stop 17.3% away, upside 51.9%; no socials/website listed.
+Full scan 14:31 Brisbane: 54 scanned, 49 scored, 5 above 65. On-chain volume Strong (1.27x 7-day avg).
+NEW watch: CLAUDIA (Solana) Falling wedge, opp 70, checks 4/6, stop null% away, upside null%; volume fading; weak last 6h.
+NEW watch: TORCH (Robinhood) Bottom reversal, opp 66, checks 4/6, stop 20.4% away, upside 87.8%; volume fading; weak last 6h.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: ACT (Top 10 holders high ownership), MET (top 10 wallets hold 81.1% (gate 30%)), UP (owner can mint more), PUMP (top 10 wallets hold 59.4% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
