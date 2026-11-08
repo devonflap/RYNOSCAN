@@ -1,4 +1,4 @@
-Hourly refresh 09:10 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Strong (1.24x 7-day avg).
-NEW watch: DACITY (Solana) Bottom reversal, opp 77, checks 5/6, stop 30.3% away, upside 91%; volume fading.
+Full scan 10:31 Brisbane: 52 scanned, 45 scored, 3 above 65. On-chain volume Strong (1.4x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: BIRB (Top 10 holders high ownership), PUMP (top 10 wallets hold 59.4% (gate 30%)), ANSEM (Single holder ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
