@@ -1,5 +1,3 @@
-Full scan 21:33 Brisbane: 51 scanned, 46 scored, 4 above 65. On-chain volume Strong (1.68x 7-day avg).
-NEW watch: HMM (Robinhood) Breakout retest, opp 72, checks 5/6, stop 35.8% away, upside 107.5%; weak last 6h.
+Hourly refresh 22:10 Brisbane: 4 tracked coins refreshed, 4 scored, 1 above 65. On-chain volume Strong (1.68x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: PUMP (top 10 wallets hold 59.4% (gate 30%)), FABLES (owner can mint more).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
