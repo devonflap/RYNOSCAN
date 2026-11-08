@@ -1,3 +1,5 @@
-Hourly refresh 11:10 Brisbane: 3 tracked coins refreshed, 3 scored, 2 above 65. On-chain volume Strong (1.4x 7-day avg).
+Full scan 12:33 Brisbane: 53 scanned, 47 scored, 7 above 65. On-chain volume Strong (1.22x 7-day avg).
+NEW watch: TRIPLET (Solana) Falling wedge, opp 66, checks 4/6, stop 20.5% away, upside 61.4%; volume figures disagree; more sellers than buyers in the last hour.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: BIRB (Top 10 holders high ownership), DJT (Mint Authority still enabled), MET (top 10 wallets hold 81.1% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
