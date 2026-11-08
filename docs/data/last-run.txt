@@ -1,4 +1,5 @@
-Full scan 23:31 Brisbane: 55 scanned, 47 scored, 1 above 65. On-chain volume Strong (1.63x 7-day avg).
+Full scan 00:31 Brisbane: 53 scanned, 46 scored, 3 above 65. On-chain volume Poor (0.28x 7-day avg).
+On-chain volume is weak today, so keep trades at none or minimum.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: CASHCAT (top 10 wallets hold 32.5% (gate 30%)), PUMP (top 10 wallets hold 59.4% (gate 30%)), UP (owner can mint more).
+Removed for token safety: CASHCAT (top 10 wallets hold 32.5% (gate 30%)), SPCX (Mint Authority still enabled), UP (owner can mint more).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
