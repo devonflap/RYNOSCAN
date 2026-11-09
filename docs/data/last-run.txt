@@ -1,4 +1,5 @@
-Full scan 09:29 Brisbane: 47 scanned, 41 scored, 4 above 65. On-chain volume Strong (1.48x 7-day avg).
+Hourly refresh 10:10 Brisbane: 4 tracked coins refreshed, 4 scored, 2 above 65. On-chain volume Strong (1.48x 7-day avg).
+NEW watch: BATON (Solana) Breakout retest, opp 78, checks 4/6, stop 8.7% away, upside 53.6%; volume fading; weak last 6h.
+NEW watch: GATO (Solana) Bottom reversal, opp 72, checks 6/6, stop 26.7% away, upside 80.2%; paid DexScreener boost active (promotion, not organic demand).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: ANSEM (Single holder ownership), CARDS (Top 10 holders high ownership), UP (owner can mint more), PUMP (top 10 wallets hold 59.4% (gate 30%)), FARTCOIN (top 10 wallets hold 33.9% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
