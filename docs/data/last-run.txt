@@ -1,4 +1,5 @@
-Full scan 18:29 Brisbane: 50 scanned, 41 scored, 3 above 65. On-chain volume Strong (1.61x 7-day avg).
+Hourly refresh 19:10 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Strong (1.61x 7-day avg).
+NEW watch: CATE (Solana) Falling wedge, opp 75, checks 4/6, stop 5.4% away, upside 51.2%; more sellers than buyers in the last hour; volume fading.
+NEW watch: STONK (Solana) Bottom reversal, opp 69, checks 4/6, stop 14.4% away, upside 202.9%; more sellers than buyers in the last hour; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: ANSEM (Single holder ownership), PUMP (top 10 wallets hold 59.4% (gate 30%)), TRUMP (Top 10 holders high ownership), NVDAX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
