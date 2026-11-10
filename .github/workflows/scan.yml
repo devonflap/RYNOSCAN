@@ -30,18 +30,15 @@ jobs:
       - name: Run scan
         env:
           RS_SOURCE: ${{ inputs.source }}
-          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: node src/scan.mjs
       - name: Save results
         run: |
           git config user.name "rynoscan-bot"
           git config user.email "rynoscan-bot@users.noreply.github.com"
           git add docs/data
-          git diff --cached --quiet && echo "no changes" || (git commit -m "scan $(date -u +%Y-%m-%dT%H:%MZ)" && (for i in 1 2 3 4 5; do git pull --rebase -q && git push && break; sleep $((i*5)); done; git fetch -q && [ "$(git rev-parse HEAD)" = "$(git rev-parse @{u})" ]))
+          git diff --cached --quiet && echo "no changes" || (git commit -m "scan $(date -u +%Y-%m-%dT%H:%MZ)" && (for i in 1 2 3 4 5; do git pull --rebase -X theirs -q && git push && break; sleep $((i*5)); done; git fetch -q && [ "$(git rev-parse HEAD)" = "$(git rev-parse @{u})" ]))
       - name: Tell me if this failed
         if: failure()
-        env:
-          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
         run: |
           [ -n "$NTFY_TOPIC" ] && curl -s -H "Title: RynoScan failed" -H "Priority: default" -H "Tags: warning" -H "Click: https://github.com/${{ github.repository }}/actions" -d "The scan run failed. Tap to open the run log. The dashboard keeps showing the last good data." "https://ntfy.sh/$NTFY_TOPIC" || true
 

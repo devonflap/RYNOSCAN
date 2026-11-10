@@ -35,7 +35,6 @@ jobs:
         if: steps.d.outputs.action == 'restart'
         env:
           GH_TOKEN: ${{ github.token }}
-          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           WHY: ${{ steps.d.outputs.reason }}
         run: |
           if gh workflow run scan.yml -f source=chain; then msg="The scan was overdue ($WHY), so the watchdog restarted it. Fresh charts in about 5 minutes."; else msg="The scan is overdue ($WHY) and the watchdog could not restart it. Open the Actions tab and run RynoScan scan manually."; fi
