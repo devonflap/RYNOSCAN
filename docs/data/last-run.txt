@@ -1,4 +1,4 @@
-Hourly refresh 21:10 Brisbane: 4 tracked coins refreshed, 4 scored, 4 above 65. On-chain volume Below normal (0.84x 7-day avg).
-On-chain volume is weak today, so keep trades at none or minimum.
+Full scan 22:33 Brisbane: 57 scanned, 49 scored, 5 above 65. On-chain volume Normal (0.85x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: WNEAR (Mint Authority still enabled), TRUMP (Top 10 holders high ownership), CARDS (Top 10 holders high ownership), PUMP (top 10 wallets hold 59.4% (gate 30%)), FABLES (owner can mint more), CASHCAT (top 10 wallets hold 34% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
