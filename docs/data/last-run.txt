@@ -1,6 +1,4 @@
-Full scan 19:27 Brisbane: 50 scanned, 44 scored, 5 above 65. On-chain volume Below normal (0.84x 7-day avg).
+Hourly refresh 20:10 Brisbane: 5 tracked coins refreshed, 5 scored, 4 above 65. On-chain volume Below normal (0.84x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
-NEW watch: FOBO (Robinhood) Breakout retest, opp 78, checks 6/6, stop 101.8% away, upside 263.8%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: NVDAX (Mint Authority still enabled), CARDS (Top 10 holders high ownership), TRUMP (Top 10 holders high ownership), PUMP (top 10 wallets hold 59.4% (gate 30%)), USELESS (top 10 wallets hold 38.7% (gate 30%)), FABLES (owner can mint more).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
