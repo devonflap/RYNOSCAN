@@ -1,4 +1,4 @@
-Full scan 06:26 Brisbane: 58 scanned, 54 scored, 5 above 65. On-chain volume Normal (1.06x 7-day avg).
+Hourly refresh 07:11 Brisbane: 5 tracked coins refreshed, 5 scored, 5 above 65. On-chain volume Normal (1.06x 7-day avg).
+NEW watch: GATO (Solana) Bottom reversal, opp 68, checks 4/6, stop 36.5% away, upside 109.5%; more sellers than buyers in the last hour; volume fading; paid DexScreener boost active (promotion, not organic demand).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: TTWO (Mint Authority still enabled), TRUMP (Top 10 holders high ownership), CBUCKS (top 10 wallets hold 35.6% (gate 30%)), ACT (Top 10 holders high ownership), PUMP (top 10 wallets hold 59.4% (gate 30%)), DACITYCOIN (top 10 wallets hold 39.3% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
