@@ -1,3 +1,6 @@
-Hourly refresh 17:11 Brisbane: 3 tracked coins refreshed, 3 scored, 2 above 65. On-chain volume Normal (0.86x 7-day avg).
+Full scan 18:31 Brisbane: 50 scanned, 46 scored, 2 above 65. On-chain volume Below normal (0.83x 7-day avg).
+On-chain volume is weak today, so keep trades at none or minimum.
+NEW watch: DACITY (Solana) Double bottom, opp 78, checks 6/6, stop 31.4% away, upside 94.2%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: NVDAX (Mint Authority still enabled), CARDS (Top 10 holders high ownership), TRUMP (Top 10 holders high ownership), PUMP (top 10 wallets hold 59.4% (gate 30%)), USELESS (top 10 wallets hold 38.7% (gate 30%)), ANTFUN (Single holder ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
