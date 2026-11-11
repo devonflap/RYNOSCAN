@@ -1,4 +1,4 @@
-Full scan 15:25 Brisbane: 55 scanned, 50 scored, 2 above 65. On-chain volume Strong (1.5x 7-day avg).
+Full scan 16:27 Brisbane: 59 scanned, 51 scored, 3 above 65. On-chain volume Strong (1.53x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: ANSEM (Single holder ownership), PUMP (top 10 wallets hold 59.4% (gate 30%)), TRUMP (Top 10 holders high ownership), TTWO (Mint Authority still enabled).
+Removed for token safety: ANSEM (Single holder ownership), PUMP (top 10 wallets hold 59.4% (gate 30%)), SPX (Mint Authority still enabled), TTWO (Mint Authority still enabled), TRUMP (Top 10 holders high ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
