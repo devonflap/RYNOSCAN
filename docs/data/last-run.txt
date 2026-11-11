@@ -1,4 +1,3 @@
-Hourly refresh 00:11 Brisbane: 4 tracked coins refreshed, 4 scored, 3 above 65. On-chain volume Strong (1.5x 7-day avg).
-NEW watch: CATE (Solana) Bottom reversal, opp 86, checks 6/6, stop 17.1% away, upside 74.5%.
+Hourly refresh 01:11 Brisbane: 3 tracked coins refreshed, 3 scored, 2 above 65. On-chain volume Strong (1.5x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
