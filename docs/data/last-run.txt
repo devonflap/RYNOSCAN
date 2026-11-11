@@ -1,3 +1,5 @@
-Hourly refresh 05:12 Brisbane: 5 tracked coins refreshed, 5 scored, 5 above 65. On-chain volume Strong (1.8x 7-day avg).
+Full scan 06:33 Brisbane: 56 scanned, 46 scored, 5 above 65. On-chain volume Strong (1.98x 7-day avg).
+NEW watch: FLOAT (Solana) Breakout retest, opp 76, checks 5/6, stop 21.3% away, upside 140.1%; weak last 6h.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: TTWO (Mint Authority still enabled), TRUMP (Top 10 holders high ownership), ACT (Top 10 holders high ownership), SPCX (Mint Authority still enabled), PUMP (top 10 wallets hold 59.4% (gate 30%)), ANSEM (Single holder ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
