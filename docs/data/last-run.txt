@@ -1,5 +1,5 @@
-Full scan 13:31 Brisbane: 56 scanned, 49 scored, 2 above 65. On-chain volume Strong (1.47x 7-day avg).
-NEW watch: BATON (Solana) Breakout retest, opp 73, checks 5/6, stop 7.2% away, upside 95.7%; more sellers than buyers in the last hour.
+Full scan 14:29 Brisbane: 54 scanned, 48 scored, 2 above 65. On-chain volume Strong (1.49x 7-day avg).
+NEW watch: DACITY (Solana) Liquidity sweep reclaim, opp 76, checks 5/6, stop 29.4% away, upside 63.5%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: DACITYCOIN (top 10 wallets hold 39.3% (gate 30%)), PUMP (top 10 wallets hold 59.4% (gate 30%)), TRUMP (Top 10 holders high ownership), CARDS (Top 10 holders high ownership), ANSEM (Single holder ownership).
+Removed for token safety: ANSEM (Single holder ownership), PUMP (top 10 wallets hold 59.4% (gate 30%)), TRUMP (Top 10 holders high ownership), TTWO (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
