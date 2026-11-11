@@ -1,3 +1,4 @@
-Hourly refresh 11:11 Brisbane: 5 tracked coins refreshed, 5 scored, 2 above 65. On-chain volume Strong (1.27x 7-day avg).
+Full scan 12:34 Brisbane: 57 scanned, 50 scored, 2 above 65. On-chain volume Strong (1.43x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: DACITYCOIN (top 10 wallets hold 39.3% (gate 30%)), PUMP (top 10 wallets hold 59.4% (gate 30%)), USELESS (top 10 wallets hold 38.6% (gate 30%)), TRUMP (Top 10 holders high ownership), CARDS (Top 10 holders high ownership), ANSEM (Single holder ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
