@@ -1,3 +1,5 @@
-Hourly refresh 21:11 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Strong (1.89x 7-day avg).
+Full scan 22:29 Brisbane: 46 scanned, 40 scored, 4 above 65. On-chain volume Strong (1.92x 7-day avg).
+NEW watch: HOOKR (Robinhood) Double bottom, opp 68, checks 4/6, stop 31.7% away, upside 95.2%; more sellers than buyers in the last hour; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: TRUMP (Top 10 holders high ownership), TTWO (Mint Authority still enabled), PUMP (top 10 wallets hold 59.4% (gate 30%)), AGENC (top 10 wallets hold 55% (gate 30%)), CARDS (Top 10 holders high ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
