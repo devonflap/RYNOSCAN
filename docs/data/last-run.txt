@@ -1,4 +1,3 @@
-Hourly refresh 08:12 Brisbane: 6 tracked coins refreshed, 6 scored, 3 above 65. On-chain volume Strong (1.57x 7-day avg).
-NEW watch: WALLET (Robinhood) Breakout retest, opp 72, checks 4/6, stop null% away, upside null%; volume fading; no socials/website listed.
+Hourly refresh 09:11 Brisbane: 3 tracked coins refreshed, 3 scored, 2 above 65. On-chain volume Strong (1.57x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
