@@ -1,3 +1,5 @@
-Hourly refresh 16:11 Brisbane: 3 tracked coins refreshed, 3 scored, 2 above 65. On-chain volume Strong (1.88x 7-day avg).
+Full scan 17:34 Brisbane: 52 scanned, 47 scored, 4 above 65. On-chain volume Strong (1.91x 7-day avg).
+NEW watch: BATON (Solana) Trend pullback, opp 85, checks 6/6, stop 22% away, upside 66.6%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: TRUMP (Top 10 holders high ownership), TTWO (Mint Authority still enabled), CYBERLEEK (top 10 wallets hold 35.8% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
