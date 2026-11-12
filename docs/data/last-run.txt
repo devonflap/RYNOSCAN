@@ -1,4 +1,3 @@
-Hourly refresh 00:11 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Strong (1.92x 7-day avg).
-NEW watch: ORBIO (Robinhood) Inverse H&S, opp 76, checks 5/6, stop 22.3% away, upside 66.8%; weak last 6h.
+Hourly refresh 01:11 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Strong (1.92x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
