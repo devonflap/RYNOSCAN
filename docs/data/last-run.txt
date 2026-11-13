@@ -1,4 +1,4 @@
-Hourly refresh 03:10 Brisbane: 5 tracked coins refreshed, 5 scored, 3 above 65. On-chain volume Strong (1.28x 7-day avg).
+Hourly refresh 04:11 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Strong (1.15x 7-day avg).
+NEW watch: STONK (Solana) Bottom reversal, opp 67, checks 4/6, stop 19.2% away, upside 147.1%; more sellers than buyers in the last hour; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: PUMP (top 10 wallets hold 59.5% (gate 30%)), SPX (Mint Authority still enabled), NET (owner can mint more), DACITYCOIN (top 10 wallets hold 42.3% (gate 30%)), ANSEM (Single holder ownership), TTWO (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
