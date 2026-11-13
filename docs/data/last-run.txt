@@ -1,9 +1,3 @@
-Full scan 00:29 Brisbane: 43 scanned, 36 scored, 7 above 65. On-chain volume Strong (1.28x 7-day avg).
-NEW watch: GATO (Solana) Bottom reversal, opp 83, checks 6/6, stop 23.7% away, upside 217.9%; paid DexScreener boost active (promotion, not organic demand).
-NEW watch: PRIORS (Robinhood) Falling wedge, opp 80, checks 5/6, stop 30% away, upside 76.3%; volume fading.
-NEW watch: FLOAT (Solana) Bottom reversal, opp 75, checks 5/6, stop 41.4% away, upside 538.2%; more sellers than buyers in the last hour.
-NEW watch: WALLET (Robinhood) Breakout retest, opp 75, checks 4/6, stop 25% away, upside 75%; volume fading; no socials/website listed.
-NEW watch: RAMBO (Solana) Volume breakout, opp 67, checks 4/6, stop null% away, upside null%; volume fading; weak last 6h.
+Hourly refresh 01:12 Brisbane: 7 tracked coins refreshed, 7 scored, 6 above 65. On-chain volume Strong (1.28x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: NVDAX (Mint Authority still enabled), PUMP (top 10 wallets hold 59.5% (gate 30%)), USELESS (top 10 wallets hold 38.8% (gate 30%)), DACITYCOIN (top 10 wallets hold 42.3% (gate 30%)), TRUMP (Top 10 holders high ownership), SPX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
