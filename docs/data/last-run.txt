@@ -1,4 +1,5 @@
-Full scan 14:31 Brisbane: 51 scanned, 42 scored, 2 above 65. On-chain volume Strong (1.19x 7-day avg).
+Full scan 15:30 Brisbane: 51 scanned, 42 scored, 4 above 65. On-chain volume Strong (1.16x 7-day avg).
+NEW watch: WALLET (Robinhood) Breakout retest, opp 66, checks 3/6, stop 25.3% away, upside 75.9%; volume fading; weak last 6h; no socials/website listed.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: BIRB (Top 10 holders high ownership), RUSH (Mint Authority still enabled), TTWO (Mint Authority still enabled), AMD (Copycat token), CARDS (Top 10 holders high ownership), PUMP (top 10 wallets hold 59.5% (gate 30%)).
+Removed for token safety: TTWO (Mint Authority still enabled), AMD (Copycat token), CARDS (Top 10 holders high ownership), PUMP (top 10 wallets hold 59.5% (gate 30%)), TRUMP (Top 10 holders high ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
