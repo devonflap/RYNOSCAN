@@ -1,4 +1,4 @@
-Full scan 19:27 Brisbane: 44 scanned, 34 scored, 1 above 65. On-chain volume Normal (0.97x 7-day avg).
+Full scan 20:27 Brisbane: 43 scanned, 34 scored, 2 above 65. On-chain volume Normal (0.98x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: ANSEM (Single holder ownership), FARTCOIN (top 10 wallets hold 33.8% (gate 30%)), PUMP (top 10 wallets hold 59.4% (gate 30%)), NET (owner can mint more).
+Removed for token safety: MASK (Single holder ownership), NVDAX (Mint Authority still enabled), PUMP (top 10 wallets hold 59.4% (gate 30%)), FARTCOIN (top 10 wallets hold 33.8% (gate 30%)), NET (owner can mint more).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
