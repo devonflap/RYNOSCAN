@@ -1,4 +1,3 @@
-Full scan 01:29 Brisbane: 41 scanned, 34 scored, 3 above 65. On-chain volume Normal (1.08x 7-day avg).
+Hourly refresh 02:10 Brisbane: 3 tracked coins refreshed, 3 scored, 0 above 65. On-chain volume Normal (1.08x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: TTWO (Mint Authority still enabled), ANSEM (Single holder ownership), NET (owner can mint more).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
