@@ -1,3 +1,5 @@
-Hourly refresh 23:10 Brisbane: 3 tracked coins refreshed, 3 scored, 2 above 65. On-chain volume Normal (1x 7-day avg).
+Full scan 00:28 Brisbane: 39 scanned, 30 scored, 4 above 65. On-chain volume Normal (1.03x 7-day avg).
+NEW watch: DELTA (Robinhood) Bottom reversal, opp 74, checks 6/6, stop 36.2% away, upside 165.2%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: TTWO (Mint Authority still enabled), ANSEM (Single holder ownership), PUMP (top 10 wallets hold 59.4% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
