@@ -1,6 +1,4 @@
-Full scan 11:28 Brisbane: 41 scanned, 32 scored, 2 above 65. On-chain volume Normal (1.08x 7-day avg).
-NEW watch: CATE (Solana) Bottom reversal, opp 73, checks 5/6, stop 20.8% away, upside 107.2%; volume fading.
-NEW watch: CLAUDIA (Solana) Trend pullback, opp 69, checks 4/6, stop 29% away, upside 144.3%; volume fading; weak last 6h.
+Full scan 12:29 Brisbane: 45 scanned, 36 scored, 3 above 65. On-chain volume Normal (1.07x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: PUMP (top 10 wallets hold 59.4% (gate 30%)), NVDAX (Mint Authority still enabled), $WIF (top 10 wallets hold 43.4% (gate 30%)).
+Removed for token safety: NVDAX (Mint Authority still enabled), PUMP (top 10 wallets hold 59.4% (gate 30%)), TTWO (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
