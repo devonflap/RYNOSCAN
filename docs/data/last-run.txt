@@ -1,5 +1,4 @@
-Full scan 21:28 Brisbane: 42 scanned, 33 scored, 2 above 65. On-chain volume Normal (0.99x 7-day avg).
-NEW watch: CHUMP (Robinhood) Double bottom, opp 70, checks 5/6, stop 13.5% away, upside 183.3%; more sellers than buyers in the last hour.
+Full scan 22:29 Brisbane: 47 scanned, 36 scored, 3 above 65. On-chain volume Normal (1x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: PNUT (Single holder ownership), PUMP (top 10 wallets hold 59.4% (gate 30%)), TTWO (Mint Authority still enabled).
+Removed for token safety: ANSEM (Single holder ownership), MASK (Single holder ownership), TTWO (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
