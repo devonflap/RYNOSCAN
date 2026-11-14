@@ -1,4 +1,4 @@
-Full scan 05:27 Brisbane: 42 scanned, 35 scored, 0 above 65. On-chain volume Normal (1.14x 7-day avg).
+Full scan 06:26 Brisbane: 42 scanned, 34 scored, 1 above 65. On-chain volume Normal (1.1x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: POLYMARKET (Mint Authority still enabled).
+Removed for token safety: FABLES (owner can mint more), TTWO (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
