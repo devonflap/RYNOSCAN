@@ -1,1 +1,1 @@
-[]
+[{"id":"ROB:DELTA","coin":"DELTA","chain":"Robinhood","pool":"0xd64fbda67e1015df43fa5e49f02ca844729e5f94","token":"0xe8ffd7e24187f72afb08d75b1bb13088a989a791","signal":"No trade","liquidity":362915,"rug":"warn","at":"2026-11-15T20:24:18Z","zoneLow":0.00356316,"zoneHigh":0.00386104,"stop":0.00297342,"tp1":0.00445078,"tp2":0.00540675,"tp3":0.00642388,"rr2":2.29,"riskPct":19.9,"volDay":"Normal","opp":66,"expireH":48}]
