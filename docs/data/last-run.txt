@@ -1,6 +1,4 @@
-Full scan 19:27 Brisbane: 40 scanned, 33 scored, 3 above 65. On-chain volume Normal (1.03x 7-day avg).
-NEW watch: CATE (Solana) Bottom reversal, opp 77, checks 5/6, stop 29.9% away, upside 118.1%; volume fading.
-NEW watch: STONK (Solana) Bottom reversal, opp 67, checks 4/6, stop 13.5% away, upside 103.7%; more sellers than buyers in the last hour; volume fading.
+Hourly refresh 20:10 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Normal (1.03x 7-day avg).
+NEW watch: PRIORS (Robinhood) Bottom reversal, opp 68, checks 5/6, stop 35.2% away, upside 184.7%; more sellers than buyers in the last hour.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: ANSEM (Single holder ownership), TTWO (Mint Authority still enabled), PUMP (top 10 wallets hold 59.4% (gate 30%)), TRUMP (Top 10 holders high ownership), FARTCOIN (top 10 wallets hold 33.7% (gate 30%)), NET (owner can mint more).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
