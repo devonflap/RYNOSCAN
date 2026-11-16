@@ -1,5 +1,5 @@
-Full scan 06:27 Brisbane: 46 scanned, 39 scored, 2 above 65. On-chain volume Normal (1.04x 7-day avg).
-NEW watch: GTA (Solana) Double bottom, opp 71, checks 5/6, stop null% away, upside null%; volume figures disagree.
+Full scan 07:29 Brisbane: 43 scanned, 35 scored, 4 above 65. On-chain volume Normal (1.12x 7-day avg).
+NEW watch: HOOKR (Robinhood) Bottom reversal, opp 66, checks 5/6, stop 34.2% away, upside 167.6%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: CARDS (Top 10 holders high ownership), NVDA (Mint Authority still enabled), NVDAX (Mint Authority still enabled), PUMP (top 10 wallets hold 59.4% (gate 30%)).
+Removed for token safety: CARDS (Top 10 holders high ownership), PUMP (top 10 wallets hold 59.4% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
