@@ -1,4 +1,4 @@
-Full scan 21:25 Brisbane: 35 scanned, 29 scored, 1 above 65. On-chain volume Normal (0.95x 7-day avg).
+Full scan 22:24 Brisbane: 34 scanned, 29 scored, 2 above 65. On-chain volume Normal (0.9x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: ANSEM (Single holder ownership), CBUCKS (top 10 wallets hold 35% (gate 30%)), TTWO (Mint Authority still enabled), PUMP (top 10 wallets hold 59.4% (gate 30%)).
+Removed for token safety: CBUCKS (top 10 wallets hold 35% (gate 30%)), SPCX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
