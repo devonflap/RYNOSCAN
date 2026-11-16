@@ -1,4 +1,5 @@
-Full scan 05:21 Brisbane: 39 scanned, 33 scored, 2 above 65. On-chain volume Normal (0.97x 7-day avg).
+Full scan 06:27 Brisbane: 46 scanned, 39 scored, 2 above 65. On-chain volume Normal (1.04x 7-day avg).
+NEW watch: GTA (Solana) Double bottom, opp 71, checks 5/6, stop null% away, upside null%; volume figures disagree.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: NVDAX (Mint Authority still enabled), CARDS (Top 10 holders high ownership), POLYMARKET (Mint Authority still enabled), CBUCKS (top 10 wallets hold 35% (gate 30%)), SPCX (Mint Authority still enabled).
+Removed for token safety: CARDS (Top 10 holders high ownership), NVDA (Mint Authority still enabled), NVDAX (Mint Authority still enabled), PUMP (top 10 wallets hold 59.4% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
