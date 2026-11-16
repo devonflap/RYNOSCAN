@@ -1,5 +1,4 @@
-Full scan 13:26 Brisbane: 41 scanned, 33 scored, 2 above 65. On-chain volume Normal (0.86x 7-day avg).
-NEW watch: MIHAO (Solana) Bottom reversal, opp 67, checks 5/6, stop 38.5% away, upside 115.5%; volume fading.
+Full scan 14:26 Brisbane: 41 scanned, 33 scored, 0 above 65. On-chain volume Normal (0.86x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: ANSEM (Single holder ownership), BIRB (Top 10 holders high ownership), TTWO (Mint Authority still enabled), SPCX (Mint Authority still enabled).
+Removed for token safety: ANSEM (Single holder ownership), TTWO (Mint Authority still enabled), SPCX (Mint Authority still enabled), BIRB (Top 10 holders high ownership), PUMP (top 10 wallets hold 59.4% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
