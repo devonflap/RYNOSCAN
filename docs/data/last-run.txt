@@ -1,3 +1,7 @@
-Hourly refresh 05:11 Brisbane: 4 tracked coins refreshed, 4 scored, 4 above 65. On-chain volume Strong (1.52x 7-day avg).
+Full scan 06:23 Brisbane: 38 scanned, 30 scored, 4 above 65. On-chain volume Strong (1.59x 7-day avg).
+NEW watch: GTA (Solana) Breakout retest, opp 87, checks 5/6, stop 35.4% away, upside 106.3%; weak last 6h.
+NEW watch: CLAUDIA (Solana) Bottom reversal, opp 72, checks 3/6, stop 43.3% away, upside 129.8%; more sellers than buyers in the last hour; volume fading; weak last 6h.
+NEW watch: STONK (Solana) Falling wedge, opp 71, checks 5/6, stop 18.5% away, upside 89.1%; more sellers than buyers in the last hour.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: VINE (top 10 wallets hold 42.2% (gate 30%)), DACITYCOIN (top 10 wallets hold 42.4% (gate 30%)), TTWO (Mint Authority still enabled), MAX (Copycat token), PUMP (top 10 wallets hold 59.4% (gate 30%)), SPCX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
