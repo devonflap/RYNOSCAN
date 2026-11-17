@@ -1,7 +1,6 @@
-Full scan 22:27 Brisbane: 43 scanned, 33 scored, 4 above 65. On-chain volume Strong (1.61x 7-day avg).
-NEW watch: STONK (Solana) Bottom reversal, opp 88, checks 6/6, stop 16.2% away, upside 94.2%.
+Full scan 23:28 Brisbane: 44 scanned, 32 scored, 4 above 65. On-chain volume Strong (1.62x 7-day avg).
 NEW watch: BLOB (Solana) Volume breakout, opp 75, checks 4/6, stop null% away, upside null%; more sellers than buyers in the last hour; weak last 6h; paid DexScreener boost active (promotion, not organic demand).
-NEW watch: CATE (Solana) Inverse H&S, opp 66, checks 4/6, stop 33.5% away, upside 99.9%; volume figures disagree; volume fading.
+NEW watch: CATE (Solana) Inverse H&S, opp 73, checks 5/6, stop 33.5% away, upside 99.9%; volume figures disagree.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: SPCXX (Mint Authority still enabled), DACITYCOIN (top 10 wallets hold 42.4% (gate 30%)), BP (Mint Authority still enabled), SPCX (Mint Authority still enabled), CARDS (Top 10 holders high ownership), PUMP (top 10 wallets hold 59.4% (gate 30%)).
+Removed for token safety: DACITYCOIN (top 10 wallets hold 42.4% (gate 30%)), SPCX (Mint Authority still enabled), BP (Mint Authority still enabled), CARDS (Top 10 holders high ownership), PUMP (top 10 wallets hold 59.4% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
