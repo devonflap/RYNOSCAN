@@ -1,3 +1,5 @@
-Hourly refresh 09:12 Brisbane: 3 tracked coins refreshed, 3 scored, 1 above 65. On-chain volume Normal (1.12x 7-day avg).
+Full scan 10:30 Brisbane: 44 scanned, 37 scored, 6 above 65. On-chain volume Strong (1.24x 7-day avg).
+NEW watch: WASTED (Solana) Breakout retest, opp 73, checks 5/6, stop null% away, upside null%; more sellers than buyers in the last hour; paid DexScreener boost active (promotion, not organic demand).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: DACITYCOIN (top 10 wallets hold 42.4% (gate 30%)), CARDS (Top 10 holders high ownership), MAX (Copycat token), BP (Mint Authority still enabled), PUMP (top 10 wallets hold 59.4% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
