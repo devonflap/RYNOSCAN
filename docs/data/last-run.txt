@@ -1,5 +1,4 @@
-Full scan 10:27 Brisbane: 38 scanned, 30 scored, 1 above 65. On-chain volume Strong (1.27x 7-day avg).
-NEW watch: CATE (Solana) Falling wedge, opp 73, checks 5/6, stop 40.1% away, upside 83.6%; volume fading.
+Full scan 11:27 Brisbane: 41 scanned, 31 scored, 5 above 65. On-chain volume Strong (1.22x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: CARDS (Top 10 holders high ownership), NVDAX (Mint Authority still enabled), VINE (top 10 wallets hold 42.2% (gate 30%)), ANSEM (Single holder ownership), MAX (Copycat token), USELESS (top 10 wallets hold 38% (gate 30%)).
+Removed for token safety: VINE (top 10 wallets hold 42.2% (gate 30%)), MAX (Copycat token), ANSEM (Single holder ownership), CARDS (Top 10 holders high ownership), NVDAX (Mint Authority still enabled), DACITYCOIN (top 10 wallets hold 42.4% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
