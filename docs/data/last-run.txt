@@ -1,3 +1,5 @@
-Hourly refresh 01:10 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Normal (1.14x 7-day avg).
+Full scan 02:28 Brisbane: 37 scanned, 30 scored, 4 above 65. On-chain volume Strong (1.37x 7-day avg).
+NEW watch: WASTED (Solana) Breakout retest, opp 71, checks 4/6, stop 29.9% away, upside 389.2%; thin liquidity; weak last 6h.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: PIPPIN (Single holder ownership), MAX (Copycat token), TTWO (Mint Authority still enabled), PUMP (top 10 wallets hold 59.5% (gate 30%)), FARTCOIN (top 10 wallets hold 31.2% (gate 30%)), USELESS (top 10 wallets hold 38% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
