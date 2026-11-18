@@ -1,3 +1,4 @@
-Hourly refresh 03:10 Brisbane: 4 tracked coins refreshed, 4 scored, 3 above 65. On-chain volume Strong (1.37x 7-day avg).
+Hourly refresh 04:11 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Strong (1.37x 7-day avg).
+NEW watch: WASTED (Solana) Breakout retest, opp 71, checks 4/6, stop 29.9% away, upside 389.2%; more sellers than buyers in the last hour; weak last 6h.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
