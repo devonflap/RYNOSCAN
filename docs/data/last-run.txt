@@ -1,3 +1,5 @@
-Hourly refresh 16:10 Brisbane: 3 tracked coins refreshed, 3 scored, 2 above 65. On-chain volume Strong (1.24x 7-day avg).
+Full scan 17:28 Brisbane: 40 scanned, 30 scored, 4 above 65. On-chain volume Normal (1.04x 7-day avg).
+NEW watch: STONK (Solana) Base breakout, opp 76, checks 5/6, stop 19.3% away, upside 64.9%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: NVDAX (Mint Authority still enabled), VINE (top 10 wallets hold 42.2% (gate 30%)), DACITYCOIN (top 10 wallets hold 42.4% (gate 30%)), MAX (Copycat token), FARTCOIN (top 10 wallets hold 31.2% (gate 30%)), PUMP (top 10 wallets hold 59.5% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
