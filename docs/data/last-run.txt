@@ -1,5 +1,3 @@
-Full scan 19:27 Brisbane: 41 scanned, 31 scored, 4 above 65. On-chain volume Strong (1.19x 7-day avg).
-NEW watch: CLAUDIA (Solana) Breakout retest, opp 72, checks 4/6, stop 50.6% away, upside 151.8%; more sellers than buyers in the last hour; volume fading.
+Hourly refresh 20:10 Brisbane: 4 tracked coins refreshed, 4 scored, 4 above 65. On-chain volume Strong (1.19x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: NVDAX (Mint Authority still enabled), VINE (top 10 wallets hold 42.2% (gate 30%)), TTWO (Mint Authority still enabled), FARTCOIN (top 10 wallets hold 31.2% (gate 30%)), PIPPIN (Single holder ownership), MAX (Copycat token).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
