@@ -1,3 +1,4 @@
-Hourly refresh 05:10 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Normal (1.06x 7-day avg).
+Full scan 06:27 Brisbane: 38 scanned, 29 scored, 2 above 65. On-chain volume Normal (1x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: GMEX (Mint Authority still enabled), CYBERLEEK (top 10 wallets hold 33.6% (gate 30%)), WASTED (top 10 wallets hold 31% (gate 30%)), PUMP (top 10 wallets hold 59.5% (gate 30%)), MAX (Copycat token).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
