@@ -1,3 +1,4 @@
-Hourly refresh 18:11 Brisbane: 4 tracked coins refreshed, 4 scored, 3 above 65. On-chain volume Strong (3.48x 7-day avg).
+Hourly refresh 19:10 Brisbane: 3 tracked coins refreshed, 3 scored, 2 above 65. On-chain volume Strong (3.48x 7-day avg).
+NEW watch: MIHAO (Solana) Bottom reversal, opp 67, checks 4/6, stop 35.3% away, upside 254.6%; more sellers than buyers in the last hour; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
