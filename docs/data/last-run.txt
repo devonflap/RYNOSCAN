@@ -1,3 +1,5 @@
-Hourly refresh 23:10 Brisbane: 3 tracked coins refreshed, 3 scored, 1 above 65. On-chain volume Strong (3.28x 7-day avg).
+Full scan 00:26 Brisbane: 39 scanned, 30 scored, 3 above 65. On-chain volume Normal (1.01x 7-day avg).
+NEW watch: TROLL (Solana) Falling wedge, opp 72, checks 4/6, stop 8.4% away, upside 30.7%; more sellers than buyers in the last hour; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: USELESS (top 10 wallets hold 37% (gate 30%)), TRUMP (Top 10 holders high ownership), FABLES (owner can mint more), FARTCOIN (top 10 wallets hold 31.3% (gate 30%)), PUMP (top 10 wallets hold 59.5% (gate 30%)), ANSEM (Single holder ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
