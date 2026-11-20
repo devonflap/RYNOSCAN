@@ -1,4 +1,5 @@
-Full scan 09:26 Brisbane: 40 scanned, 30 scored, 1 above 65. On-chain volume Strong (2.16x 7-day avg).
+Full scan 10:26 Brisbane: 40 scanned, 32 scored, 2 above 65. On-chain volume Strong (2.02x 7-day avg).
+NEW watch: CLAUDIA (Solana) Breakout retest, opp 72, checks 3/6, stop 43.7% away, upside 131.2%; more sellers than buyers in the last hour; volume fading; weak last 6h.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: GMEX (Mint Authority still enabled), PUMP (top 10 wallets hold 59.5% (gate 30%)), WASTED (top 10 wallets hold 31% (gate 30%)), CYBERLEEK (top 10 wallets hold 33.6% (gate 30%)), USELESS (top 10 wallets hold 37% (gate 30%)), FARTCOIN (top 10 wallets hold 31.3% (gate 30%)).
+Removed for token safety: GMEX (Mint Authority still enabled), ANSEM (Single holder ownership), CBUCKS (top 10 wallets hold 34.4% (gate 30%)), PUMP (top 10 wallets hold 59.5% (gate 30%)), CYBERLEEK (top 10 wallets hold 33.6% (gate 30%)), WASTED (top 10 wallets hold 31% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
