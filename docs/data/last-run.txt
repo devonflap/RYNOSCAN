@@ -1,4 +1,3 @@
-Full scan 12:27 Brisbane: 39 scanned, 28 scored, 3 above 65. On-chain volume Strong (1.98x 7-day avg).
+Hourly refresh 13:10 Brisbane: 3 tracked coins refreshed, 3 scored, 2 above 65. On-chain volume Strong (1.98x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: GMEX (Mint Authority still enabled), ANSEM (Single holder ownership), FARTCOIN (top 10 wallets hold 32.5% (gate 30%)), MAX (Copycat token), PUMP (top 10 wallets hold 59.5% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
