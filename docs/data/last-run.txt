@@ -1,5 +1,4 @@
-Full scan 03:29 Brisbane: 43 scanned, 34 scored, 2 above 65. On-chain volume Strong (1.3x 7-day avg).
-NEW watch: CLAUDIA (Solana) Breakout retest, opp 87, checks 5/6, stop 17.7% away, upside 165.4%; more sellers than buyers in the last hour.
+Full scan 04:28 Brisbane: 41 scanned, 34 scored, 1 above 65. On-chain volume Strong (1.2x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: PUMP (top 10 wallets hold 59.5% (gate 30%)), TTWO (Mint Authority still enabled).
+Removed for token safety: PUMP (top 10 wallets hold 59.5% (gate 30%)), FARTCOIN (top 10 wallets hold 32.5% (gate 30%)), TRUMP (Top 10 holders high ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
