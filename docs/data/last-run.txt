@@ -1,5 +1,3 @@
-Full scan 21:27 Brisbane: 39 scanned, 28 scored, 3 above 65. On-chain volume Strong (1.72x 7-day avg).
-NEW watch: GATO (Solana) Bottom reversal, opp 70, checks 6/6, stop 82.7% away, upside 422.1%; paid DexScreener boost active (promotion, not organic demand).
+Hourly refresh 22:10 Brisbane: 3 tracked coins refreshed, 3 scored, 1 above 65. On-chain volume Strong (1.72x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: AMC (Mint Authority still enabled), PUMP (top 10 wallets hold 59.5% (gate 30%)), CBUCKS (top 10 wallets hold 34.4% (gate 30%)), MAX (Copycat token).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
