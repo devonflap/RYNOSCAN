@@ -1,4 +1,5 @@
-Full scan 08:29 Brisbane: 45 scanned, 37 scored, 2 above 65. On-chain volume Strong (1.18x 7-day avg).
+Full scan 09:27 Brisbane: 44 scanned, 36 scored, 2 above 65. On-chain volume Strong (1.17x 7-day avg).
+NEW watch: CATE (Solana) Bottom reversal, opp 70, checks 6/6, stop 8.1% away, upside 53%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: PUMP (top 10 wallets hold 59.5% (gate 30%)), ANSEM (Single holder ownership), VINE (top 10 wallets hold 41.4% (gate 30%)), TTWO (Mint Authority still enabled), TRUMP (Top 10 holders high ownership), $WIF (top 10 wallets hold 42.8% (gate 30%)).
+Removed for token safety: ANSEM (Single holder ownership), PUMP (top 10 wallets hold 59.5% (gate 30%)), VINE (top 10 wallets hold 41.4% (gate 30%)), TRUMP (Top 10 holders high ownership), TTWO (Mint Authority still enabled), FARTCOIN (top 10 wallets hold 32.5% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
