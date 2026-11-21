@@ -1,5 +1,5 @@
-Full scan 00:29 Brisbane: 49 scanned, 42 scored, 2 above 65. On-chain volume Normal (0.91x 7-day avg).
-NEW watch: MIHAO (Solana) Bottom reversal, opp 73, checks 5/6, stop 30.4% away, upside 192.6%; more sellers than buyers in the last hour.
+Full scan 01:28 Brisbane: 49 scanned, 41 scored, 3 above 65. On-chain volume Below normal (0.68x 7-day avg).
+On-chain volume is weak today, so keep trades at none or minimum.
 Market: SOL neutral, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: PUMP (top 10 wallets hold 59.5% (gate 30%)), ANSEM (Single holder ownership), BP (Mint Authority still enabled), TRUMP (Top 10 holders high ownership), USELESS (top 10 wallets hold 38.2% (gate 30%)), FARTCOIN (top 10 wallets hold 33.2% (gate 30%)).
+Removed for token safety: PUMP (top 10 wallets hold 59.5% (gate 30%)), TRUMP (Top 10 holders high ownership), FARTCOIN (top 10 wallets hold 33.2% (gate 30%)), USELESS (top 10 wallets hold 38.2% (gate 30%)), TTWO (Mint Authority still enabled), ANSEM (Single holder ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
