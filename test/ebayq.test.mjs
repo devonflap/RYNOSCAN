@@ -16,4 +16,6 @@ const g1 = q('Monkey.D.Luffy (119) (Manga)', 'OP05-119', 'OP', 'Foil', { graded:
 ok(slabQuery('2015 #123 Rayquaza EX CGC 9 Japanese XY Promo Pokemon') === 'Rayquaza EX 123 CGC 9 -proxy -custom', 'slab: name, number, grade only (was empty on eBay with the set words)');
 ok(slabQuery('2023 #GG40 Full Art/Glaceon Vstar PSA 10 Crown Zenith Pokemon') === 'Glaceon Vstar GG40 PSA 10 -proxy -custom', 'slab with Full Art/ prefix');
 ok(slabQuery('2004 #66 Meditite Reverse Holo CGC 10 EX Hidden Legends - English Pokemon') === 'Meditite 66 CGC 10 -proxy -custom', 'slab: holo words left out');
+import { ebayBuy } from '../docs/cards/ebayq.mjs';
+ok(ebayBuy({ name: 'Luffy (Manga)', num: 'OP05-119', g: 'OP' }, { max: 719.6 }).endsWith('&_udhi=720') && !ebayBuy({ name: 'Luffy', num: 'OP05-119', g: 'OP' }).includes('_udhi'), 'price-capped eBay link (80% of market or the wish-list price)');
 process.exit(f);

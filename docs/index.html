@@ -59,7 +59,7 @@ h2.view { font-size:1.2rem; margin:4px 0 2px; }
 </header>
 <main id="out"></main>
 <script type="module">
-import { ebayBuy, ebaySold, slabQuery } from './cards/ebayq.mjs?v=20261122b';
+import { ebayBuy, ebaySold, slabQuery } from './cards/ebayq.mjs?v=20261122c';
 const $ = (id) => document.getElementById(id), el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
 const store = { get: (k, d) => { try { const v = localStorage.getItem('cf-' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set: (k, v) => { try { localStorage.setItem('cf-' + k, JSON.stringify(v)); } catch {} } };
 const S = { wish: store.get('wish', {}), q: '', idx: null, tab: 'home', game: store.get('game', 'all'), hz: store.get('hz', 'all'), band: store.get('band', 'all'), ex: store.get('ex', 'all'), D: null };
@@ -77,7 +77,7 @@ function cardEl(c) { const d = el('div', 'card'), im = el('img'); im.src = c.img
   if (c.check) { const w = el('div', 'st falling', 'Big drop on a rarely sold card: check the sold prices before trusting it'); b.append(w); }
   const L = el('div', 'links'); /* 22 Nov: searches built by cards/ebayq.mjs: exact card number, version words kept (manga, SP, alt art...), slabs and fakes left out of raw searches */
   /* 21 Nov: buy links first (Buy It Now in Australia, cheapest first; TCGplayer Direct ships Pokémon singles to Australia with GST and buyer protection), then the sold prices to check against */
-  const B = el('div', 'links buy'); B.append(el('span', 'meta', 'Buy:')); for (const [t, u] of [['eBay AU', ebayBuy(c)], ['PSA 10 on eBay AU', ebayBuy(c, { graded: true })], [c.g === 'PK' ? 'TCGplayer (Direct ships to AU)' : 'TCGplayer (US, via a forwarder)', c.url]]) { if (!u) continue; const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; B.append(a); } b.append(B);
+  const B = el('div', 'links buy'); B.append(el('span', 'meta', 'Buy:')); const wt = S.wish[c.id] && S.wish[c.id].target; for (const [t, u] of [['eBay AU', ebayBuy(c)], wt ? [`eBay AU at your price (A$${wt})`, ebayBuy(c, { max: wt })] : [`eBay AU 20%+ under market (A$${Math.round(c.aud * 0.8)} or less)`, ebayBuy(c, { max: c.aud * 0.8 })], ['PSA 10 on eBay AU', ebayBuy(c, { graded: true })], [c.g === 'PK' ? 'TCGplayer (Direct ships to AU)' : 'TCGplayer (US, via a forwarder)', c.url]]) { if (!u) continue; const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; B.append(a); } b.append(B);
   L.append(el('span', 'meta', 'Check:')); for (const [t, u] of [['eBay AU sold', ebaySold(c)], ['PSA 10 sold', ebaySold(c, { graded: true })]]) { const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; L.append(a); }
   b.append(L); if (S.tab === 'wish' && S.wish[c.id]) b.append(wishRow(c)); d.append(b); return d; }
 /* THE WISH LIST (21 Nov): cards Ryan wants, each with the price he'd pay (it starts at a suggested target: the 2-week low, or 10% under
