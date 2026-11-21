@@ -1,5 +1,3 @@
-Full scan 19:30 Brisbane: 51 scanned, 43 scored, 3 above 65. On-chain volume Normal (0.85x 7-day avg).
-NEW watch: JOB (Solana) Breakout retest, opp 71, checks 3/6, stop 13.6% away, upside 133.9%; more sellers than buyers in the last hour; volume fading; weak last 6h.
+Hourly refresh 20:18 Brisbane: 3 tracked coins refreshed, 2 scored, 2 above 65. On-chain volume Normal (0.85x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: BP (Mint Authority still enabled), TRUMP (Top 10 holders high ownership), PUMP (top 10 wallets hold 59.5% (gate 30%)), TTWO (Mint Authority still enabled), ANSEM (Single holder ownership), SPCX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
