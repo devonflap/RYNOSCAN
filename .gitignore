@@ -14,3 +14,4 @@ bot/state-*.json.tmp
 bot/state.json
 bot/state.json.tmp
 node_modules
+data/cardarc/
