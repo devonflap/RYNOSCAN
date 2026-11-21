@@ -59,7 +59,7 @@ h2.view { font-size:1.2rem; margin:4px 0 2px; }
 </header>
 <main id="out"></main>
 <script type="module">
-import { ebayBuy, ebaySold, slabQuery } from './cards/ebayq.mjs?v=20261122a';
+import { ebayBuy, ebaySold, slabQuery } from './cards/ebayq.mjs?v=20261122b';
 const $ = (id) => document.getElementById(id), el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
 const store = { get: (k, d) => { try { const v = localStorage.getItem('cf-' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set: (k, v) => { try { localStorage.setItem('cf-' + k, JSON.stringify(v)); } catch {} } };
 const S = { wish: store.get('wish', {}), q: '', idx: null, tab: 'home', game: store.get('game', 'all'), hz: store.get('hz', 'all'), band: store.get('band', 'all'), D: null };
