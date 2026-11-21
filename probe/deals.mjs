@@ -1,9 +1,0 @@
-// one-off probe 3 (22 Nov). Deleted after.
-const UA = { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36', accept: 'application/json, text/html' };
-async function get(u) { try { const r = await fetch(u, { headers: UA, signal: AbortSignal.timeout(25000) }); return { s: r.status, t: await r.text() }; } catch (e) { return { s: 'ERR', t: e.message }; } }
-const ME = 'https://api-mainnet.magiceden.dev/v2';
-const r = await get(`${ME}/collections/phygitals___/listings?limit=20&sort=listPrice&sort_direction=desc`); let L = []; try { L = JSON.parse(r.t); } catch { console.log(r.s, r.t.slice(0, 300)); }
-for (const x of L.slice(0, 6)) console.log('\n' + x.price + ' SOL | ' + x.token.name + ' | ' + JSON.stringify(x.token.attributes));
-const names = []; for (let o = 0; o < 500; o += 100) { const q = await get(`${ME}/collections/phygitals___/listings?offset=${o}&limit=100`); let A = []; try { A = JSON.parse(q.t); } catch {} if (!A.length) break; for (const x of A) { const a = Object.fromEntries((x.token.attributes || []).map((t) => [t.trait_type, t.value])); names.push(`${x.price} | ${a['Grade'] || a['Grading Company'] || a['Grader'] || ''} | ${x.token.name}`); } await new Promise((r) => setTimeout(r, 600)); }
-console.log('\nall listings (' + names.length + '):\n' + names.filter((n) => +n.split(' |')[0] > 0.3).slice(0, 60).join('\n'));
-for (const k of ['OP05-119', '110/076']) { const s = await get('https://snkrdunk.com/en/search/result?keyword=' + encodeURIComponent(k)); const ld = [...s.t.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((m) => m[1].replace(/\s+/g, ' ').slice(0, 1500)); console.log('\nSNKRDUNK ' + k + ' ld: ' + ld.join('\n---\n')); const i = s.t.search(/\$\s?\d|US\$|USD|A\$/); console.log('price bit: ' + s.t.slice(Math.max(0, i - 400), i + 400).replace(/\s+/g, ' ')); }
