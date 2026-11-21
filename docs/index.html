@@ -59,6 +59,7 @@ h2.view { font-size:1.2rem; margin:4px 0 2px; }
 </header>
 <main id="out"></main>
 <script type="module">
+import { ebayBuy, ebaySold, slabQuery } from './cards/ebayq.mjs?v=20261122a';
 const $ = (id) => document.getElementById(id), el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
 const store = { get: (k, d) => { try { const v = localStorage.getItem('cf-' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set: (k, v) => { try { localStorage.setItem('cf-' + k, JSON.stringify(v)); } catch {} } };
 const S = { wish: store.get('wish', {}), q: '', idx: null, tab: 'home', game: store.get('game', 'all'), hz: store.get('hz', 'all'), band: store.get('band', 'all'), D: null };
@@ -74,11 +75,10 @@ function cardEl(c) { const d = el('div', 'card'), im = el('img'); im.src = c.img
   const sp = spark(c.sp); if (sp) b.append(sp);
   b.append(el('div', 'st ' + (c.stKey || ''), c.st + (c.thin ? ' · few sellers, price may be soft' : '')));
   if (c.check) { const w = el('div', 'st falling', 'Big drop on a rarely sold card: check the sold prices before trusting it'); b.append(w); }
-  const L = el('div', 'links'), q = encodeURIComponent(`${c.name.replace(/\s*\(.*?\)\s*/g, ' ')} ${c.num || ''} ${c.g === 'OP' ? 'one piece' : c.g === 'DB' ? 'dragon ball' : 'pokemon'}`.trim());
+  const L = el('div', 'links'); /* 22 Nov: searches built by cards/ebayq.mjs: exact card number, version words kept (manga, SP, alt art...), slabs and fakes left out of raw searches */
   /* 21 Nov: buy links first (Buy It Now in Australia, cheapest first; TCGplayer Direct ships Pokémon singles to Australia with GST and buyer protection), then the sold prices to check against */
-  const bin = (x) => `https://www.ebay.com.au/sch/i.html?_nkw=${x}&LH_BIN=1&_sop=15&LH_PrefLoc=1`, sold = (x) => `https://www.ebay.com.au/sch/i.html?_nkw=${x}&LH_Sold=1&LH_Complete=1`;
-  const B = el('div', 'links buy'); B.append(el('span', 'meta', 'Buy:')); for (const [t, u] of [['eBay AU', bin(q)], ['PSA 10 on eBay AU', bin(q + '+psa+10')], [c.g === 'PK' ? 'TCGplayer (Direct ships to AU)' : 'TCGplayer (US, via a forwarder)', c.url]]) { if (!u) continue; const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; B.append(a); } b.append(B);
-  L.append(el('span', 'meta', 'Check:')); for (const [t, u] of [['eBay AU sold', sold(q)], ['PSA 10 sold', sold(q + '+psa+10')]]) { const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; L.append(a); }
+  const B = el('div', 'links buy'); B.append(el('span', 'meta', 'Buy:')); for (const [t, u] of [['eBay AU', ebayBuy(c)], ['PSA 10 on eBay AU', ebayBuy(c, { graded: true })], [c.g === 'PK' ? 'TCGplayer (Direct ships to AU)' : 'TCGplayer (US, via a forwarder)', c.url]]) { if (!u) continue; const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; B.append(a); } b.append(B);
+  L.append(el('span', 'meta', 'Check:')); for (const [t, u] of [['eBay AU sold', ebaySold(c)], ['PSA 10 sold', ebaySold(c, { graded: true })]]) { const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; L.append(a); }
   b.append(L); if (S.tab === 'wish' && S.wish[c.id]) b.append(wishRow(c)); d.append(b); return d; }
 /* THE WISH LIST (21 Nov): cards Ryan wants, each with the price he'd pay (it starts at a suggested target: the 2-week low, or 10% under
    today's price while it is still falling). Kept on this phone; Copy / Paste moves it to another device. */
@@ -128,7 +128,7 @@ function draw() { const D = S.D, out = $('out'); out.replaceChildren(); badge();
     if (!L2.length) { out.append(el('p', 'empty', 'No slabs under their valuation for this game right now.')); return; } const g = el('div', 'grid');
     for (const c of L2.slice(0, 60)) { const d = el('div', 'card'), im = el('img'); im.src = c.img || ''; im.alt = ''; im.loading = 'lazy'; im.onerror = () => { im.style.visibility = 'hidden'; }; d.append(im); const b = el('div'); b.append(el('div', 'name', c.name), el('div', 'meta', `${GN[c.g]}${c.grade ? ' · ' + c.grade : ''}${c.vault ? ' · vault: ' + c.vault : ''}`));
       const pr = el('div', 'price'); pr.append(el('b', null, aud(c.aud)), el('span', 'off', `${Math.round(c.under * 100)}% under its ${aud(c.insAud)} valuation`)); b.append(pr); b.append(el('div', 'meta', `${c.sol} SOL`));
-      const Lk = el('div', 'links'), a = el('a', null, 'Buy on Magic Eden'); a.href = c.url; a.target = '_blank'; a.rel = 'noopener'; const q2 = encodeURIComponent(c.name.replace(/^\d{4}\s*#\S+\s*/, '').slice(0, 80)), a2 = el('a', null, 'eBay AU sold'); a2.href = `https://www.ebay.com.au/sch/i.html?_nkw=${q2}&LH_Sold=1&LH_Complete=1`; a2.target = '_blank'; a2.rel = 'noopener'; Lk.append(a, a2); b.append(Lk); d.append(b); g.append(d); }
+      const Lk = el('div', 'links'), a = el('a', null, 'Buy on Magic Eden'); a.href = c.url; a.target = '_blank'; a.rel = 'noopener'; const a2 = el('a', null, 'eBay AU sold'); a2.href = `https://www.ebay.com.au/sch/i.html?_nkw=${encodeURIComponent(slabQuery(c.name))}&LH_Sold=1&LH_Complete=1`; a2.target = '_blank'; a2.rel = 'noopener'; Lk.append(a, a2); b.append(Lk); d.append(b); g.append(d); }
     out.append(g); out.append(el('p', 'note', 'Courtyard (courtyard.io) also sells vaulted slabs and buys any card back at 90% of its fair market value, so a Courtyard listing under 90% of its FMV is close to risk-free. It has no public search to scan, so check its marketplace by hand.')); return; }
   const L = D.upcoming.filter(byGame); out.append(el('p', 'note', 'Sets coming out soon. Prices before and just after release are usually the highest they will be: note the chase cards, then check the New releases tab 3–6 weeks after launch.'));
   if (!L.length) { out.append(el('p', 'empty', 'No upcoming sets listed for this game.')); return; }
