@@ -9,11 +9,11 @@
 :root { --bg:#1c1f24; --card:#24282e; --line:#343a42; --text:#e8e5df; --muted:#9aa0a8; --accent:#e94e1b; --ok:#3fb37f; --warn:#e9a23b; --bad:#f05a62; }
 * { box-sizing:border-box; }
 body { margin:0; background:var(--bg); color:var(--text); font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
-header { position:sticky; top:0; z-index:5; background:var(--bg); border-bottom:1px solid var(--line); padding:12px 16px 10px; }
+header { background:var(--bg); border-bottom:1px solid var(--line); padding:12px 16px 10px; }
 h1 { margin:0 0 2px; font-size:1.15rem; } h1 span { color:var(--accent); }
 .sub { color:var(--muted); font-size:.82rem; }
-.tabs, .chips { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
-.tab, .chip { border:1px solid var(--line); background:var(--card); color:var(--text); border-radius:999px; padding:6px 12px; font:inherit; font-size:.85rem; cursor:pointer; }
+.tabs, .chips { display:flex; gap:6px; margin-top:8px; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; } .tabs::-webkit-scrollbar, .chips::-webkit-scrollbar { display:none; }
+.tab, .chip { flex:none; white-space:nowrap; border:1px solid var(--line); background:var(--card); color:var(--text); border-radius:999px; padding:6px 12px; font:inherit; font-size:.85rem; cursor:pointer; }
 .tab.on { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
 .chip.on { border-color:var(--accent); color:var(--accent); font-weight:600; }
 main { padding:12px 16px 40px; max-width:900px; margin:0 auto; }
@@ -24,7 +24,7 @@ main { padding:12px 16px 40px; max-width:900px; margin:0 auto; }
 .price { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin:3px 0 2px; }
 .price b { font-size:1.15rem; } .off { color:var(--ok); font-weight:600; } .up { color:var(--ok); } .down { color:var(--bad); }
 .st { font-size:.82rem; margin-top:2px; } .st.settled, .st.turning { color:var(--ok); } .st.falling, .st.dropping { color:var(--bad); } .st.holding, .st.easing { color:var(--warn); }
-.links { display:flex; gap:12px; margin-top:6px; font-size:.8rem; } .links a { color:var(--accent); text-decoration:none; }
+.links { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:6px; font-size:.8rem; } .links a { white-space:nowrap; } .links a { color:var(--accent); text-decoration:none; }
 .hz { display:inline-block; border:1px solid var(--line); border-radius:999px; padding:0 7px; font-size:.72rem; color:var(--muted); margin-left:4px; }
 .set { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:14px; }
 .set h2 { font-size:1rem; margin:0; } .verdict { font-weight:600; margin:6px 0 10px; }
@@ -58,6 +58,7 @@ function cardEl(c) { const d = el('div', 'card'), im = el('img'); im.src = c.img
   const pr = el('div', 'price'); pr.append(el('b', null, aud(c.aud))); if (c.high && c.off != null && c.off < -0.05) pr.append(el('span', 'off', `${pc(c.off)} from ${aud(c.high)}`)); if (c.ch7 != null) pr.append(el('span', c.ch7 >= 0 ? 'up' : 'down', `${pc(c.ch7)} 7d`)); if (c.ch30 != null) pr.append(el('span', c.ch30 >= 0 ? 'up' : 'down', `${pc(c.ch30)} 30d`)); b.append(pr);
   const sp = spark(c.sp); if (sp) b.append(sp);
   b.append(el('div', 'st ' + (c.stKey || ''), c.st + (c.thin ? ' · few sellers, price may be soft' : '')));
+  if (c.check) { const w = el('div', 'st falling', 'Big drop on a rarely sold card: check the sold prices before trusting it'); b.append(w); }
   const L = el('div', 'links'), q = encodeURIComponent(`${c.name.replace(/\s*\(.*?\)\s*/g, ' ')} ${c.num || ''} ${c.g === 'OP' ? 'one piece' : c.g === 'DB' ? 'dragon ball' : 'pokemon'}`.trim());
   for (const [t, u] of [['TCGplayer', c.url], ['eBay AU sold', `https://www.ebay.com.au/sch/i.html?_nkw=${q}&LH_Sold=1&LH_Complete=1`], ['PSA 10 sold', `https://www.ebay.com.au/sch/i.html?_nkw=${q}+psa+10&LH_Sold=1&LH_Complete=1`]]) { if (!u) continue; const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; L.append(a); }
   b.append(L); d.append(b); return d; }
@@ -68,8 +69,8 @@ function filters() { const f = $('filt'); f.replaceChildren(); if (S.tab !== 'de
   for (const [k, t] of [['all', 'Any price'], ['lo', '$100–300'], ['mid', '$300–600'], ['hi', '$600–1,000']]) { const b = el('button', 'chip' + (S.band === k ? ' on' : ''), t); b.onclick = () => { S.band = k; store.set('band', k); draw(); }; f.append(b); } }
 function draw() { const D = S.D, out = $('out'); out.replaceChildren(); document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('on', b.dataset.t === S.tab)); document.querySelectorAll('#games .chip').forEach((b) => b.classList.toggle('on', b.dataset.g === S.game)); filters();
   if (!D) { out.append(el('p', 'empty', 'The card list fills in after the first daily run.')); return; }
-  if (S.tab === 'deals') { const L = D.deals.filter(byGame).filter((c) => S.hz === 'all' || c.hz === S.hz).filter(inBand);
-    out.append(el('p', 'note', `Cards worth A$${D.band[0]}–${D.band[1]} that are 25%+ under their 6-month high and have stopped falling (steady or turning up over the last 2 weeks). Hold length goes by the set's age: short under 9 months (still settling after launch), medium 9–30 months, long older (out of print). Biggest drops first.`));
+  if (S.tab === 'deals') { const L = D.deals.filter(byGame).filter((c) => S.hz === 'all' || c.hz === S.hz).filter(inBand).sort((a, b) => (a.check ? 1 : 0) - (b.check ? 1 : 0)); /* cards to double-check go below the clean ones */
+    out.append(el('p', 'note', `Cards worth A$${D.band[0]}–${D.band[1]} that are 25%+ under their 6-month high and have stopped falling (steady or turning up over the last 2 weeks). Hold length goes by the set's age: short under 9 months (still settling after launch), medium 9–30 months, long older (out of print). Biggest drops first; cards whose drop needs checking against sold prices come after them.`));
     if (!L.length) { out.append(el('p', 'empty', 'Nothing matches these filters today.')); return; } const g = el('div', 'grid'); for (const c of L.slice(0, 80)) g.append(cardEl(c)); out.append(g); if (L.length > 80) out.append(el('p', 'note', `${L.length - 80} more not shown: narrow the filters.`)); return; }
   if (S.tab === 'new') { const L = D.newSets.filter(byGame); out.append(el('p', 'note', 'Sets released in the last ~10 weeks and their dearest cards. Chase cards usually peak at launch and slide for a few weeks as more packs are opened: wait while they are still falling; look when they have settled.'));
     if (!L.length) { out.append(el('p', 'empty', 'No new sets in the last 10 weeks for this game.')); return; }
@@ -81,7 +82,7 @@ function draw() { const D = S.D, out = $('out'); out.replaceChildren(); document
 document.querySelectorAll('.tab').forEach((b) => { b.onclick = () => { S.tab = b.dataset.t; store.set('tab', S.tab); draw(); window.scrollTo(0, 0); }; });
 document.querySelectorAll('#games .chip').forEach((b) => { b.onclick = () => { S.game = b.dataset.g; store.set('game', S.game); draw(); }; });
 (async () => { try { const r = await fetch('data/cards.json?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) S.D = await r.json(); } catch {}
-  $('upd').textContent = S.D ? `Updated ${ago(S.D.at)} · TCGplayer market prices (raw, near mint, US sales) in AUD at ${S.D.fx.toFixed(3)} · ${S.D.counts.deals} deals, ${S.D.counts.newSets} new sets, ${S.D.counts.upcoming} upcoming` : 'No data yet'; draw(); })();
+  $('upd').textContent = S.D ? `Updated ${ago(S.D.at)} · TCGplayer prices (raw, near mint) in AUD` : 'No data yet'; draw(); })();
 </script>
 </body>
 </html>
