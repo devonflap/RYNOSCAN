@@ -1,0 +1,24 @@
+# One-off probe (21 Nov): can the gacha marketplaces' slab listings be read (Courtyard, Collector Crypt via Magic Eden, Phygitals)? Writes nothing.
+name: Slab probe
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          UA="Mozilla/5.0 (compatible; RynoScan card finder)"
+          echo "== Magic Eden: Collector Crypt"
+          for s in collector_crypt collectorcrypt collector-crypt; do echo "-- $s"; curl -s -A "$UA" "https://api-mainnet.magiceden.dev/v2/collections/$s/stats" | head -c 400; echo; done
+          curl -s -A "$UA" "https://api-mainnet.magiceden.dev/v2/collections/collector_crypt/listings?offset=0&limit=3" | head -c 3000; echo
+          echo "== Courtyard"
+          curl -s -A "$UA" -o cy.html -w "page %{http_code} %{size_download}\n" https://courtyard.io/marketplace
+          grep -oE "https://[a-zA-Z0-9.-]*courtyard[a-zA-Z0-9.-]*\.(io|com|xyz)[a-zA-Z0-9/_.-]*" cy.html | sort -u | head -20
+          grep -oE "\"/api/[a-zA-Z0-9/_.-]*" cy.html | sort -u | head -20
+          for js in $(grep -oE "/_next/static/chunks/[a-zA-Z0-9/_.-]*\.js" cy.html | sort -u | head -25); do curl -s -A "$UA" "https://courtyard.io$js" | grep -oE "https://[a-zA-Z0-9.-]*(courtyard|api)[a-zA-Z0-9.-]*\.[a-z]+[a-zA-Z0-9/_.{}$-]*" ; done | sort | uniq -c | sort -rn | head -25
+          for u in "https://api.courtyard.io/marketplace/listings?limit=2" "https://api.courtyard.io/v1/marketplace?limit=2" "https://courtyard.io/api/marketplace?limit=2"; do echo "-- $u"; curl -s -A "$UA" -w " [%{http_code}]" "$u" | head -c 600; echo; done
+          echo "== Phygitals"
+          curl -s -A "$UA" -o ph.html -w "page %{http_code} %{size_download}\n" https://www.phygitals.com/marketplace
+          grep -oE "https://[a-zA-Z0-9.-]*(phygitals|api)[a-zA-Z0-9.-]*\.[a-z]+[a-zA-Z0-9/_.-]*" ph.html | sort -u | head -15
