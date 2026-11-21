@@ -1,7 +1,7 @@
 // the card finder's signals (21 Nov): dropped deals, new-release chase cards, hold lengths
 import { CARD, stats, statusOf, horizonOf, newSetView, isDeal } from '../src/cardsig.mjs';
 import { sampleDays, slim, targetOf } from '../src/cards.mjs';
-import { slabRow, gradeOf, gameOf } from '../src/slabs.mjs';
+import { slabRow, ccRow, ccBands, gradeOf, gameOf } from '../src/slabs.mjs';
 const out = console.log; let f = 0; const ok = (c, m) => { out((c ? 'PASS ' : 'FAIL ') + m); if (!c) f = 1; };
 const D = 86400e3, now = Date.parse('2026-11-21T12:00:00Z'), ser = (pts) => pts.map(([daysAgo, v]) => [now - daysAgo * D, v]);
 // a $600 card that fell to $400 and has sat there for 3 weeks: a deal
@@ -39,4 +39,12 @@ ok(slabRow(L('Luffy PSA 10', 'One Piece', 200, 1.25), env) === null, 'listed at 
 ok(slabRow(L('Energy Removal CGC 8.5 Pokemon', 'Pokemon', 11, 0.03), env) === null && slabRow(L('Jordan PSA 9', 'Basketball', 400, 1), env) === null, 'under A$100, or not one of our games: left out');
 ok(gradeOf('2000 #119 BASE SET 2 ENERGY REMOVAL CGC 8.5 POKEMON') === 'CGC 8.5' && gradeOf('Charizard BGS 9.5') === 'BGS 9.5' && gameOf('One Piece', 'x') === 'OP' && gameOf('Pokemon', 'Pikachu Japanese PSA 10') === 'PJ' && gameOf('TCG', 'Goku Dragon Ball Super PSA 9') === 'DB', 'grades and games read from the listing');
 ok(targetOf(s1) === Math.round(404 * 0.9) && targetOf(s2) === Math.round(380 * 0.9) && targetOf({ cur: 100, lo14: 80 }) === 80, 'wish-list target: 10% under today (A$364 on a A$404 card), or the 2-week low when that is lower (A$80 on a A$100 card)');
+// 22 Nov: Collector Crypt's own marketplace (a real listing's shape from api.collectorcrypt.com/marketplace)
+{ const cc = (name, cat, ins, price, mp = 'CC') => ({ itemName: name, category: cat, insuredValue: String(ins), nftStatus: 'Valid', gradingCompany: 'PSA', grade: 'GEM-MT 10', nftAddress: 'Abc123', images: { frontM: 'https://x/f.jpg' }, vault: 'PWCC', listing: { currency: 'USDC', price, marketplace: mp } });
+  const r = ccRow(cc('2000 #6 Team Rocket 1st Edition Holo Dark Dugtrio MINT PSA 9', 'Pokemon', 505, 366), { fx: 1.5 });
+  ok(r && r.src === 'Collector Crypt' && Math.abs(r.under - 0.275) < 0.01 && r.url === 'https://collectorcrypt.com/assets/solana/Abc123' && r.aud === 549, 'Collector Crypt listing 27% under its valuation: a deal, linked to its card page');
+  ok(ccRow(cc('Umbreon PSA 10', 'Pokemon', 170, 165), { fx: 1.5 }) === null, '97% of its value: not a deal');
+  ok(ccRow({ ...cc('Luffy PSA 10', 'One Piece', 200, 100), listing: null }, { fx: 1.5 }) === null, 'not listed: skipped');
+  ok(ccRow(cc('Luffy PSA 10', 'One Piece', 200, 100, 'ME'), { fx: 1.5 }).src === 'Magic Eden', 'listed on Magic Eden through Collector Crypt: says so');
+  const b = ccBands(1.5); ok(b[0][0] === 66 && b[b.length - 1][1] >= 1000 && b.every(([lo, hi, m]) => hi > lo && m < hi), `${b.length} value bands cover A$100-1,500, each asking only for listings under 90% of its top`); }
 process.exit(f);
