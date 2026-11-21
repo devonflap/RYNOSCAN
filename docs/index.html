@@ -2,192 +2,142 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Cache-Control" content="no-cache">
-<meta name="theme-color" content="#1a1a1a">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RynoScan</title>
-<link rel="icon" href="logo.png">
-<link rel="stylesheet" href="style.css?v=d28fa405ea">
-<style>html.locked .shell,html.locked .wrap{display:none!important}#gate{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:#1a1a1a;color:#eee;font-family:system-ui,sans-serif}#gate form{display:flex;flex-direction:column;gap:12px;width:min(320px,86vw);text-align:center}#gate img{width:72px;height:72px;margin:0 auto}#gate input{padding:12px;border-radius:8px;border:1px solid #555;background:#2a2a2a;color:#eee;font-size:16px;text-align:center}#gate button{padding:12px;border:0;border-radius:8px;background:#D64227;color:#fff;font-size:16px;cursor:pointer}#gate p{margin:0;min-height:1.2em;color:#ee6a4b;font-size:14px}</style>
-<script>
-/* Access code. This is a screen lock for casual visitors, not real security: the page and its data files are still public to anyone who knows how to look. */
-(function(){var H='0cae5b42cc1651b3a807a6ee557454d072b1cfb95d054d75d875fe8d4e78af72',K='rynoscan-ok';var ok=false;try{ok=localStorage.getItem(K)===H}catch(e){}
-if(ok)return;document.documentElement.classList.add('locked');
-function hex(b){return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,'0')}).join('')}
-document.addEventListener('DOMContentLoaded',function(){var g=document.createElement('div');g.id='gate';g.innerHTML='<form autocomplete="off"><img src="logo.png" alt=""><input type="password" id="gateIn" placeholder="Access code" autocomplete="off" autocapitalize="off"><button type="submit">Enter</button><p id="gateMsg"></p></form>';document.body.appendChild(g);
-var f=g.querySelector('form'),i=g.querySelector('input'),m=g.querySelector('p');i.focus();
-f.addEventListener('submit',function(e){e.preventDefault();var v=i.value.trim().toLowerCase();if(!window.crypto||!crypto.subtle){m.textContent='This browser cannot check the code.';return}
-crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)).then(function(b){if(hex(b)===H){try{localStorage.setItem(K,H)}catch(e){}document.documentElement.classList.remove('locked');g.remove()}else{m.textContent='Wrong code';i.value='';i.focus()}})})})})();
-</script>
-
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Card Finder</title>
+<meta name="description" content="Pokémon, One Piece and Dragon Ball singles that have dropped in price: deals, new-release chase cards and upcoming sets.">
+<style>
+:root { --bg:#14161c; --card:#1f232b; --line:#2f3540; --text:#f1efe9; --muted:#9aa3b0; --accent:#ff5a1f; --ok:#34c77b; --warn:#f2b33d; --bad:#ff5c6c; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+header { background:var(--bg); border-bottom:1px solid var(--line); padding:12px 16px 10px; }
+h1 { margin:0 0 2px; font-size:1.15rem; } h1 span { color:var(--accent); }
+.sub { color:var(--muted); font-size:.82rem; }
+.tabs, .chips { display:flex; gap:6px; margin-top:8px; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; } .tabs::-webkit-scrollbar, .chips::-webkit-scrollbar { display:none; }
+.tab, .chip { flex:none; white-space:nowrap; border:1px solid var(--line); background:var(--card); color:var(--text); border-radius:999px; padding:6px 12px; font:inherit; font-size:.85rem; cursor:pointer; }
+.tab.on { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+.chip.on { border-color:var(--accent); color:var(--accent); font-weight:600; }
+main { padding:12px 16px 40px; max-width:900px; margin:0 auto; }
+.note { color:var(--muted); font-size:.82rem; margin:4px 0 12px; }
+.card { display:grid; grid-template-columns:72px 1fr; gap:12px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px; margin-bottom:10px; }
+.card img { width:72px; height:100px; object-fit:cover; border-radius:6px; background:#111; }
+.name { font-weight:600; line-height:1.25; } .meta { color:var(--muted); font-size:.78rem; }
+.price { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin:3px 0 2px; }
+.price b { font-size:1.15rem; } .off { color:var(--ok); font-weight:600; } .up { color:var(--ok); } .down { color:var(--bad); }
+.st { font-size:.82rem; margin-top:2px; } .st.settled, .st.turning { color:var(--ok); } .st.falling, .st.dropping { color:var(--bad); } .st.holding, .st.easing { color:var(--warn); }
+.links { display:flex; flex-wrap:wrap; gap:4px 12px; margin-top:6px; font-size:.8rem; } .links a { white-space:nowrap; } .links a { color:var(--accent); text-decoration:none; }
+.hz { display:inline-block; border:1px solid var(--line); border-radius:999px; padding:0 7px; font-size:.72rem; color:var(--muted); margin-left:4px; }
+.set { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:14px; }
+.set h2 { font-size:1rem; margin:0; } .verdict { font-weight:600; margin:6px 0 10px; }
+.set .card { background:var(--bg); }
+svg.sp { display:block; margin-top:4px; }
+.search { display:flex; gap:8px; margin-top:10px; } .search input { flex:1; min-width:0; background:var(--card); border:1px solid var(--line); color:var(--text); border-radius:10px; padding:9px 12px; font:inherit; }
+.star { background:none; border:0; color:var(--muted); font-size:1.25rem; line-height:1; padding:0 2px; cursor:pointer; float:right; } .star.on { color:var(--warn); }
+.wish { margin-top:6px; padding-top:6px; border-top:1px dashed var(--line); font-size:.85rem; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.wish input { width:6.5em; background:var(--bg); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:4px 6px; font:inherit; }
+.wish .buy { color:var(--ok); font-weight:700; } .wish .wait { color:var(--warn); }
+.badge { background:var(--ok); color:#fff; border-radius:999px; padding:0 6px; font-size:.72rem; margin-left:4px; }
+.empty { color:var(--muted); padding:20px 0; }
+/* HOME (21 Nov): big colourful tiles like Commercial 1 HQ's home screen, no tab bar */
+.tiles { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:6px; }
+.tile { position:relative; border:0; border-radius:18px; padding:16px 14px 14px; min-height:128px; text-align:left; color:#fff; font:inherit; cursor:pointer; box-shadow:0 6px 18px rgba(0,0,0,.35); display:flex; flex-direction:column; justify-content:space-between; }
+.tile .n { font-size:2rem; font-weight:800; line-height:1; } .tile .t { font-weight:700; font-size:1.02rem; } .tile .d { font-size:.78rem; opacity:.9; margin-top:2px; }
+.tile.wide { grid-column:1 / -1; min-height:96px; }
+.t-deals { background:linear-gradient(135deg,#ff5a1f,#e2266b); } .t-new { background:linear-gradient(135deg,#7b4dff,#3d7bff); } .t-slabs { background:linear-gradient(135deg,#10a37f,#0b7fa6); } .t-soon { background:linear-gradient(135deg,#f2b33d,#e67b12); } .t-wish { background:linear-gradient(135deg,#e2266b,#9b2fd6); }
+.top { display:flex; align-items:center; gap:10px; } .back { border:1px solid var(--line); background:var(--card); color:var(--text); border-radius:999px; padding:5px 12px; font:inherit; font-size:.85rem; cursor:pointer; }
+h2.view { font-size:1.2rem; margin:4px 0 2px; }
+@media (min-width:640px) { .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; } .grid .card { margin:0; } }
+</style>
 </head>
 <body>
-<div class="shell">
-<aside class="side" id="side" aria-label="Features">
-  <div class="modes" role="tablist" aria-label="Desk"><button type="button" class="mode" data-mode="alts" role="tab">Alts &amp; perps</button><button type="button" class="mode" data-mode="memes" role="tab">Memes</button></div>
-  <div class="sgroup" data-mode="memes">Overview</div>
-  <button type="button" class="sitem vtab" data-mode="memes" data-tab="zone" title="Buy zone" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".8" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><span>Buy zone</span></button><button type="button" class="sitem vtab" data-mode="memes" data-tab="mkt" title="Market" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg><span>Market</span></button><button type="button" class="sitem vtab" data-mode="memes" data-tab="vol" title="Volume" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V11M10 20V5M16 20v-7M22 20H2"/></svg><span>Volume</span></button><button type="button" class="sitem vtab" data-mode="memes" data-tab="scan" title="Scan info" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 12l6-6"/><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/></svg><span>Scan info</span></button>
-  <div class="sgroup" data-mode="memes">Trades</div>
-  <a class="sitem" data-mode="memes" href="#volume" data-sec="volume" title="Volume list"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg><span>Best bets</span></a>
-  <a class="sitem" data-mode="memes" href="#bid" data-sec="bid" title="Bid-ready"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/></svg><span>Bid-ready</span></a>
-  <a class="sitem" data-mode="memes" href="#runners" data-sec="runners" title="High risk runners"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3 4 4.5 4 8a4 4 0 0 1-8 0c0-1.5.6-2.4 1.4-3.4"/><path d="M12 21a6 6 0 0 0 6-6"/></svg><span>Runners</span></a>
-  <a class="sitem" data-mode="memes" href="#spotmeme" data-sec="spotmeme" title="Spot &amp; chill setups"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 18L9 8l4 6 3-4 5 8"/><path d="M3 6l18 10"/></svg><span>Spot &amp; chill</span></a>
-  <a class="sitem" data-mode="memes" href="#plans" data-sec="plans" title="Worth watching"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg><span>Worth watching</span></a>
-  <a class="sitem" data-mode="memes" href="#patterns" data-sec="patterns" title="Patterns"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg><span>Patterns</span></a>
-  <div class="sgroup" data-mode="alts">Alts &amp; perps</div>
-  <a class="sitem" data-mode="alts" href="#planner" data-sec="planner" title="Perps planner"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18h16M4 6h16M7 14l3-3 3 2 4-5"/></svg></a>
-  <a class="sitem" data-mode="alts" href="#alts" data-sec="alts" title="Alts desk"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg><span>Alts desk</span></a>
-  <div class="sgroup" data-mode="paper">Results</div>
-  <a class="sitem" data-mode="paper" href="#paper" data-sec="paper" title="Paper trading"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12.5h2M3 10h18"/></svg><span>Paper trading</span></a><a class="sitem" data-mode="paper" href="#log" data-sec="log" title="Signal log"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Signal log</span></a><a class="sitem" data-mode="paper" href="#learn" data-sec="learn" title="What works"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0012 3z"/></svg><span>What works</span></a><a class="sitem" data-mode="paper" href="#backtest" data-sec="backtest" title="Backtest"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Backtest</span></a>
-  <div class="sgroup">Tools</div>
-  <a class="sitem" href="#lookup" data-sec="lookup" title="Check a coin"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span>Check a coin</span></a>
-</aside>
-<div class="wrap">
-  <section class="card" data-mode="memes" id="lookup">
-    <h2>Check a coin</h2>
-    <p class="note">Type a ticker, name, or contract or pool address. If the coin is in the latest scan you get its row at once; otherwise it is scored live with the same rules. Works for Solana, Robinhood Chain and Ethereum.</p>
-    <form id="lookupForm" class="lookup"><input id="lookupQ" type="search" placeholder="e.g. BONK, WIF, or a contract address" aria-label="Look up a coin" autocomplete="off"><button type="submit">Check</button></form>
-    <div id="lookupOut" class="plans"></div>
-  </section>
-  <header class="hero">
-    <button class="rhino" id="rhino" type="button" aria-label="Menu" aria-haspopup="true" aria-expanded="false"><img class="logo" src="logo.png" alt="RynoScan rhinoceros logo"></button>
-    <h1>Ryno<span>Scan</span></h1>
-    <div class="rmenu" id="rmenu" hidden role="menu">
-      <p class="updated" id="updated" aria-live="polite">Last updated: loading…</p>
-      <button id="refreshBtn" class="mbtn" type="button" role="menuitem">Reload data</button>
-      <button type="button" class="mbtn" role="menuitem" id="rScanNow">Scan now (live, in this page)</button>
-      <p class="meta" id="refreshNote" aria-live="polite"></p>
-      <p class="meta" id="rNote">Scan now re-scores your tracked coins here in about 2 minutes. Nothing leaves this page and no GitHub run is needed.</p>
-    </div>
-  </header>
-  <section class="card" data-mode="memes" id="volume">
-    <h2>Volume list <span class="sub">follow the money</span></h2>
-    <p class="note">The day's biggest-volume coins on Solana and Robinhood, each watched for 48 hours after it was last on the list. A coin shows as <b>basing now</b> when it has run, pulled back into the 0.5-0.786 zone and gone sideways for 3 hours with its volume cooled but alive: bid the base, stop under it, sell 30% half-way back to the high and 40% at the high, keep 30% as a moonbag, and get out if the volume dies. Updated every 15 minutes. A shortlist, not a signal: most coins still go to zero, so size small.</p>
-    <div id="volOut"></div>
-  </section>
-  <p class="health" id="health" hidden></p>
-  <p class="hint" id="setupHint" hidden></p>
-  <section class="card verdict" data-mode="memes" id="verdict" hidden>
-    <div id="vTop"></div>
-    <div class="vwrap">
-      <div class="vpanes">
-        <div class="vpane" id="pane-zone" role="tabpanel" hidden><div id="zonePane"></div></div>
-        <div class="vpane" id="pane-mkt" role="tabpanel" hidden><div id="regBox"></div><div class="vgrid" id="fgGrid"></div></div>
-        <div class="vpane" id="pane-vol" role="tabpanel" hidden>
-          <div class="row"><b>On-chain volume today</b> <span class="pill" id="volPill">—</span></div>
-          <p class="tip" id="volTip">—</p>
-          <div class="vgrid" id="volGrid"></div>
-          <div id="volChart"></div>
-          <p class="meta">Dollar volume traded on-chain in the last 24 hours across the scanned coins that have at least 14 days of history, against the average of the 7 days before. Bars are the last 14 rolling 24-hour windows; the dashed line is the 7-day average. Thin volume means weaker follow-through and stops that slip, so on a poor day the sensible number of trades is none or one small one.</p>
-        </div>
-        <div class="vpane" id="pane-scan" role="tabpanel" hidden><div id="scanPane"></div></div>
-      </div>
-    </div>
-  </section>
-
-  <div class="ctl" data-mode="memes" id="ctl" aria-label="Filter and sort"></div>
-
-
-  <section class="tiles" data-mode="memes" id="tiles"></section>
-
-
-  <section class="card" data-mode="memes" id="bid">
-    <h2>Bid-ready charts</h2>
-    <p class="warnline" id="bidLosing" hidden></p>
-    <p class="note">Coins where all 7 gates pass, whether the setup is a bottom reversal or a chart pattern. Each chart shows the entry zone (shaded), stop (red) and take-profits (green) over 4h candles with volume underneath; the purple dashed line is the pattern's neckline, rim or trend lines.</p>
-    <p class="empty" id="bidEmpty" hidden></p>
-    <div class="plans" id="bidList"></div>
-  </section>
-
-  <section class="card" data-mode="memes" id="runners">
-    <h2>High risk, high reward runners</h2>
-    <p class="note">Coins with unusual volume, buyers leading, more wallets buying than selling and holders growing. Each card shows four checks. Coins that trip a risk rule (wallets selling, a few wallets driving the volume, a flagged token, thin liquidity) are dropped from the list but still tracked, so the data can show whether the rules help. These are not bid-ready charts: they have no tested entry rules and can fall 50% or more, or be rugged. Updated on each full scan.</p>
-    <p class="empty" id="runEmpty" hidden></p>
-    <div class="plans" id="runList"></div>
-  </section>
-
-  <section class="card" data-mode="memes" id="spotmeme">
-    <h2>Spot &amp; chill meme setups</h2>
-    <p class="note">The Alts desk rules run over the meme universe on daily candles: a coin that has already run 100%+, is now correcting in a falling wedge, flag or flat base, and is close to resolving on a daily close. This is the chill method: the correction has to reach the 0.618 retracement of the last leg (purple lines mark 0.5 / 0.618 / 0.786 / 0.886), and a wedge whose low lands on a fib scores best. When volume is still rising on the way down, the range isn't tightening, or price is sitting on the low without a bounce, the card carries a warning that it may run deeper to 0.786 / 0.886 first: a judgement call for you, not a gate. Entry is the daily close through the red line; invalidation is the next fib down. Meme rules for the exit: small size, clip 20% into strength, moonbag the rest. Updated once a day after the UTC close.</p>
-    <div id="spotMemeOut"></div>
-  </section>
-
-  <section class="card" data-mode="memes" id="plans">
-    <h2>Worth watching</h2>
-    <p class="note">Valid plan, $250k+ volume and close to bid-ready, ranked by opportunity score. Risk is shown, not capped: the stop sits wherever the setup is proved wrong, so check the stop distance before sizing.</p>
-    <div class="plans" id="watchList"></div>
-  </section>
-
-  <section class="card" data-mode="memes" id="patterns">
-    <h2>Chart patterns and bottomed-out charts</h2>
-    <p class="note">Bottomed-out charts are coins that sold off to oversold, stopped making lower lows and are now turning up (an RSI flip, a divergence or a higher low). They are early: levels are indicative until all 7 gates pass. Chart patterns (bull flag, inverse head and shoulders, cup and handle, falling wedge, double bottom) are found on the 4h chart by fixed rules; the purple lines on each chart are the pattern itself.</p>
-    <div class="chips" id="patChips"></div>
-    <div class="plans" id="patList"></div>
-  </section>
-
-  <section class="card" data-mode="alts" id="planner">
-    <h2>Perps planner <span class="sub">limits only, never chase</span></h2>
-    <p class="note">Type or pick a ticker. The plan is built live from Gate.io's USDT perpetual charts: a <b>limit entry</b> at the nearest real support (resistance for a short) that the daily and 4-hour charts have turned at before, the <b>stop</b> past it by half a day's average range, <b>TPs</b> at the next levels (40% / 30% / 30%, stop to entry after TP1), and the money at your margin and leverage: what the stop costs, what each TP pays, and the liquidation price. Graded A only with the trend on its side and 2R+ to TP2. Set the order, the stop and the TPs together, then leave it: if the limit never fills, there was no trade. This is a plan to check against the chart, not a signal; nothing here has been proven to beat the market.</p>
-    <h3 style="margin:.4rem 0">Setups now</h3>
-    <div id="planScan"><p class="meta">Checking the desk's alts…</p></div>
-    <h3 style="margin:1rem 0 .4rem">Plan a trade</h3>
-    <form id="planForm" class="lookup"><input id="planQ" list="planList" type="search" placeholder="Ticker, e.g. UNI" aria-label="Ticker" autocomplete="off" autocapitalize="characters"><datalist id="planList"></datalist><button type="submit">Plan</button></form>
-    <div class="chips" id="planPicks" style="margin-top:10px"></div>
-    <div class="chips" id="planSide"><button type="button" class="chip" data-v="long">Long</button><button type="button" class="chip" data-v="short">Short</button></div>
-    <div class="chips" id="planLev"><span class="meta" style="align-self:center">Leverage</span><button type="button" class="chip" data-v="3">3x</button><button type="button" class="chip" data-v="5">5x</button><button type="button" class="chip" data-v="7">7x</button><button type="button" class="chip" data-v="10">10x</button></div>
-    <div class="chips" id="planMarginChips"><span class="meta" style="align-self:center">Margin</span><button type="button" class="chip" data-v="25">$25</button><button type="button" class="chip" data-v="50">$50</button><button type="button" class="chip" data-v="100">$100</button><label class="meta" style="align-self:center">or $ <input id="planMargin" type="number" inputmode="decimal" min="1" step="10" style="width:5.5em" class="chip"></label></div>
-    <div id="planOut"></div>
-    <details class="fold"><summary>The rules for every trade</summary><p class="note">1. Limit orders only, at the planned level: no market buys, no chasing a candle. 2. The stop goes in with the entry, never moved further away. 3. Check what the stop costs (it's in the plan) before placing the order; if that's more than you'd shrug off, use less margin or lower leverage. 4. Two positions at most at a time. 5. Two stop-outs in a day: done for the day. 6. Leverage no higher than the planner's safe figure, so the liquidation sits well past the stop. 7. An A grade is a reason to place the order, not a promise.</p></details>
-  </section>
-
-  <section class="card" data-mode="alts" id="alts">
-    <h2>Alts desk <span class="sub">timing beats time · spot &amp; chill</span></h2>
-    <p class="note">Market Watcher-style HTF spot setups on the top 80 alts by volume. Patterns are judged on daily closes (a setup changes state once a day, after the UTC close); prices and the 1h / 4h charts refresh every hour. Regime first (BTC and the alt basket above their weekly support), then coins that have already run 50%+ and are correcting in a falling wedge, bull flag or flat base. WATCH is a pattern forming; DECISION is price pressing the upper line; BID is a daily close through it, on volume. Entry is that close, invalidation sits under the pattern low, T1 is the impulse high and T2/T3 the measured move. Phone alerts fire only when a state changes. Relative strength, the spot book and the playbook are on the chips below.</p>
-    <div id="altsOut"></div>
-  </section>
-
-  <section class="card" data-mode="paper" id="paper">
-    <h2>Paper desk</h2>
-    <p class="note">Fifteen paper books, each with its own $10,000: conservative (bid-ready setups, and risky coins under three exit plans), the degen desk plus three other exit plans on the same coins (ladder, moonbag, and cut-on-sellers), three playbook setups (Fib pullback, inside the pattern, proven wallets), an early-move book fed by a 15-minute checker plus a "buy the flush" version of it, a breakout scalper and a random-entry baseline every book must beat. The Council tab is six rule-based reviewers that argue over the results and a chair that gives one final answer. Bot sim trades them through one risk-sized account. No real money is involved.</p>
-    <div id="paperOut"></div>
-  </section>
-
-  <details class="card fold" data-mode="paper" id="log">
-    <summary><h2 style="display:inline">Signal log &amp; results (audit trail)</h2></summary>
-    <p class="note">Every bid-ready signal the rules have fired, re-checked against new candles on each scan: filled inside 48 hours, a third sold at each target, stop moved to breakeven after TP1, 7-day time exit. Results are in R (1R = the distance from entry to stop).</p>
-    <div id="rChart"></div>
-    <div class="scroll"><table class="tbl" id="logTbl"><thead><tr><th>Signal</th><th>Coin</th><th>Setup</th><th>Kind</th><th>Entry</th><th>Stop</th><th>Price now</th><th>Why it ended</th><th class="n">Result</th></tr></thead><tbody></tbody></table></div>
-  </details>
-
-  <details class="card" data-mode="paper" id="all">
-    <summary><h2 style="display:inline">Review every coin above 65</h2></summary>
-    <div class="scroll"><table class="tbl" id="allTbl"><thead><tr><th>Coin</th><th>Chain</th><th>Signal</th><th>Setup</th><th class="n">Opp</th><th class="n">Checks</th><th class="n">Gates</th><th class="n">Risk %</th><th class="n">Upside %</th><th class="n">24h vol</th><th class="n">Liquidity</th><th class="n">Holders</th></tr></thead><tbody></tbody></table></div>
-  </details>
-
-  <details class="card fold" data-mode="paper" id="learn">
-    <summary><h2>What the data says</h2></summary>
-    <p class="tip" id="learnTip">Nothing learned yet.</p>
-    <div class="scroll"><table class="tbl" id="learnTbl"><thead><tr><th>Setup</th><th class="n">Trades</th><th class="n">Win</th><th class="n">Avg R</th><th class="n">90% range</th><th>Verdict</th></tr></thead><tbody></tbody></table></div>
-    <ul class="note" id="learnIns"></ul>
-    <div id="edgeBox"></div>
-    <div id="gateBox"></div>
-    <div id="runnerBox"></div>
-    <div id="analystBox"></div>
-    <p class="note">Every week the backtest replays all patterns, including new candidates, and adds the live signal log. A setup is switched off only when its results are reliably negative, and a candidate goes live only when they are reliably positive. Small samples never change anything.</p>
-  </details>
-
-  <details class="card fold" data-mode="paper" id="backtest">
-    <summary><h2>Backtest: do the rules work?</h2></summary>
-    <p class="tip" id="btVerdict">No backtest has run yet. Run the "RynoScan backtest" workflow once (Actions tab); it then refreshes every Sunday.</p>
-    <div class="scroll"><table class="tbl" id="btTbl"><thead><tr><th>Setup</th><th class="n">Signals</th><th class="n">Closed</th><th class="n">Win rate</th><th class="n">Avg R</th><th class="n">Median R</th><th class="n">Profit factor</th><th class="n">Hit TP1</th></tr></thead><tbody></tbody></table></div>
-    <p class="meta" id="btReal"></p>
-    <div id="btExitWrap" hidden><h3>Exit rule comparison</h3><p class="meta">The same signals replayed with different stop rules after TP1. Pick a rule only if it is clearly better on a large sample.</p><table class="tbl" id="btExit"><thead><tr><th>Exit rule</th><th class="n">Closed</th><th class="n">Win</th><th class="n">Avg R</th><th class="n">Profit factor</th></tr></thead><tbody></tbody></table></div>
-    <ul class="note" id="btNotes"></ul>
-  </details>
-
-  <p class="foot">Rule-based screen, not financial advice. Rules are untested until the signal log has about 30 closed signals. Meme coins can go to zero and stops can gap on thin liquidity.</p>
-</div>
-</div>
-<script type="module" src="app.js?v=d28fa405ea"></script>
+<header>
+  <h1>Card <span>Finder</span> <a href="crypto.html" style="float:right;font-size:.8rem;font-weight:500;color:var(--muted);text-decoration:none;margin-top:4px">Crypto scanner →</a></h1>
+  <div class="sub" id="upd">Loading…</div>
+  <div class="search"><input id="q" type="search" placeholder="Search a card: e.g. Luffy manga, Umbreon 161, Goku SCR" autocomplete="off" aria-label="Search cards"></div>
+  <div class="chips" id="games"><button class="chip" data-g="all">All</button><button class="chip" data-g="OP">One Piece</button><button class="chip" data-g="PK">Pokémon</button><button class="chip" data-g="PJ">Pokémon JP</button><button class="chip" data-g="DB">Dragon Ball</button></div>
+  <div class="top" id="backrow"></div>
+  <div class="chips" id="filt"></div>
+</header>
+<main id="out"></main>
+<script type="module">
+const $ = (id) => document.getElementById(id), el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
+const store = { get: (k, d) => { try { const v = localStorage.getItem('cf-' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set: (k, v) => { try { localStorage.setItem('cf-' + k, JSON.stringify(v)); } catch {} } };
+const S = { wish: store.get('wish', {}), q: '', idx: null, tab: 'home', game: store.get('game', 'all'), hz: store.get('hz', 'all'), band: store.get('band', 'all'), D: null };
+const GN = { OP: 'One Piece', PK: 'Pokémon', PJ: 'Pokémon JP', DB: 'Dragon Ball' }, aud = (x) => 'A$' + (x >= 100 ? Math.round(x).toLocaleString('en-AU') : x.toFixed(2)), pc = (x) => (x == null ? '—' : (x >= 0 ? '+' : '') + Math.round(x * 100) + '%');
+const ago = (iso) => { const d = Math.round((Date.now() - Date.parse(iso)) / 86400e3); return d <= 0 ? 'today' : d === 1 ? 'yesterday' : d + ' days ago'; };
+function spark(sp) { if (!sp || sp.length < 2) return null; const w = 150, h = 34, lo = Math.min(...sp), hi = Math.max(...sp), y = (v) => h - 3 - ((v - lo) / (hi - lo || 1)) * (h - 6), x = (i) => (i / (sp.length - 1)) * (w - 4) + 2;
+  const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('class', 'sp'); s.setAttribute('width', w); s.setAttribute('height', h); s.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  const p = document.createElementNS(s.namespaceURI, 'polyline'); p.setAttribute('points', sp.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ')); p.setAttribute('fill', 'none'); p.setAttribute('stroke', sp[sp.length - 1] >= sp[0] ? 'var(--ok)' : 'var(--bad)'); p.setAttribute('stroke-width', '1.8'); s.append(p); return s; }
+function cardEl(c) { const d = el('div', 'card'), im = el('img'); im.src = c.img; im.alt = ''; im.loading = 'lazy'; im.onerror = () => { im.style.visibility = 'hidden'; }; d.append(im); const b = el('div');
+  const nm = el('div', 'name'); if (c.id) { const st = el('button', 'star' + (S.wish[c.id] ? ' on' : ''), S.wish[c.id] ? '★' : '☆'); st.type = 'button'; st.title = S.wish[c.id] ? 'On your wish list' : 'Add to your wish list'; st.onclick = () => toggleWish(c); nm.append(st); } nm.append(c.name + (c.sub && !/^Normal$/.test(c.sub) ? ` · ${c.sub}` : '')); b.append(nm);
+  const m = el('div', 'meta', `${c.cat || GN[c.g] || c.g} · ${c.set}${c.num ? ' · #' + c.num : ''}${c.rar ? ' · ' + c.rar : ''}`); const hz = el('span', 'hz', c.hz === 'short' ? 'short hold' : c.hz === 'medium' ? 'medium hold' : 'long hold'); m.append(hz); b.append(m);
+  const pr = el('div', 'price'); pr.append(el('b', null, aud(c.aud))); if (c.high && c.off != null && c.off < -0.05) pr.append(el('span', 'off', `${pc(c.off)} from ${aud(c.high)}`)); if (c.ch7 != null) pr.append(el('span', c.ch7 >= 0 ? 'up' : 'down', `${pc(c.ch7)} 7d`)); if (c.ch30 != null) pr.append(el('span', c.ch30 >= 0 ? 'up' : 'down', `${pc(c.ch30)} 30d`)); b.append(pr);
+  const sp = spark(c.sp); if (sp) b.append(sp);
+  b.append(el('div', 'st ' + (c.stKey || ''), c.st + (c.thin ? ' · few sellers, price may be soft' : '')));
+  if (c.check) { const w = el('div', 'st falling', 'Big drop on a rarely sold card: check the sold prices before trusting it'); b.append(w); }
+  const L = el('div', 'links'), q = encodeURIComponent(`${c.name.replace(/\s*\(.*?\)\s*/g, ' ')} ${c.num || ''} ${c.g === 'OP' ? 'one piece' : c.g === 'DB' ? 'dragon ball' : 'pokemon'}`.trim());
+  /* 21 Nov: buy links first (Buy It Now in Australia, cheapest first; TCGplayer Direct ships Pokémon singles to Australia with GST and buyer protection), then the sold prices to check against */
+  const bin = (x) => `https://www.ebay.com.au/sch/i.html?_nkw=${x}&LH_BIN=1&_sop=15&LH_PrefLoc=1`, sold = (x) => `https://www.ebay.com.au/sch/i.html?_nkw=${x}&LH_Sold=1&LH_Complete=1`;
+  const B = el('div', 'links buy'); B.append(el('span', 'meta', 'Buy:')); for (const [t, u] of [['eBay AU', bin(q)], ['PSA 10 on eBay AU', bin(q + '+psa+10')], [c.g === 'PK' ? 'TCGplayer (Direct ships to AU)' : 'TCGplayer (US, via a forwarder)', c.url]]) { if (!u) continue; const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; B.append(a); } b.append(B);
+  L.append(el('span', 'meta', 'Check:')); for (const [t, u] of [['eBay AU sold', sold(q)], ['PSA 10 sold', sold(q + '+psa+10')]]) { const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; L.append(a); }
+  b.append(L); if (S.tab === 'wish' && S.wish[c.id]) b.append(wishRow(c)); d.append(b); return d; }
+/* THE WISH LIST (21 Nov): cards Ryan wants, each with the price he'd pay (it starts at a suggested target: the 2-week low, or 10% under
+   today's price while it is still falling). Kept on this phone; Copy / Paste moves it to another device. */
+function saveWish() { store.set('wish', S.wish); }
+function toggleWish(c) { if (S.wish[c.id]) delete S.wish[c.id]; else S.wish[c.id] = { target: c.tgt || Math.round(c.aud), added: new Date().toISOString().slice(0, 10), name: c.name, g: c.g, set: c.set, num: c.num || '', sub: c.sub || '', aud0: c.aud }; saveWish(); draw(); }
+function wishRow(c) { const w = S.wish[c.id], r = el('div', 'wish'), i = el('input'); i.type = 'number'; i.inputMode = 'decimal'; i.value = w.target; i.setAttribute('aria-label', 'Your price');
+  i.onchange = () => { w.target = Math.max(1, +i.value || w.target); saveWish(); draw(); }; r.append(el('span', null, 'Your price A$'), i);
+  const gap = c.aud / w.target - 1; r.append(gap <= 0 ? el('span', 'buy', 'At your price: buy now') : el('span', 'wait', `A$${Math.round(c.aud - w.target)} (${Math.round(gap * 100)}%) above your price`)); r.append(el('span', 'meta', `added ${w.added} at ${aud(w.aud0)}`)); return r; }
+async function loadIndex() { if (S.idx) return S.idx; let m = new Map(); try { const r = await fetch('cards/data/index.json?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) { const j = await r.json(); m = new Map(j.cards.map((c) => [c.id, c])); } } catch {} S.idx = m; return m; } /* a failed load still settles (no endless retries) */
+const words = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9.]+/g, ' ').trim();
+const byGame = (x) => S.game === 'all' || x.g === S.game;
+const inBand = (c) => S.band === 'all' || (S.band === 'lo' ? c.aud < 300 : S.band === 'mid' ? c.aud >= 300 && c.aud < 600 : c.aud >= 600);
+function filters() { const f = $('filt'); f.replaceChildren(); if (S.tab !== 'deals') return;
+  for (const [k, t] of [['all', 'Any hold'], ['short', 'Short'], ['medium', 'Medium'], ['long', 'Long']]) { const b = el('button', 'chip' + (S.hz === k ? ' on' : ''), t); b.onclick = () => { S.hz = k; store.set('hz', k); draw(); }; f.append(b); }
+  for (const [k, t] of [['all', 'Any price'], ['lo', '$100–300'], ['mid', '$300–600'], ['hi', '$600–1,000']]) { const b = el('button', 'chip' + (S.band === k ? ' on' : ''), t); b.onclick = () => { S.band = k; store.set('band', k); draw(); }; f.append(b); } }
+const TITLES = { deals: 'Dropped deals', new: 'New releases', slabs: 'Slabs on sale', soon: 'Upcoming sets', wish: 'Wish list' };
+function go(t) { S.tab = t; S.q = ''; $('q').value = ''; draw(); window.scrollTo(0, 0); }
+function home(out) { const D = S.D || { deals: [], newSets: [], upcoming: [] }, deals = D.deals.filter(byGame), ns = D.newSets.filter(byGame), look = ns.filter((s) => s.ready).length, sl = ((S.slabs && S.slabs.items) || []).filter(byGame), up = D.upcoming.filter(byGame), wn = Object.keys(S.wish).length, at = S.idx ? Object.keys(S.wish).filter((id) => { const c = S.idx.get(id); return c && c.aud <= S.wish[id].target; }).length : 0;
+  const tile = (cls, key, n, t, d) => { const b = el('button', 'tile ' + cls); b.type = 'button'; b.append(el('div', 'n', String(n))); const w = el('div'); w.append(el('div', 't', t), el('div', 'd', d)); b.append(w); b.onclick = () => go(key); return b; };
+  const g = el('div', 'tiles'); g.append(tile('t-deals wide', 'deals', deals.length, 'Dropped deals', `A$100–1,000 cards 25%+ off their high that have stopped falling${deals.length ? ` · best ${Math.round(-Math.min(...deals.filter((c) => !c.check).map((c) => c.off)) * 100) || 0}% off` : ''}`),
+    tile('t-new', 'new', ns.length, 'New releases', look ? `${look} set${look > 1 ? 's' : ''} settled: look now` : 'chase cards after launch'), tile('t-slabs', 'slabs', sl.length, 'Slabs on sale', 'graded cards under their valuation'),
+    tile('t-wish', 'wish', wn, 'Wish list', at ? `${at} at your price: buy now` : wn ? 'none at your price yet' : 'star cards to add them'), tile('t-soon', 'soon', up.length, 'Upcoming', 'sets coming out soon'));
+  out.append(g); out.append(el('p', 'note', 'Search any card above, or pick a game. Prices are TCGplayer\'s market prices (raw, near mint) in AUD, refreshed every morning.')); }
+function draw() { const D = S.D, out = $('out'); out.replaceChildren(); badge();
+  const bk = $('backrow'); bk.replaceChildren(); if (S.tab !== 'home' || S.q.length >= 2) { const b = el('button', 'back', '← Home'); b.onclick = () => go('home'); bk.append(b, el('h2', 'view', S.q.length >= 2 ? 'Search' : TITLES[S.tab] || '')); }
+  if (S.tab === 'home' && S.q.length < 2) { document.querySelectorAll('#games .chip').forEach((b) => b.classList.toggle('on', b.dataset.g === S.game)); $('filt').replaceChildren(); home(out); return; } document.querySelectorAll('#games .chip').forEach((b) => b.classList.toggle('on', b.dataset.g === S.game)); filters();
+  if (!D) { out.append(el('p', 'empty', 'The card list fills in after the first daily run.')); return; }
+  if (S.q.length >= 2) { const I = S.idx; if (!I) { out.append(el('p', 'empty', 'Loading every card…')); loadIndex().then(draw); return; }
+    const t = words(S.q).split(' '), L = [...I.values()].filter(byGame).filter((c) => { const h = words(`${c.name} ${c.set} ${c.abbr || ''} ${c.num || ''} ${c.sub || ''} ${c.rar || ''} ${GN[c.g]}`); return t.every((w) => h.includes(w)); }).sort((a, b) => b.aud - a.aud);
+    out.append(el('p', 'note', `${L.length} card${L.length === 1 ? '' : 's'} match "${S.q}" (searching every card the finder tracks: A$60 and up). Tap ☆ to add one to your wish list.`)); const g = el('div', 'grid'); for (const c of L.slice(0, 60)) g.append(cardEl(c)); out.append(g); if (L.length > 60) out.append(el('p', 'note', `${L.length - 60} more: add a word to narrow it.`)); return; }
+  if (S.tab === 'wish') { const ids = Object.keys(S.wish); out.append(el('p', 'note', 'Your wish list: the cards you want and the price you would pay. Each one starts at a suggested price (its 2-week low, or 10% under today while it is still falling): change it any time. When a card reaches your price it moves to the top. Kept on this phone only: use Copy list to keep a backup or move it to another device.'));
+    const bar = el('div', 'chips'), cp = el('button', 'chip', 'Copy list'), ps = el('button', 'chip', 'Paste list'); cp.onclick = async () => { const t = JSON.stringify(S.wish); try { await navigator.clipboard.writeText(t); cp.textContent = 'Copied'; } catch { window.prompt('Copy this:', t); } };
+    ps.onclick = () => { const t = window.prompt('Paste a copied wish list:'); if (!t) return; try { const j = JSON.parse(t); Object.assign(S.wish, j); saveWish(); draw(); } catch { alert('That is not a copied wish list.'); } }; bar.append(cp, ps); out.append(bar);
+    if (!ids.length) { out.append(el('p', 'empty', 'Nothing on it yet. Search for a card above, or tap ☆ on any card in the other tabs.')); return; }
+    const I = S.idx; if (!I) { out.append(el('p', 'empty', 'Loading today\'s prices…')); loadIndex().then(draw); return; }
+    const L = ids.map((id) => I.get(id) || { id, ...S.wish[id], aud: S.wish[id].aud0, st: 'Not priced today (under A$60 or no recent sales)', stKey: 'holding', sp: [] }).filter(byGame).sort((a, b) => a.aud / S.wish[a.id].target - b.aud / S.wish[b.id].target);
+    const g = el('div', 'grid'); for (const c of L) g.append(cardEl(c)); out.append(g); return; }
+  if (S.tab === 'deals') { const L = D.deals.filter(byGame).filter((c) => S.hz === 'all' || c.hz === S.hz).filter(inBand).sort((a, b) => (a.check ? 1 : 0) - (b.check ? 1 : 0)); /* cards to double-check go below the clean ones */
+    out.append(el('p', 'note', `Cards worth A$${D.band[0]}–${D.band[1]} that are 25%+ under their 6-month high and have stopped falling (steady or turning up over the last 2 weeks). Hold length goes by the set's age: short under 9 months (still settling after launch), medium 9–30 months, long older (out of print). Biggest drops first; cards whose drop needs checking against sold prices come after them.`));
+    if (!L.length) { out.append(el('p', 'empty', 'Nothing matches these filters today.')); return; } const g = el('div', 'grid'); for (const c of L.slice(0, 80)) g.append(cardEl(c)); out.append(g); if (L.length > 80) out.append(el('p', 'note', `${L.length - 80} more not shown: narrow the filters.`)); return; }
+  if (S.tab === 'new') { const L = D.newSets.filter(byGame); out.append(el('p', 'note', 'Sets released in the last ~10 weeks and their dearest cards. Chase cards usually peak at launch and slide for a few weeks as more packs are opened: wait while they are still falling; look when they have settled.'));
+    if (!L.length) { out.append(el('p', 'empty', 'No new sets in the last 10 weeks for this game.')); return; }
+    for (const s of L) { const box = el('div', 'set'); box.append(el('h2', null, `${s.set}${s.abbr ? ' (' + s.abbr + ')' : ''}`), el('div', 'meta', `${GN[s.g]} · released ${s.rel || '?'} (${s.age} days ago) · chase cards ${pc(s.avgOff)} from their highs on average`));
+      const v = el('div', 'verdict', s.verdict); v.style.color = s.ready ? 'var(--ok)' : s.falling ? 'var(--bad)' : 'var(--warn)'; box.append(v); const g = el('div', 'grid'); for (const c of s.chase) g.append(cardEl(c)); box.append(g); out.append(box); } return; }
+  if (S.tab === 'slabs') { const X = S.slabs; out.append(el('p', 'note', 'Graded slabs listed on Collector Crypt (the Pokémon gacha on Solana, sold through Magic Eden) for at least 10% under Collector Crypt\'s own valuation of the card. You pay in SOL from a Solana wallet such as Phantom. The slab sits in a US vault until you redeem it: redeeming costs 2% of the insured value plus insured shipping to Australia, so a small discount can disappear in fees. Check the grade, the card and the PSA 10 sold prices before buying.'));
+    if (!X || !X.items) { out.append(el('p', 'empty', 'The slab list fills in after the next daily run.')); return; } const L2 = X.items.filter(byGame); out.append(el('p', 'meta', `${X.seen} Collector Crypt listings read ${ago(X.at)} · SOL at US$${Math.round(X.solUsd)}`));
+    if (!L2.length) { out.append(el('p', 'empty', 'No slabs under their valuation for this game right now.')); return; } const g = el('div', 'grid');
+    for (const c of L2.slice(0, 60)) { const d = el('div', 'card'), im = el('img'); im.src = c.img || ''; im.alt = ''; im.loading = 'lazy'; im.onerror = () => { im.style.visibility = 'hidden'; }; d.append(im); const b = el('div'); b.append(el('div', 'name', c.name), el('div', 'meta', `${GN[c.g]}${c.grade ? ' · ' + c.grade : ''}${c.vault ? ' · vault: ' + c.vault : ''}`));
+      const pr = el('div', 'price'); pr.append(el('b', null, aud(c.aud)), el('span', 'off', `${Math.round(c.under * 100)}% under its ${aud(c.insAud)} valuation`)); b.append(pr); b.append(el('div', 'meta', `${c.sol} SOL`));
+      const Lk = el('div', 'links'), a = el('a', null, 'Buy on Magic Eden'); a.href = c.url; a.target = '_blank'; a.rel = 'noopener'; const q2 = encodeURIComponent(c.name.replace(/^\d{4}\s*#\S+\s*/, '').slice(0, 80)), a2 = el('a', null, 'eBay AU sold'); a2.href = `https://www.ebay.com.au/sch/i.html?_nkw=${q2}&LH_Sold=1&LH_Complete=1`; a2.target = '_blank'; a2.rel = 'noopener'; Lk.append(a, a2); b.append(Lk); d.append(b); g.append(d); }
+    out.append(g); out.append(el('p', 'note', 'Courtyard (courtyard.io) also sells vaulted slabs and buys any card back at 90% of its fair market value, so a Courtyard listing under 90% of its FMV is close to risk-free. It has no public search to scan, so check its marketplace by hand.')); return; }
+  const L = D.upcoming.filter(byGame); out.append(el('p', 'note', 'Sets coming out soon. Prices before and just after release are usually the highest they will be: note the chase cards, then check the New releases tab 3–6 weeks after launch.'));
+  if (!L.length) { out.append(el('p', 'empty', 'No upcoming sets listed for this game.')); return; }
+  for (const s of L) { const box = el('div', 'set'); box.append(el('h2', null, `${s.set}${s.abbr ? ' (' + s.abbr + ')' : ''}`), el('div', 'meta', `${GN[s.g]} · out ${s.rel} (in ${s.days} days)`)); if (s.chase.length) { box.append(el('div', 'verdict', 'Pre-sale prices of its dearest cards:')); const g = el('div', 'grid'); for (const c of s.chase) g.append(cardEl(c)); box.append(g); } else box.append(el('p', 'note', 'No card prices listed yet.')); out.append(box); } }
+let qt = null; $('q').oninput = () => { clearTimeout(qt); qt = setTimeout(() => { S.q = $('q').value.trim(); draw(); }, 250); };
+function badge() { const b = null; if (!b) return; const n = S.idx ? Object.keys(S.wish).filter((id) => { const c = S.idx.get(id); return c && c.aud <= S.wish[id].target; }).length : 0; b.textContent = 'Wish list'; if (n) b.append(el('span', 'badge', String(n))); }
+document.querySelectorAll('#games .chip').forEach((b) => { b.onclick = () => { S.game = b.dataset.g; store.set('game', S.game); draw(); }; });
+(async () => { try { const r = await fetch('cards/data/cards.json?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) S.D = await r.json(); } catch {} try { const r = await fetch('cards/data/slabs.json?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) S.slabs = await r.json(); } catch {}
+  $('upd').textContent = S.D ? `Updated ${ago(S.D.at)} · TCGplayer prices (raw, near mint) in AUD` : 'No data yet'; if (Object.keys(S.wish).length) loadIndex().then(() => draw()); draw(); })();
+</script>
 </body>
 </html>

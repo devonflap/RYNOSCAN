@@ -3,10 +3,10 @@
 // nothing paid, so it runs on GitHub with every scan. Shared by the scanner (writes docs/data/council.json) and the dashboard.
 // It only ever acts on paper: the "council bot" in the bot simulator trades the books the chair approves. Real rules are never
 // switched on or off by the council; anything like that is listed under "needs your OK".
-import { book, statsBook, fromSignal, fromRun } from './exits.mjs?v=d28fa405ea';
-import { BOOKS } from './strategies.mjs?v=d28fa405ea';
-import { evidence, bootstrap, exitHint, pDiff, bhQ, sizeStudy } from './evidence.mjs?v=d28fa405ea';
-import { botBook, BOT } from './botsim.mjs?v=d28fa405ea';
+import { book, statsBook, fromSignal, fromRun } from './exits.mjs?v=ab059f3633';
+import { BOOKS } from './strategies.mjs?v=ab059f3633';
+import { evidence, bootstrap, exitHint, pDiff, bhQ, sizeStudy } from './evidence.mjs?v=ab059f3633';
+import { botBook, BOT } from './botsim.mjs?v=ab059f3633';
 
 export const HATS = [
   { key: 'stats', name: 'Statistician', role: 'counts the evidence', icon: '📊' },
