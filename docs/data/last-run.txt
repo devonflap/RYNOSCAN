@@ -1,4 +1,3 @@
-Full scan 17:31 Brisbane: 51 scanned, 45 scored, 5 above 65. On-chain volume Normal (0.95x 7-day avg).
+Hourly refresh 18:11 Brisbane: 5 tracked coins refreshed, 5 scored, 1 above 65. On-chain volume Normal (0.95x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: TTWO (Mint Authority still enabled), GTR (Top 10 holders high ownership), NET (owner can mint more), PUMP (top 10 wallets hold 59.5% (gate 30%)), TRUMP (Top 10 holders high ownership), VINE (top 10 wallets hold 41.2% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
