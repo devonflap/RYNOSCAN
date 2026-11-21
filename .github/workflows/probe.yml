@@ -1,5 +1,0 @@
-name: probe (one-off)
-on: workflow_dispatch
-permissions: { contents: read }
-jobs:
-  p: { runs-on: ubuntu-latest, timeout-minutes: 30, steps: [ { uses: actions/checkout@v4 }, { uses: actions/setup-node@v4, with: { node-version: 22 } }, { run: "OUT_DIR=/tmp/o node src/slabs.mjs && node -e \"const j=require('/tmp/o/slabs.json');const by={};for(const x of j.items)by[x.src]=(by[x.src]||0)+1;console.log(by);for(const x of j.items.filter(x=>x.src==='Collector Crypt').slice(0,8))console.log(Math.round(x.under*100)+'%',x.aud,x.insAud,x.grade,x.name.slice(0,70),x.url)\"" } ] }

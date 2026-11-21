@@ -286,3 +286,7 @@ These apply to every bot. To change one bot only, put it under `"bots"`, for exa
 - Checked and not added: TCGplayer's lowest listing (counts damaged copies: 1,228 false "deals"), Phygitals on Magic Eden (~80 slabs, no
   valuation), Tensor (needs a key), Beezie (no public listings), Yuyu-tei and Card Rush Pokémon (block automated reads), SNKRDUNK
   (prices not in the page). Courtyard is on OpenSea, which needs a free OpenSea API key.
+- Slabs on sale now also read Collector Crypt's own marketplace (api.collectorcrypt.com/marketplace, public, USDC prices; Ryan found
+  slabs priced well apart between it and Magic Eden). Asked one 10%-wide insured-value band at a time with listPriceMax at 90% of the
+  band's top, so ~90 requests cover A$100-1,500. First run: 148 deals there plus 36 on Magic Eden. Each slab says where it is listed;
+  Magic Eden ones link to the same card on Collector Crypt too.
