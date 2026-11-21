@@ -1,7 +1,4 @@
-Full scan 22:33 Brisbane: 53 scanned, 45 scored, 4 above 65. On-chain volume Below normal (0.78x 7-day avg).
+Hourly refresh 23:10 Brisbane: 3 tracked coins refreshed, 3 scored, 2 above 65. On-chain volume Below normal (0.78x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
-NEW watch: CATE (Solana) Liquidity sweep reclaim, opp 85, checks 6/6, stop 14.2% away, upside 42.4%.
-NEW watch: MIHAO (Solana) Bottom reversal, opp 67, checks 4/6, stop 30.4% away, upside 192.6%; more sellers than buyers in the last hour; volume fading.
-Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: USELESS (top 10 wallets hold 38.2% (gate 30%)), TTWO (Mint Authority still enabled), BP (Mint Authority still enabled), PUMP (top 10 wallets hold 59.5% (gate 30%)), ANSEM (Single holder ownership), TRUMP (Top 10 holders high ownership).
+Market: SOL neutral, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
