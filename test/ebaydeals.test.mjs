@@ -1,0 +1,21 @@
+// eBay AU under-market listings (22 Nov): which listing titles count as the card itself
+import { titleMatches, listingRow } from '../src/ebaydeals.mjs';
+const out = console.log; let f = 0; const ok = (c, m) => { out((c ? 'PASS ' : 'FAIL ') + m); if (!c) f = 1; };
+const manga = { name: 'Monkey.D.Luffy (119) (Manga)', num: 'OP05-119', g: 'OP', sub: 'Foil', aud: 900 }, alt = { ...manga, name: 'Monkey.D.Luffy (119) (Alternate Art)', aud: 300 };
+ok(titleMatches('Monkey D. Luffy OP05-119 Manga Alt Art Awakening of the New Era NM', manga), 'manga listing matches the manga card');
+ok(!titleMatches('Monkey D. Luffy OP05-119 Alt Art SEC Foil NM', manga), 'plain alt art is not the manga card');
+ok(titleMatches('Monkey D. Luffy OP05-119 SEC Alt Art Foil EN', alt), 'alt art listing matches the alt art card');
+ok(!titleMatches('Monkey D. Luffy OP05-119 Manga Alt Art', alt), 'manga listing is not the plain alt art');
+ok(!titleMatches('PSA 10 Monkey D. Luffy OP05-119 Manga', manga), 'slabs left out');
+ok(!titleMatches('One Piece OP05 singles - choose your card - OP05-119 Luffy manga', manga), '"choose your card" listings left out');
+ok(!titleMatches('Luffy OP05-119 manga Japanese', manga), 'Japanese copy is not the English card');
+ok(!titleMatches('Luffy OP05-118 manga', manga), 'wrong number');
+const pj = { name: 'Mega Rayquaza ex - 110/076', num: '110/076', g: 'PJ', sub: 'Holofoil', aud: 400 };
+ok(titleMatches('Mega Rayquaza ex SAR 110/076 M6 Japanese Pokemon', pj) && !titleMatches('Mega Rayquaza ex SAR 110/076', pj), 'Japanese card needs "Japanese" in the title');
+const pk = { name: "Team Rocket's Mewtwo ex - 231/182", num: '231/182', g: 'PK', sub: 'Holofoil', aud: 500 };
+ok(titleMatches("Team Rocket's Mewtwo ex 231/182 SIR Destined Rivals Pokemon", pk), 'apostrophe names');
+const r = listingRow({ title: 'Monkey D Luffy OP05-119 Manga NM', price: { value: '600', currency: 'AUD' }, shippingOptions: [{ shippingCost: { value: '10', currency: 'AUD' } }], itemWebUrl: 'https://www.ebay.com.au/itm/1' }, manga);
+ok(r && r.aud === 610 && Math.abs(r.under - 0.322) < 0.01, 'price includes postage: A$610 is 32% under A$900');
+ok(!listingRow({ title: 'Monkey D Luffy OP05-119 Manga NM', price: { value: '850', currency: 'AUD' } }, manga), 'only 6% under: not kept');
+ok(!listingRow({ title: 'Monkey D Luffy OP05-119 Manga NM', price: { value: '90', currency: 'AUD' } }, manga), '90% under: too good to be real, not kept');
+process.exit(f);

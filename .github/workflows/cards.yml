@@ -29,6 +29,11 @@ jobs:
         run: node src/cards.mjs
       - name: Slabs on sale (Collector Crypt on Magic Eden)
         run: node src/slabs.mjs || true
+      - name: eBay AU listings under market (needs the eBay keys in GitHub Secrets)
+        run: node src/ebaydeals.mjs || true
+        env:
+          EBAY_CLIENT_ID: ${{ secrets.EBAY_CLIENT_ID }}
+          EBAY_CLIENT_SECRET: ${{ secrets.EBAY_CLIENT_SECRET }}
       - name: Save
         run: |
           git config user.name "rynoscan-bot"
