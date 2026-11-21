@@ -1,5 +1,5 @@
 // eBay AU under-market listings (22 Nov): which listing titles count as the card itself
-import { titleMatches, listingRow } from '../src/ebaydeals.mjs';
+import { titleMatches, titleCheck, listingRow } from '../src/ebaydeals.mjs';
 const out = console.log; let f = 0; const ok = (c, m) => { out((c ? 'PASS ' : 'FAIL ') + m); if (!c) f = 1; };
 const manga = { name: 'Monkey.D.Luffy (119) (Manga)', num: 'OP05-119', g: 'OP', sub: 'Foil', aud: 900 }, alt = { ...manga, name: 'Monkey.D.Luffy (119) (Alternate Art)', aud: 300 };
 ok(titleMatches('Monkey D. Luffy OP05-119 Manga Alt Art Awakening of the New Era NM', manga), 'manga listing matches the manga card');
@@ -17,5 +17,15 @@ ok(titleMatches("Team Rocket's Mewtwo ex 231/182 SIR Destined Rivals Pokemon", p
 const r = listingRow({ title: 'Monkey D Luffy OP05-119 Manga NM', price: { value: '600', currency: 'AUD' }, shippingOptions: [{ shippingCost: { value: '10', currency: 'AUD' } }], itemWebUrl: 'https://www.ebay.com.au/itm/1' }, manga);
 ok(r && r.aud === 610 && Math.abs(r.under - 0.322) < 0.01, 'price includes postage: A$610 is 32% under A$900');
 ok(!listingRow({ title: 'Monkey D Luffy OP05-119 Manga NM', price: { value: '850', currency: 'AUD' } }, manga), 'only 6% under: not kept');
-ok(!listingRow({ title: 'Monkey D Luffy OP05-119 Manga NM', price: { value: '90', currency: 'AUD' } }, manga), '90% under: too good to be real, not kept');
+const cheapR = listingRow({ title: 'Monkey D Luffy OP05-119 Manga NM', price: { value: '200', currency: 'AUD' } }, manga); ok(cheapR && !cheapR.exact && cheapR.flags.includes('very cheap: check it is real'), 'very cheap: kept with a warning');
+ok(!listingRow({ title: 'Monkey D Luffy OP05-119 Manga NM', price: { value: '50', currency: 'AUD' } }, manga), '94% under: not a real listing for this card, not kept');
+// Ryan 22 Nov: show the near misses too, labelled
+const lab = (t, c) => (titleCheck(t, c) || { flags: ['DROPPED'] }).flags.join(', ');
+ok(lab('PSA 10 Monkey D. Luffy OP05-119 Manga', manga) === 'slab', 'slab labelled: ' + lab('PSA 10 Monkey D. Luffy OP05-119 Manga', manga));
+ok(lab('One Piece OP05 singles - choose your card - OP05-119 Luffy manga', manga) === 'lot or pick-a-card', 'pick-a-card labelled');
+ok(lab('Monkey D. Luffy OP05-119 Alt Art SEC Foil NM', manga) === 'maybe another version', 'other version labelled');
+ok(lab('Luffy OP05-119 manga Japanese', manga) === 'Japanese copy', 'Japanese copy labelled');
+ok(lab('Mega Rayquaza ex SAR 110/076', pj) === 'maybe the English copy', 'Japanese card without "Japanese" labelled');
+ok(lab('Luffy OP05-118 manga', manga) === 'DROPPED' && lab('Luffy OP05-119 manga sleeve', manga) === 'DROPPED', 'wrong number or not a card: still dropped');
+const sl = listingRow({ title: 'PSA 10 Luffy OP05-119 Manga', price: { value: '700', currency: 'AUD' } }, manga); ok(sl && !sl.exact && sl.flags[0] === 'slab', 'slab under market is shown, labelled');
 process.exit(f);

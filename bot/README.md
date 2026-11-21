@@ -280,7 +280,7 @@ These apply to every bot. To change one bot only, put it under `"bots"`, for exa
 - eBay links fixed (Ryan: links showed the wrong cards, then "No exact matches"). Searches are now the short name + exact card number + one
   version word (manga, SP, alt art, gold, winner...), tested on eBay AU: 20 of 21 searches found the card (the other has no listings).
   Raw-card searches leave out slabs, proxies and customs. docs/cards/ebayq.mjs, test/ebayq.test.mjs.
-- eBay AU under market (src/ebaydeals.mjs): live Buy It Now listings in Australia, with postage, 20%+ under the market price, for every
+- eBay AU under market (src/ebaydeals.mjs; Ryan 22 Nov: show near misses too, labelled: slab, lot, other version, Japanese copy, very cheap; "Exact matches only" switch on the page): live Buy It Now listings in Australia, with postage, 20%+ under the market price, for every
   deal and new-release chase card. Needs the free eBay developer keys in GitHub Secrets (EBAY_CLIENT_ID, EBAY_CLIENT_SECRET); skipped
   until they are there. Read-only public listings.
 - Checked and not added: TCGplayer's lowest listing (counts damaged copies: 1,228 false "deals"), Phygitals on Magic Eden (~80 slabs, no
