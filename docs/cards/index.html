@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Card Finder</title>
-<meta name="description" content="Pokémon and One Piece singles that have dropped in price: deals, new-release chase cards and upcoming sets.">
+<meta name="description" content="Pokémon, One Piece and Dragon Ball singles that have dropped in price: deals, new-release chase cards and upcoming sets.">
 <style>
 :root { --bg:#1c1f24; --card:#24282e; --line:#343a42; --text:#e8e5df; --muted:#9aa0a8; --accent:#e94e1b; --ok:#3fb37f; --warn:#e9a23b; --bad:#f05a62; }
 * { box-sizing:border-box; }
@@ -39,7 +39,7 @@ svg.sp { display:block; margin-top:4px; }
   <h1>Card <span>Finder</span></h1>
   <div class="sub" id="upd">Loading…</div>
   <div class="tabs" id="tabs"><button class="tab" data-t="deals">Dropped deals</button><button class="tab" data-t="new">New releases</button><button class="tab" data-t="soon">Upcoming</button></div>
-  <div class="chips" id="games"><button class="chip" data-g="all">All</button><button class="chip" data-g="OP">One Piece</button><button class="chip" data-g="PK">Pokémon</button><button class="chip" data-g="PJ">Pokémon JP</button></div>
+  <div class="chips" id="games"><button class="chip" data-g="all">All</button><button class="chip" data-g="OP">One Piece</button><button class="chip" data-g="PK">Pokémon</button><button class="chip" data-g="PJ">Pokémon JP</button><button class="chip" data-g="DB">Dragon Ball</button></div>
   <div class="chips" id="filt"></div>
 </header>
 <main id="out"></main>
@@ -47,18 +47,18 @@ svg.sp { display:block; margin-top:4px; }
 const $ = (id) => document.getElementById(id), el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
 const store = { get: (k, d) => { try { const v = localStorage.getItem('cf-' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set: (k, v) => { try { localStorage.setItem('cf-' + k, JSON.stringify(v)); } catch {} } };
 const S = { tab: store.get('tab', 'deals'), game: store.get('game', 'all'), hz: store.get('hz', 'all'), band: store.get('band', 'all'), D: null };
-const GN = { OP: 'One Piece', PK: 'Pokémon', PJ: 'Pokémon JP' }, aud = (x) => 'A$' + (x >= 100 ? Math.round(x).toLocaleString('en-AU') : x.toFixed(2)), pc = (x) => (x == null ? '—' : (x >= 0 ? '+' : '') + Math.round(x * 100) + '%');
+const GN = { OP: 'One Piece', PK: 'Pokémon', PJ: 'Pokémon JP', DB: 'Dragon Ball' }, aud = (x) => 'A$' + (x >= 100 ? Math.round(x).toLocaleString('en-AU') : x.toFixed(2)), pc = (x) => (x == null ? '—' : (x >= 0 ? '+' : '') + Math.round(x * 100) + '%');
 const ago = (iso) => { const d = Math.round((Date.now() - Date.parse(iso)) / 86400e3); return d <= 0 ? 'today' : d === 1 ? 'yesterday' : d + ' days ago'; };
 function spark(sp) { if (!sp || sp.length < 2) return null; const w = 150, h = 34, lo = Math.min(...sp), hi = Math.max(...sp), y = (v) => h - 3 - ((v - lo) / (hi - lo || 1)) * (h - 6), x = (i) => (i / (sp.length - 1)) * (w - 4) + 2;
   const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('class', 'sp'); s.setAttribute('width', w); s.setAttribute('height', h); s.setAttribute('viewBox', `0 0 ${w} ${h}`);
   const p = document.createElementNS(s.namespaceURI, 'polyline'); p.setAttribute('points', sp.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ')); p.setAttribute('fill', 'none'); p.setAttribute('stroke', sp[sp.length - 1] >= sp[0] ? 'var(--ok)' : 'var(--bad)'); p.setAttribute('stroke-width', '1.8'); s.append(p); return s; }
 function cardEl(c) { const d = el('div', 'card'), im = el('img'); im.src = c.img; im.alt = ''; im.loading = 'lazy'; im.onerror = () => { im.style.visibility = 'hidden'; }; d.append(im); const b = el('div');
   b.append(el('div', 'name', c.name + (c.sub && !/^Normal$/.test(c.sub) ? ` · ${c.sub}` : '')));
-  const m = el('div', 'meta', `${GN[c.g] || c.g} · ${c.set}${c.num ? ' · #' + c.num : ''}${c.rar ? ' · ' + c.rar : ''}`); const hz = el('span', 'hz', c.hz === 'short' ? 'short hold' : c.hz === 'medium' ? 'medium hold' : 'long hold'); m.append(hz); b.append(m);
+  const m = el('div', 'meta', `${c.cat || GN[c.g] || c.g} · ${c.set}${c.num ? ' · #' + c.num : ''}${c.rar ? ' · ' + c.rar : ''}`); const hz = el('span', 'hz', c.hz === 'short' ? 'short hold' : c.hz === 'medium' ? 'medium hold' : 'long hold'); m.append(hz); b.append(m);
   const pr = el('div', 'price'); pr.append(el('b', null, aud(c.aud))); if (c.high && c.off != null && c.off < -0.05) pr.append(el('span', 'off', `${pc(c.off)} from ${aud(c.high)}`)); if (c.ch7 != null) pr.append(el('span', c.ch7 >= 0 ? 'up' : 'down', `${pc(c.ch7)} 7d`)); if (c.ch30 != null) pr.append(el('span', c.ch30 >= 0 ? 'up' : 'down', `${pc(c.ch30)} 30d`)); b.append(pr);
   const sp = spark(c.sp); if (sp) b.append(sp);
   b.append(el('div', 'st ' + (c.stKey || ''), c.st + (c.thin ? ' · few sellers, price may be soft' : '')));
-  const L = el('div', 'links'), q = encodeURIComponent(`${c.name.replace(/\s*\(.*?\)\s*/g, ' ')} ${c.num || ''} ${c.g === 'OP' ? 'one piece' : 'pokemon'}`.trim());
+  const L = el('div', 'links'), q = encodeURIComponent(`${c.name.replace(/\s*\(.*?\)\s*/g, ' ')} ${c.num || ''} ${c.g === 'OP' ? 'one piece' : c.g === 'DB' ? 'dragon ball' : 'pokemon'}`.trim());
   for (const [t, u] of [['TCGplayer', c.url], ['eBay AU sold', `https://www.ebay.com.au/sch/i.html?_nkw=${q}&LH_Sold=1&LH_Complete=1`], ['PSA 10 sold', `https://www.ebay.com.au/sch/i.html?_nkw=${q}+psa+10&LH_Sold=1&LH_Complete=1`]]) { if (!u) continue; const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; L.append(a); }
   b.append(L); d.append(b); return d; }
 const byGame = (x) => S.game === 'all' || x.g === S.game;
