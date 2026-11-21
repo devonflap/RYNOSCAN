@@ -30,6 +30,12 @@ main { padding:12px 16px 40px; max-width:900px; margin:0 auto; }
 .set h2 { font-size:1rem; margin:0; } .verdict { font-weight:600; margin:6px 0 10px; }
 .set .card { background:var(--bg); }
 svg.sp { display:block; margin-top:4px; }
+.search { display:flex; gap:8px; margin-top:10px; } .search input { flex:1; min-width:0; background:var(--card); border:1px solid var(--line); color:var(--text); border-radius:10px; padding:9px 12px; font:inherit; }
+.star { background:none; border:0; color:var(--muted); font-size:1.25rem; line-height:1; padding:0 2px; cursor:pointer; float:right; } .star.on { color:var(--warn); }
+.wish { margin-top:6px; padding-top:6px; border-top:1px dashed var(--line); font-size:.85rem; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.wish input { width:6.5em; background:var(--bg); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:4px 6px; font:inherit; }
+.wish .buy { color:var(--ok); font-weight:700; } .wish .wait { color:var(--warn); }
+.badge { background:var(--ok); color:#fff; border-radius:999px; padding:0 6px; font-size:.72rem; margin-left:4px; }
 .empty { color:var(--muted); padding:20px 0; }
 @media (min-width:640px) { .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; } .grid .card { margin:0; } }
 </style>
@@ -38,22 +44,23 @@ svg.sp { display:block; margin-top:4px; }
 <header>
   <h1>Card <span>Finder</span></h1>
   <div class="sub" id="upd">Loading…</div>
-  <div class="tabs" id="tabs"><button class="tab" data-t="deals">Dropped deals</button><button class="tab" data-t="new">New releases</button><button class="tab" data-t="slabs">Slabs on sale</button><button class="tab" data-t="soon">Upcoming</button></div>
+  <div class="tabs" id="tabs"><button class="tab" data-t="deals">Dropped deals</button><button class="tab" data-t="new">New releases</button><button class="tab" data-t="slabs">Slabs on sale</button><button class="tab" data-t="soon">Upcoming</button><button class="tab" data-t="wish">Wish list</button></div>
   <div class="chips" id="games"><button class="chip" data-g="all">All</button><button class="chip" data-g="OP">One Piece</button><button class="chip" data-g="PK">Pokémon</button><button class="chip" data-g="PJ">Pokémon JP</button><button class="chip" data-g="DB">Dragon Ball</button></div>
   <div class="chips" id="filt"></div>
+  <div class="search"><input id="q" type="search" placeholder="Search a card: e.g. Luffy manga, Umbreon 161, Goku SCR" autocomplete="off" aria-label="Search cards"></div>
 </header>
 <main id="out"></main>
 <script type="module">
 const $ = (id) => document.getElementById(id), el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
 const store = { get: (k, d) => { try { const v = localStorage.getItem('cf-' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set: (k, v) => { try { localStorage.setItem('cf-' + k, JSON.stringify(v)); } catch {} } };
-const S = { tab: store.get('tab', 'deals'), game: store.get('game', 'all'), hz: store.get('hz', 'all'), band: store.get('band', 'all'), D: null };
+const S = { wish: store.get('wish', {}), q: '', idx: null, tab: store.get('tab', 'deals'), game: store.get('game', 'all'), hz: store.get('hz', 'all'), band: store.get('band', 'all'), D: null };
 const GN = { OP: 'One Piece', PK: 'Pokémon', PJ: 'Pokémon JP', DB: 'Dragon Ball' }, aud = (x) => 'A$' + (x >= 100 ? Math.round(x).toLocaleString('en-AU') : x.toFixed(2)), pc = (x) => (x == null ? '—' : (x >= 0 ? '+' : '') + Math.round(x * 100) + '%');
 const ago = (iso) => { const d = Math.round((Date.now() - Date.parse(iso)) / 86400e3); return d <= 0 ? 'today' : d === 1 ? 'yesterday' : d + ' days ago'; };
 function spark(sp) { if (!sp || sp.length < 2) return null; const w = 150, h = 34, lo = Math.min(...sp), hi = Math.max(...sp), y = (v) => h - 3 - ((v - lo) / (hi - lo || 1)) * (h - 6), x = (i) => (i / (sp.length - 1)) * (w - 4) + 2;
   const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('class', 'sp'); s.setAttribute('width', w); s.setAttribute('height', h); s.setAttribute('viewBox', `0 0 ${w} ${h}`);
   const p = document.createElementNS(s.namespaceURI, 'polyline'); p.setAttribute('points', sp.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ')); p.setAttribute('fill', 'none'); p.setAttribute('stroke', sp[sp.length - 1] >= sp[0] ? 'var(--ok)' : 'var(--bad)'); p.setAttribute('stroke-width', '1.8'); s.append(p); return s; }
 function cardEl(c) { const d = el('div', 'card'), im = el('img'); im.src = c.img; im.alt = ''; im.loading = 'lazy'; im.onerror = () => { im.style.visibility = 'hidden'; }; d.append(im); const b = el('div');
-  b.append(el('div', 'name', c.name + (c.sub && !/^Normal$/.test(c.sub) ? ` · ${c.sub}` : '')));
+  const nm = el('div', 'name'); if (c.id) { const st = el('button', 'star' + (S.wish[c.id] ? ' on' : ''), S.wish[c.id] ? '★' : '☆'); st.type = 'button'; st.title = S.wish[c.id] ? 'On your wish list' : 'Add to your wish list'; st.onclick = () => toggleWish(c); nm.append(st); } nm.append(c.name + (c.sub && !/^Normal$/.test(c.sub) ? ` · ${c.sub}` : '')); b.append(nm);
   const m = el('div', 'meta', `${c.cat || GN[c.g] || c.g} · ${c.set}${c.num ? ' · #' + c.num : ''}${c.rar ? ' · ' + c.rar : ''}`); const hz = el('span', 'hz', c.hz === 'short' ? 'short hold' : c.hz === 'medium' ? 'medium hold' : 'long hold'); m.append(hz); b.append(m);
   const pr = el('div', 'price'); pr.append(el('b', null, aud(c.aud))); if (c.high && c.off != null && c.off < -0.05) pr.append(el('span', 'off', `${pc(c.off)} from ${aud(c.high)}`)); if (c.ch7 != null) pr.append(el('span', c.ch7 >= 0 ? 'up' : 'down', `${pc(c.ch7)} 7d`)); if (c.ch30 != null) pr.append(el('span', c.ch30 >= 0 ? 'up' : 'down', `${pc(c.ch30)} 30d`)); b.append(pr);
   const sp = spark(c.sp); if (sp) b.append(sp);
@@ -64,14 +71,33 @@ function cardEl(c) { const d = el('div', 'card'), im = el('img'); im.src = c.img
   const bin = (x) => `https://www.ebay.com.au/sch/i.html?_nkw=${x}&LH_BIN=1&_sop=15&LH_PrefLoc=1`, sold = (x) => `https://www.ebay.com.au/sch/i.html?_nkw=${x}&LH_Sold=1&LH_Complete=1`;
   const B = el('div', 'links buy'); B.append(el('span', 'meta', 'Buy:')); for (const [t, u] of [['eBay AU', bin(q)], ['PSA 10 on eBay AU', bin(q + '+psa+10')], [c.g === 'PK' ? 'TCGplayer (Direct ships to AU)' : 'TCGplayer (US, via a forwarder)', c.url]]) { if (!u) continue; const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; B.append(a); } b.append(B);
   L.append(el('span', 'meta', 'Check:')); for (const [t, u] of [['eBay AU sold', sold(q)], ['PSA 10 sold', sold(q + '+psa+10')]]) { const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; L.append(a); }
-  b.append(L); d.append(b); return d; }
+  b.append(L); if (S.tab === 'wish' && S.wish[c.id]) b.append(wishRow(c)); d.append(b); return d; }
+/* THE WISH LIST (21 Nov): cards Ryan wants, each with the price he'd pay (it starts at a suggested target: the 2-week low, or 10% under
+   today's price while it is still falling). Kept on this phone; Copy / Paste moves it to another device. */
+function saveWish() { store.set('wish', S.wish); }
+function toggleWish(c) { if (S.wish[c.id]) delete S.wish[c.id]; else S.wish[c.id] = { target: c.tgt || Math.round(c.aud), added: new Date().toISOString().slice(0, 10), name: c.name, g: c.g, set: c.set, num: c.num || '', sub: c.sub || '', aud0: c.aud }; saveWish(); draw(); }
+function wishRow(c) { const w = S.wish[c.id], r = el('div', 'wish'), i = el('input'); i.type = 'number'; i.inputMode = 'decimal'; i.value = w.target; i.setAttribute('aria-label', 'Your price');
+  i.onchange = () => { w.target = Math.max(1, +i.value || w.target); saveWish(); draw(); }; r.append(el('span', null, 'Your price A$'), i);
+  const gap = c.aud / w.target - 1; r.append(gap <= 0 ? el('span', 'buy', 'At your price: buy now') : el('span', 'wait', `A$${Math.round(c.aud - w.target)} (${Math.round(gap * 100)}%) above your price`)); r.append(el('span', 'meta', `added ${w.added} at ${aud(w.aud0)}`)); return r; }
+async function loadIndex() { if (S.idx) return S.idx; try { const r = await fetch('data/index.json?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) { const j = await r.json(); S.idx = new Map(j.cards.map((c) => [c.id, c])); } } catch {} return S.idx || new Map(); }
+const words = (x) => String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9.]+/g, ' ').trim();
 const byGame = (x) => S.game === 'all' || x.g === S.game;
 const inBand = (c) => S.band === 'all' || (S.band === 'lo' ? c.aud < 300 : S.band === 'mid' ? c.aud >= 300 && c.aud < 600 : c.aud >= 600);
 function filters() { const f = $('filt'); f.replaceChildren(); if (S.tab !== 'deals') return;
   for (const [k, t] of [['all', 'Any hold'], ['short', 'Short'], ['medium', 'Medium'], ['long', 'Long']]) { const b = el('button', 'chip' + (S.hz === k ? ' on' : ''), t); b.onclick = () => { S.hz = k; store.set('hz', k); draw(); }; f.append(b); }
   for (const [k, t] of [['all', 'Any price'], ['lo', '$100–300'], ['mid', '$300–600'], ['hi', '$600–1,000']]) { const b = el('button', 'chip' + (S.band === k ? ' on' : ''), t); b.onclick = () => { S.band = k; store.set('band', k); draw(); }; f.append(b); } }
-function draw() { const D = S.D, out = $('out'); out.replaceChildren(); document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('on', b.dataset.t === S.tab)); document.querySelectorAll('#games .chip').forEach((b) => b.classList.toggle('on', b.dataset.g === S.game)); filters();
+function draw() { const D = S.D, out = $('out'); out.replaceChildren(); badge(); document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('on', b.dataset.t === S.tab)); document.querySelectorAll('#games .chip').forEach((b) => b.classList.toggle('on', b.dataset.g === S.game)); filters();
   if (!D) { out.append(el('p', 'empty', 'The card list fills in after the first daily run.')); return; }
+  if (S.q.length >= 2) { const I = S.idx; if (!I) { out.append(el('p', 'empty', 'Loading every card…')); loadIndex().then(draw); return; }
+    const t = words(S.q).split(' '), L = [...I.values()].filter(byGame).filter((c) => { const h = words(`${c.name} ${c.set} ${c.abbr || ''} ${c.num || ''} ${c.sub || ''} ${c.rar || ''} ${GN[c.g]}`); return t.every((w) => h.includes(w)); }).sort((a, b) => b.aud - a.aud);
+    out.append(el('p', 'note', `${L.length} card${L.length === 1 ? '' : 's'} match "${S.q}" (searching every card the finder tracks: A$60 and up). Tap ☆ to add one to your wish list.`)); const g = el('div', 'grid'); for (const c of L.slice(0, 60)) g.append(cardEl(c)); out.append(g); if (L.length > 60) out.append(el('p', 'note', `${L.length - 60} more: add a word to narrow it.`)); return; }
+  if (S.tab === 'wish') { const ids = Object.keys(S.wish); out.append(el('p', 'note', 'Your wish list: the cards you want and the price you would pay. Each one starts at a suggested price (its 2-week low, or 10% under today while it is still falling): change it any time. When a card reaches your price it moves to the top. Kept on this phone only: use Copy list to keep a backup or move it to another device.'));
+    const bar = el('div', 'chips'), cp = el('button', 'chip', 'Copy list'), ps = el('button', 'chip', 'Paste list'); cp.onclick = async () => { const t = JSON.stringify(S.wish); try { await navigator.clipboard.writeText(t); cp.textContent = 'Copied'; } catch { window.prompt('Copy this:', t); } };
+    ps.onclick = () => { const t = window.prompt('Paste a copied wish list:'); if (!t) return; try { const j = JSON.parse(t); Object.assign(S.wish, j); saveWish(); draw(); } catch { alert('That is not a copied wish list.'); } }; bar.append(cp, ps); out.append(bar);
+    if (!ids.length) { out.append(el('p', 'empty', 'Nothing on it yet. Search for a card above, or tap ☆ on any card in the other tabs.')); return; }
+    const I = S.idx; if (!I) { out.append(el('p', 'empty', 'Loading today\'s prices…')); loadIndex().then(draw); return; }
+    const L = ids.map((id) => I.get(id) || { id, ...S.wish[id], aud: S.wish[id].aud0, st: 'Not priced today (under A$60 or no recent sales)', stKey: 'holding', sp: [] }).filter(byGame).sort((a, b) => a.aud / S.wish[a.id].target - b.aud / S.wish[b.id].target);
+    const g = el('div', 'grid'); for (const c of L) g.append(cardEl(c)); out.append(g); return; }
   if (S.tab === 'deals') { const L = D.deals.filter(byGame).filter((c) => S.hz === 'all' || c.hz === S.hz).filter(inBand).sort((a, b) => (a.check ? 1 : 0) - (b.check ? 1 : 0)); /* cards to double-check go below the clean ones */
     out.append(el('p', 'note', `Cards worth A$${D.band[0]}–${D.band[1]} that are 25%+ under their 6-month high and have stopped falling (steady or turning up over the last 2 weeks). Hold length goes by the set's age: short under 9 months (still settling after launch), medium 9–30 months, long older (out of print). Biggest drops first; cards whose drop needs checking against sold prices come after them.`));
     if (!L.length) { out.append(el('p', 'empty', 'Nothing matches these filters today.')); return; } const g = el('div', 'grid'); for (const c of L.slice(0, 80)) g.append(cardEl(c)); out.append(g); if (L.length > 80) out.append(el('p', 'note', `${L.length - 80} more not shown: narrow the filters.`)); return; }
@@ -89,10 +115,12 @@ function draw() { const D = S.D, out = $('out'); out.replaceChildren(); document
   const L = D.upcoming.filter(byGame); out.append(el('p', 'note', 'Sets coming out soon. Prices before and just after release are usually the highest they will be: note the chase cards, then check the New releases tab 3–6 weeks after launch.'));
   if (!L.length) { out.append(el('p', 'empty', 'No upcoming sets listed for this game.')); return; }
   for (const s of L) { const box = el('div', 'set'); box.append(el('h2', null, `${s.set}${s.abbr ? ' (' + s.abbr + ')' : ''}`), el('div', 'meta', `${GN[s.g]} · out ${s.rel} (in ${s.days} days)`)); if (s.chase.length) { box.append(el('div', 'verdict', 'Pre-sale prices of its dearest cards:')); const g = el('div', 'grid'); for (const c of s.chase) g.append(cardEl(c)); box.append(g); } else box.append(el('p', 'note', 'No card prices listed yet.')); out.append(box); } }
-document.querySelectorAll('.tab').forEach((b) => { b.onclick = () => { S.tab = b.dataset.t; store.set('tab', S.tab); draw(); window.scrollTo(0, 0); }; });
+document.querySelectorAll('.tab').forEach((b) => { b.onclick = () => { S.tab = b.dataset.t; store.set('tab', S.tab); S.q = ''; $('q').value = ''; draw(); window.scrollTo(0, 0); }; });
+let qt = null; $('q').oninput = () => { clearTimeout(qt); qt = setTimeout(() => { S.q = $('q').value.trim(); draw(); }, 250); };
+function badge() { const b = document.querySelector('.tab[data-t=wish]'); if (!b) return; const n = S.idx ? Object.keys(S.wish).filter((id) => { const c = S.idx.get(id); return c && c.aud <= S.wish[id].target; }).length : 0; b.textContent = 'Wish list'; if (n) b.append(el('span', 'badge', String(n))); }
 document.querySelectorAll('#games .chip').forEach((b) => { b.onclick = () => { S.game = b.dataset.g; store.set('game', S.game); draw(); }; });
 (async () => { try { const r = await fetch('data/cards.json?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) S.D = await r.json(); } catch {} try { const r = await fetch('data/slabs.json?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) S.slabs = await r.json(); } catch {}
-  $('upd').textContent = S.D ? `Updated ${ago(S.D.at)} · TCGplayer prices (raw, near mint) in AUD` : 'No data yet'; draw(); })();
+  $('upd').textContent = S.D ? `Updated ${ago(S.D.at)} · TCGplayer prices (raw, near mint) in AUD` : 'No data yet'; if (Object.keys(S.wish).length) loadIndex().then(() => { badge(); if (S.tab === 'wish') draw(); }); draw(); })();
 </script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 // the card finder's signals (21 Nov): dropped deals, new-release chase cards, hold lengths
 import { CARD, stats, statusOf, horizonOf, newSetView, isDeal } from '../src/cardsig.mjs';
-import { sampleDays, slim } from '../src/cards.mjs';
+import { sampleDays, slim, targetOf } from '../src/cards.mjs';
 import { slabRow, gradeOf, gameOf } from '../src/slabs.mjs';
 const out = console.log; let f = 0; const ok = (c, m) => { out((c ? 'PASS ' : 'FAIL ') + m); if (!c) f = 1; };
 const D = 86400e3, now = Date.parse('2026-11-21T12:00:00Z'), ser = (pts) => pts.map(([daysAgo, v]) => [now - daysAgo * D, v]);
@@ -38,4 +38,5 @@ ok(r1 && r1.g === 'PK' && r1.grade === 'PSA 10' && r1.aud === 225 && r1.insAud =
 ok(slabRow(L('Luffy PSA 10', 'One Piece', 200, 1.25), env) === null, 'listed at 94% of its value: not a deal');
 ok(slabRow(L('Energy Removal CGC 8.5 Pokemon', 'Pokemon', 11, 0.03), env) === null && slabRow(L('Jordan PSA 9', 'Basketball', 400, 1), env) === null, 'under A$100, or not one of our games: left out');
 ok(gradeOf('2000 #119 BASE SET 2 ENERGY REMOVAL CGC 8.5 POKEMON') === 'CGC 8.5' && gradeOf('Charizard BGS 9.5') === 'BGS 9.5' && gameOf('One Piece', 'x') === 'OP' && gameOf('Pokemon', 'Pikachu Japanese PSA 10') === 'PJ' && gameOf('TCG', 'Goku Dragon Ball Super PSA 9') === 'DB', 'grades and games read from the listing');
+ok(targetOf(s1) === 398 && targetOf(s2) === Math.round(380 * 0.9) && sl.tgt === 398, 'wish-list target: a steady card waits for its 2-week low (A$398); one still falling waits 10% under today (A$342)');
 process.exit(f);
