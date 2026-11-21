@@ -38,5 +38,5 @@ ok(r1 && r1.g === 'PK' && r1.grade === 'PSA 10' && r1.aud === 225 && r1.insAud =
 ok(slabRow(L('Luffy PSA 10', 'One Piece', 200, 1.25), env) === null, 'listed at 94% of its value: not a deal');
 ok(slabRow(L('Energy Removal CGC 8.5 Pokemon', 'Pokemon', 11, 0.03), env) === null && slabRow(L('Jordan PSA 9', 'Basketball', 400, 1), env) === null, 'under A$100, or not one of our games: left out');
 ok(gradeOf('2000 #119 BASE SET 2 ENERGY REMOVAL CGC 8.5 POKEMON') === 'CGC 8.5' && gradeOf('Charizard BGS 9.5') === 'BGS 9.5' && gameOf('One Piece', 'x') === 'OP' && gameOf('Pokemon', 'Pikachu Japanese PSA 10') === 'PJ' && gameOf('TCG', 'Goku Dragon Ball Super PSA 9') === 'DB', 'grades and games read from the listing');
-ok(targetOf(s1) === 398 && targetOf(s2) === Math.round(380 * 0.9) && sl.tgt === 398, 'wish-list target: a steady card waits for its 2-week low (A$398); one still falling waits 10% under today (A$342)');
+ok(targetOf(s1) === Math.round(404 * 0.9) && targetOf(s2) === Math.round(380 * 0.9) && targetOf({ cur: 100, lo14: 80 }) === 80, 'wish-list target: 10% under today (A$364 on a A$404 card), or the 2-week low when that is lower (A$80 on a A$100 card)');
 process.exit(f);

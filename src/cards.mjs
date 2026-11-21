@@ -53,7 +53,7 @@ async function main() { const now = Date.now(); fs.mkdirSync(OUT, { recursive: t
 // what the page needs for one card: the numbers, the status, the hold length and a weekly price line
 export function slim(c) { const s = c.s || {}, st = statusOf(c.s), sp = []; let last = 0; for (const p of c.series || []) if (p[0] - last >= 6.5 * DAY || p === c.series[c.series.length - 1]) { sp.push(Math.round(p[1])); last = p[0]; }
   return { id: c.id || null, tgt: targetOf(c.s), g: c.g, cat: c.cat || null, set: c.set, abbr: c.setAbbr, rel: c.rel, age: c.age, name: c.name, num: c.num, rar: c.rar, sub: c.sub, img: c.img, url: c.url, aud: c.aud, low: c.low, thin: c.thin, erratic: !!s.erratic, check: !!((c.age > 730 && s.off < -0.6) || s.jumps >= 2 || s.off < -0.85), ch7: r3(s.ch7), ch30: r3(s.ch30), off: r3(s.off), high: s.high != null ? Math.round(s.high) : null, highAt: s.highAt ? iso(s.highAt) : null, st: st.label, stKey: st.key, hz: horizonOf(c.age), sp }; }
-// a sensible price to wait for: its 2-week low, or 10% under today's price while it is still falling
-export function targetOf(s) { if (!s || !(s.cur > 0)) return null; const t = s.ch7 != null && s.ch7 <= -0.05 ? s.cur * 0.9 : Math.min(s.cur, s.lo14 || s.cur); return Math.round(t); }
+// a sensible price to wait for: 10% under today's price, or its 2-week low if that is lower
+export function targetOf(s) { if (!s || !(s.cur > 0)) return null; return Math.round(Math.min(s.cur * 0.9, s.lo14 || s.cur)); } /* 10% under today, or the 2-week low if lower: always a discount to wait for */
 const r3 = (x) => (x == null ? null : +x.toFixed(3));
 if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]))) main().catch((e) => { console.error(e); process.exit(1); });
