@@ -24,4 +24,9 @@ ok(settled.ready === 2 && /settled after the launch drop: look now/.test(settled
 // archive days: daily for 3 weeks, then weekly to 6 months
 const d = sampleDays(now); ok(d.length === 21 + 23 && d[d.length - 1] === '2026-11-20' && d[0] === '2026-05-23', `archive days: ${d.length} (21 daily, then weekly back to ${d[0]})`);
 const sl = slim({ g: 'OP', set: 'X', age: 400, name: 'Luffy', aud: 404, s: s1, series: flat }); ok(sl.stKey === 'settled' && sl.hz === 'medium' && sl.sp.length >= 8 && sl.sp[sl.sp.length - 1] === 404, 'the page row: status, hold length and a weekly price line ending at today');
+// vintage card trading on single sales: the price jumps about, the 'drop' is noise
+const spiky = ser([[150, 3338], [120, 3338], [100, 750], [90, 3338], [70, 6751], [50, 6751], [30, 750], [14, 750], [7, 750], [0, 750]]), sk = stats(spiky, now);
+ok(sk.erratic && !isDeal({ s: sk }) && sk.high === 6751, `single-sale vintage card (A$3,338 -> 750 -> 6,751 -> 750): erratic (${sk.jumps} big jumps), kept off the deals list`);
+const one = ser([[120, 400], [100, 400], [90, 1200], [80, 400], [60, 380], [30, 300], [14, 290], [7, 288], [0, 290]]), so = stats(one, now);
+ok(so.high === 400 && Math.abs(so.off - (290 / 400 - 1)) < 1e-9, 'one odd sale at A$1,200 does not become the high: the high is A$400 (smoothed), so the drop is 28%, not 76%');
 process.exit(f);

@@ -12,15 +12,20 @@ export const CARD = {
   fallingCh7: -0.05,              // still falling: down 5%+ in 7 days
   turnUp: 0.03,                   // turning up: 3%+ off its 14-day low
   minPoints: 4,
+  jumpPct: 0.35, maxJumps: 2,     // a card whose price jumps 35%+ between readings more than twice is trading on single sales: erratic, not a deal
 };
 const DAY = 86400e3;
 // series: [[t(ms), aud], ...] oldest first; now: ms
 export function stats(series, now) {
   const S = (series || []).filter((p) => p[1] > 0).sort((a, b) => a[0] - b[0]); if (!S.length) return null;
+  /* 21 Nov: rare vintage cards sell once in a while, so their price jumps between single sales (A$3,338, A$750, A$6,751): the high is
+     taken on a line smoothed over each reading and its neighbours, and a card with many big jumps is flagged as erratic */
+  const med3 = (i) => { const w = [S[i - 1], S[i], S[i + 1]].filter(Boolean).map((p) => p[1]).sort((a, b) => a - b); return w[Math.floor(w.length / 2)]; }, SM = S.map((p, i) => [p[0], med3(i)]);
+  let jumps = 0; for (let i = 1; i < S.length; i++) if (Math.abs(S[i][1] / S[i - 1][1] - 1) >= CARD.jumpPct) jumps++;
   const cur = S[S.length - 1][1], at = (d) => { let best = null; for (const p of S) if (p[0] <= now - d * DAY + DAY / 2) best = p; return best ? best[1] : null; };
-  const win = (d) => S.filter((p) => p[0] >= now - d * DAY - DAY / 2), mx = (w) => (w.length ? w.reduce((m, p) => (p[1] > m[1] ? p : m)) : null), mn = (w) => (w.length ? Math.min(...w.map((p) => p[1])) : null);
-  const p7 = at(7), p30 = at(30), h180 = mx(win(182)), w14 = win(14), lo14 = mn(w14), hi14 = w14.length ? Math.max(...w14.map((p) => p[1])) : null;
-  return { cur, n: S.length, ch7: p7 ? cur / p7 - 1 : null, ch30: p30 ? cur / p30 - 1 : null, high: h180 ? h180[1] : cur, highAt: h180 ? h180[0] : null, off: h180 ? cur / h180[1] - 1 : 0, lo14, range14: lo14 > 0 ? hi14 / lo14 - 1 : null, upFromLow14: lo14 > 0 ? cur / lo14 - 1 : null, first: S[0] }; }
+  const win = (d, A = S) => A.filter((p) => p[0] >= now - d * DAY - DAY / 2), mx = (w) => (w.length ? w.reduce((m, p) => (p[1] > m[1] ? p : m)) : null), mn = (w) => (w.length ? Math.min(...w.map((p) => p[1])) : null);
+  const p7 = at(7), p30 = at(30), h180 = mx(win(182, SM)), w14 = win(14), lo14 = mn(w14), hi14 = w14.length ? Math.max(...w14.map((p) => p[1])) : null;
+  return { cur, n: S.length, ch7: p7 ? cur / p7 - 1 : null, ch30: p30 ? cur / p30 - 1 : null, high: h180 ? h180[1] : cur, highAt: h180 ? h180[0] : null, off: h180 ? cur / h180[1] - 1 : 0, lo14, range14: lo14 > 0 ? hi14 / lo14 - 1 : null, upFromLow14: lo14 > 0 ? cur / lo14 - 1 : null, first: S[0], jumps, erratic: jumps > CARD.maxJumps }; }
 export function horizonOf(ageDays) { return ageDays == null ? 'medium' : ageDays <= 270 ? 'short' : ageDays <= 900 ? 'medium' : 'long'; }
 // what the card is doing, in plain words
 export function statusOf(s, C = CARD) { if (!s) return { key: 'none', label: '—' };
@@ -38,7 +43,7 @@ export function newSetView(cards, C = CARD) { const chase = [...cards].filter((c
   const verdict = !ups.length ? 'No prices yet.' : falling >= Math.ceil(ups.length / 2) ? `Chase cards still falling (${falling} of ${ups.length} down 5%+ this week): wait` : ready ? `${ready} chase card${ready > 1 ? 's' : ''} settled after the launch drop: look now` : avgOff > -0.15 ? 'Chase cards near their launch prices: no discount yet, wait' : 'Prices easing: watch';
   return { chase: ups, falling, ready, avgOff, verdict }; }
 // the dropped-deals list: quality cards in the price band, well off their 6-month high, that have stopped falling
-export function isDeal(c, C = CARD) { const s = c.s; if (!s || s.n < C.minPoints) return false; if (!(s.cur >= C.minAud && s.cur <= C.maxAud)) return false; if (!(s.off <= -C.dropMin)) return false; return statusOf(s, C).key === 'settled' || statusOf(s, C).key === 'turning'; }
+export function isDeal(c, C = CARD) { const s = c.s; if (!s || s.n < C.minPoints) return false; if (!(s.cur >= C.minAud && s.cur <= C.maxAud)) return false; if (!(s.off <= -C.dropMin)) return false; if (s.erratic) return false; return statusOf(s, C).key === 'settled' || statusOf(s, C).key === 'turning'; }
 export function dealScore(c) { const s = c.s; return -s.off * 100 + (s.upFromLow14 > 0 ? Math.min(10, s.upFromLow14 * 100) : 0) + (c.thin ? -15 : 0); }
 const pc = (x) => (x == null ? '—' : (x >= 0 ? '+' : '') + Math.round(x * 100) + '%');
 export { pc };
