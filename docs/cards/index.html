@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Card Finder</title>
+<meta name="description" content="Pokémon and One Piece singles that have dropped in price: deals, new-release chase cards and upcoming sets.">
+<style>
+:root { --bg:#1c1f24; --card:#24282e; --line:#343a42; --text:#e8e5df; --muted:#9aa0a8; --accent:#e94e1b; --ok:#3fb37f; --warn:#e9a23b; --bad:#f05a62; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+header { position:sticky; top:0; z-index:5; background:var(--bg); border-bottom:1px solid var(--line); padding:12px 16px 10px; }
+h1 { margin:0 0 2px; font-size:1.15rem; } h1 span { color:var(--accent); }
+.sub { color:var(--muted); font-size:.82rem; }
+.tabs, .chips { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+.tab, .chip { border:1px solid var(--line); background:var(--card); color:var(--text); border-radius:999px; padding:6px 12px; font:inherit; font-size:.85rem; cursor:pointer; }
+.tab.on { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+.chip.on { border-color:var(--accent); color:var(--accent); font-weight:600; }
+main { padding:12px 16px 40px; max-width:900px; margin:0 auto; }
+.note { color:var(--muted); font-size:.82rem; margin:4px 0 12px; }
+.card { display:grid; grid-template-columns:72px 1fr; gap:12px; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px; margin-bottom:10px; }
+.card img { width:72px; height:100px; object-fit:cover; border-radius:6px; background:#111; }
+.name { font-weight:600; line-height:1.25; } .meta { color:var(--muted); font-size:.78rem; }
+.price { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; margin:3px 0 2px; }
+.price b { font-size:1.15rem; } .off { color:var(--ok); font-weight:600; } .up { color:var(--ok); } .down { color:var(--bad); }
+.st { font-size:.82rem; margin-top:2px; } .st.settled, .st.turning { color:var(--ok); } .st.falling, .st.dropping { color:var(--bad); } .st.holding, .st.easing { color:var(--warn); }
+.links { display:flex; gap:12px; margin-top:6px; font-size:.8rem; } .links a { color:var(--accent); text-decoration:none; }
+.hz { display:inline-block; border:1px solid var(--line); border-radius:999px; padding:0 7px; font-size:.72rem; color:var(--muted); margin-left:4px; }
+.set { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:14px; }
+.set h2 { font-size:1rem; margin:0; } .verdict { font-weight:600; margin:6px 0 10px; }
+.set .card { background:var(--bg); }
+svg.sp { display:block; margin-top:4px; }
+.empty { color:var(--muted); padding:20px 0; }
+@media (min-width:640px) { .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; } .grid .card { margin:0; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Card <span>Finder</span></h1>
+  <div class="sub" id="upd">Loading…</div>
+  <div class="tabs" id="tabs"><button class="tab" data-t="deals">Dropped deals</button><button class="tab" data-t="new">New releases</button><button class="tab" data-t="soon">Upcoming</button></div>
+  <div class="chips" id="games"><button class="chip" data-g="all">All</button><button class="chip" data-g="OP">One Piece</button><button class="chip" data-g="PK">Pokémon</button><button class="chip" data-g="PJ">Pokémon JP</button></div>
+  <div class="chips" id="filt"></div>
+</header>
+<main id="out"></main>
+<script type="module">
+const $ = (id) => document.getElementById(id), el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
+const store = { get: (k, d) => { try { const v = localStorage.getItem('cf-' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set: (k, v) => { try { localStorage.setItem('cf-' + k, JSON.stringify(v)); } catch {} } };
+const S = { tab: store.get('tab', 'deals'), game: store.get('game', 'all'), hz: store.get('hz', 'all'), band: store.get('band', 'all'), D: null };
+const GN = { OP: 'One Piece', PK: 'Pokémon', PJ: 'Pokémon JP' }, aud = (x) => 'A$' + (x >= 100 ? Math.round(x).toLocaleString('en-AU') : x.toFixed(2)), pc = (x) => (x == null ? '—' : (x >= 0 ? '+' : '') + Math.round(x * 100) + '%');
+const ago = (iso) => { const d = Math.round((Date.now() - Date.parse(iso)) / 86400e3); return d <= 0 ? 'today' : d === 1 ? 'yesterday' : d + ' days ago'; };
+function spark(sp) { if (!sp || sp.length < 2) return null; const w = 150, h = 34, lo = Math.min(...sp), hi = Math.max(...sp), y = (v) => h - 3 - ((v - lo) / (hi - lo || 1)) * (h - 6), x = (i) => (i / (sp.length - 1)) * (w - 4) + 2;
+  const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('class', 'sp'); s.setAttribute('width', w); s.setAttribute('height', h); s.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  const p = document.createElementNS(s.namespaceURI, 'polyline'); p.setAttribute('points', sp.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ')); p.setAttribute('fill', 'none'); p.setAttribute('stroke', sp[sp.length - 1] >= sp[0] ? 'var(--ok)' : 'var(--bad)'); p.setAttribute('stroke-width', '1.8'); s.append(p); return s; }
+function cardEl(c) { const d = el('div', 'card'), im = el('img'); im.src = c.img; im.alt = ''; im.loading = 'lazy'; im.onerror = () => { im.style.visibility = 'hidden'; }; d.append(im); const b = el('div');
+  b.append(el('div', 'name', c.name + (c.sub && !/^Normal$/.test(c.sub) ? ` · ${c.sub}` : '')));
+  const m = el('div', 'meta', `${GN[c.g] || c.g} · ${c.set}${c.num ? ' · #' + c.num : ''}${c.rar ? ' · ' + c.rar : ''}`); const hz = el('span', 'hz', c.hz === 'short' ? 'short hold' : c.hz === 'medium' ? 'medium hold' : 'long hold'); m.append(hz); b.append(m);
+  const pr = el('div', 'price'); pr.append(el('b', null, aud(c.aud))); if (c.high && c.off != null && c.off < -0.05) pr.append(el('span', 'off', `${pc(c.off)} from ${aud(c.high)}`)); if (c.ch7 != null) pr.append(el('span', c.ch7 >= 0 ? 'up' : 'down', `${pc(c.ch7)} 7d`)); if (c.ch30 != null) pr.append(el('span', c.ch30 >= 0 ? 'up' : 'down', `${pc(c.ch30)} 30d`)); b.append(pr);
+  const sp = spark(c.sp); if (sp) b.append(sp);
+  b.append(el('div', 'st ' + (c.stKey || ''), c.st + (c.thin ? ' · few sellers, price may be soft' : '')));
+  const L = el('div', 'links'), q = encodeURIComponent(`${c.name.replace(/\s*\(.*?\)\s*/g, ' ')} ${c.num || ''} ${c.g === 'OP' ? 'one piece' : 'pokemon'}`.trim());
+  for (const [t, u] of [['TCGplayer', c.url], ['eBay AU sold', `https://www.ebay.com.au/sch/i.html?_nkw=${q}&LH_Sold=1&LH_Complete=1`], ['PSA 10 sold', `https://www.ebay.com.au/sch/i.html?_nkw=${q}+psa+10&LH_Sold=1&LH_Complete=1`]]) { if (!u) continue; const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; L.append(a); }
+  b.append(L); d.append(b); return d; }
+const byGame = (x) => S.game === 'all' || x.g === S.game;
+const inBand = (c) => S.band === 'all' || (S.band === 'lo' ? c.aud < 300 : S.band === 'mid' ? c.aud >= 300 && c.aud < 600 : c.aud >= 600);
+function filters() { const f = $('filt'); f.replaceChildren(); if (S.tab !== 'deals') return;
+  for (const [k, t] of [['all', 'Any hold'], ['short', 'Short'], ['medium', 'Medium'], ['long', 'Long']]) { const b = el('button', 'chip' + (S.hz === k ? ' on' : ''), t); b.onclick = () => { S.hz = k; store.set('hz', k); draw(); }; f.append(b); }
+  for (const [k, t] of [['all', 'Any price'], ['lo', '$100–300'], ['mid', '$300–600'], ['hi', '$600–1,000']]) { const b = el('button', 'chip' + (S.band === k ? ' on' : ''), t); b.onclick = () => { S.band = k; store.set('band', k); draw(); }; f.append(b); } }
+function draw() { const D = S.D, out = $('out'); out.replaceChildren(); document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('on', b.dataset.t === S.tab)); document.querySelectorAll('#games .chip').forEach((b) => b.classList.toggle('on', b.dataset.g === S.game)); filters();
+  if (!D) { out.append(el('p', 'empty', 'The card list fills in after the first daily run.')); return; }
+  if (S.tab === 'deals') { const L = D.deals.filter(byGame).filter((c) => S.hz === 'all' || c.hz === S.hz).filter(inBand);
+    out.append(el('p', 'note', `Cards worth A$${D.band[0]}–${D.band[1]} that are 25%+ under their 6-month high and have stopped falling (steady or turning up over the last 2 weeks). Hold length goes by the set's age: short under 9 months (still settling after launch), medium 9–30 months, long older (out of print). Biggest drops first.`));
+    if (!L.length) { out.append(el('p', 'empty', 'Nothing matches these filters today.')); return; } const g = el('div', 'grid'); for (const c of L.slice(0, 80)) g.append(cardEl(c)); out.append(g); if (L.length > 80) out.append(el('p', 'note', `${L.length - 80} more not shown: narrow the filters.`)); return; }
+  if (S.tab === 'new') { const L = D.newSets.filter(byGame); out.append(el('p', 'note', 'Sets released in the last ~10 weeks and their dearest cards. Chase cards usually peak at launch and slide for a few weeks as more packs are opened: wait while they are still falling; look when they have settled.'));
+    if (!L.length) { out.append(el('p', 'empty', 'No new sets in the last 10 weeks for this game.')); return; }
+    for (const s of L) { const box = el('div', 'set'); box.append(el('h2', null, `${s.set}${s.abbr ? ' (' + s.abbr + ')' : ''}`), el('div', 'meta', `${GN[s.g]} · released ${s.rel || '?'} (${s.age} days ago) · chase cards ${pc(s.avgOff)} from their highs on average`));
+      const v = el('div', 'verdict', s.verdict); v.style.color = s.ready ? 'var(--ok)' : s.falling ? 'var(--bad)' : 'var(--warn)'; box.append(v); const g = el('div', 'grid'); for (const c of s.chase) g.append(cardEl(c)); box.append(g); out.append(box); } return; }
+  const L = D.upcoming.filter(byGame); out.append(el('p', 'note', 'Sets coming out soon. Prices before and just after release are usually the highest they will be: note the chase cards, then check the New releases tab 3–6 weeks after launch.'));
+  if (!L.length) { out.append(el('p', 'empty', 'No upcoming sets listed for this game.')); return; }
+  for (const s of L) { const box = el('div', 'set'); box.append(el('h2', null, `${s.set}${s.abbr ? ' (' + s.abbr + ')' : ''}`), el('div', 'meta', `${GN[s.g]} · out ${s.rel} (in ${s.days} days)`)); if (s.chase.length) { box.append(el('div', 'verdict', 'Pre-sale prices of its dearest cards:')); const g = el('div', 'grid'); for (const c of s.chase) g.append(cardEl(c)); box.append(g); } else box.append(el('p', 'note', 'No card prices listed yet.')); out.append(box); } }
+document.querySelectorAll('.tab').forEach((b) => { b.onclick = () => { S.tab = b.dataset.t; store.set('tab', S.tab); draw(); window.scrollTo(0, 0); }; });
+document.querySelectorAll('#games .chip').forEach((b) => { b.onclick = () => { S.game = b.dataset.g; store.set('game', S.game); draw(); }; });
+(async () => { try { const r = await fetch('data/cards.json?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) S.D = await r.json(); } catch {}
+  $('upd').textContent = S.D ? `Updated ${ago(S.D.at)} · TCGplayer market prices (raw, near mint, US sales) in AUD at ${S.D.fx.toFixed(3)} · ${S.D.counts.deals} deals, ${S.D.counts.newSets} new sets, ${S.D.counts.upcoming} upcoming` : 'No data yet'; draw(); })();
+</script>
+</body>
+</html>
