@@ -1,5 +1,4 @@
-Full scan 10:31 Brisbane: 52 scanned, 42 scored, 5 above 65. On-chain volume Strong (1.18x 7-day avg).
-NEW watch: JOB (Solana) Breakout retest, opp 85, checks 5/6, stop 11.1% away, upside 84.2%; weak last 6h.
+Hourly refresh 11:11 Brisbane: 5 tracked coins refreshed, 5 scored, 5 above 65. On-chain volume Strong (1.18x 7-day avg).
+NEW watch: STONK (Solana) Bottom reversal, opp 71, checks 5/6, stop 10.1% away, upside 56%; more sellers than buyers in the last hour.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: NET (owner can mint more), VINE (top 10 wallets hold 41.4% (gate 30%)), PUMP (top 10 wallets hold 59.5% (gate 30%)), TRUMP (Top 10 holders high ownership), ANSEM (Single holder ownership), FARTCOIN (top 10 wallets hold 32.5% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
