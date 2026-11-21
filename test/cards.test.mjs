@@ -1,6 +1,7 @@
 // the card finder's signals (21 Nov): dropped deals, new-release chase cards, hold lengths
 import { CARD, stats, statusOf, horizonOf, newSetView, isDeal } from '../src/cardsig.mjs';
 import { sampleDays, slim } from '../src/cards.mjs';
+import { slabRow, gradeOf, gameOf } from '../src/slabs.mjs';
 const out = console.log; let f = 0; const ok = (c, m) => { out((c ? 'PASS ' : 'FAIL ') + m); if (!c) f = 1; };
 const D = 86400e3, now = Date.parse('2026-11-21T12:00:00Z'), ser = (pts) => pts.map(([daysAgo, v]) => [now - daysAgo * D, v]);
 // a $600 card that fell to $400 and has sat there for 3 weeks: a deal
@@ -29,4 +30,12 @@ const spiky = ser([[150, 3338], [120, 3338], [100, 750], [90, 3338], [70, 6751],
 ok(sk.erratic && !isDeal({ s: sk }) && sk.high === 6751, `single-sale vintage card (A$3,338 -> 750 -> 6,751 -> 750): erratic (${sk.jumps} big jumps), kept off the deals list`);
 const one = ser([[120, 400], [100, 400], [90, 1200], [80, 400], [60, 380], [30, 300], [14, 290], [7, 288], [0, 290]]), so = stats(one, now);
 ok(so.high === 400 && Math.abs(so.off - (290 / 400 - 1)) < 1e-9, 'one odd sale at A$1,200 does not become the high: the high is A$400 (smoothed), so the drop is 28%, not 76%');
+// slabs on sale (Collector Crypt on Magic Eden): asking price in SOL against Collector Crypt's insured value in USD
+const L = (name, cat, ins, price) => ({ tokenMint: 'Mint1', price, token: { name, image: 'i', attributes: [{ trait_type: 'Category', value: cat }, { trait_type: 'Insured Value', value: String(ins) }, { trait_type: 'Status', value: 'Valid' }, { trait_type: 'Year', value: '2023' }] } });
+const env = { solUsd: 150, fx: 1.5 };
+const r1 = slabRow(L('2023 #GG40 Full Art/Glaceon Vstar PSA 10 Crown Zenith Pokemon', 'Pokemon', 200, 1), env);
+ok(r1 && r1.g === 'PK' && r1.grade === 'PSA 10' && r1.aud === 225 && r1.insAud === 300 && Math.abs(r1.under - 0.25) < 1e-9 && /magiceden\.io\/item-details\/Mint1/.test(r1.url), 'a PSA 10 listed at 1 SOL ($150) against a $200 insured value: 25% under, A$225 vs A$300, with its Magic Eden link');
+ok(slabRow(L('Luffy PSA 10', 'One Piece', 200, 1.25), env) === null, 'listed at 94% of its value: not a deal');
+ok(slabRow(L('Energy Removal CGC 8.5 Pokemon', 'Pokemon', 11, 0.03), env) === null && slabRow(L('Jordan PSA 9', 'Basketball', 400, 1), env) === null, 'under A$100, or not one of our games: left out');
+ok(gradeOf('2000 #119 BASE SET 2 ENERGY REMOVAL CGC 8.5 POKEMON') === 'CGC 8.5' && gradeOf('Charizard BGS 9.5') === 'BGS 9.5' && gameOf('One Piece', 'x') === 'OP' && gameOf('Pokemon', 'Pikachu Japanese PSA 10') === 'PJ' && gameOf('TCG', 'Goku Dragon Ball Super PSA 9') === 'DB', 'grades and games read from the listing');
 process.exit(f);

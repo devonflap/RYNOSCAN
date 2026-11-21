@@ -38,7 +38,7 @@ svg.sp { display:block; margin-top:4px; }
 <header>
   <h1>Card <span>Finder</span></h1>
   <div class="sub" id="upd">Loading…</div>
-  <div class="tabs" id="tabs"><button class="tab" data-t="deals">Dropped deals</button><button class="tab" data-t="new">New releases</button><button class="tab" data-t="soon">Upcoming</button></div>
+  <div class="tabs" id="tabs"><button class="tab" data-t="deals">Dropped deals</button><button class="tab" data-t="new">New releases</button><button class="tab" data-t="slabs">Slabs on sale</button><button class="tab" data-t="soon">Upcoming</button></div>
   <div class="chips" id="games"><button class="chip" data-g="all">All</button><button class="chip" data-g="OP">One Piece</button><button class="chip" data-g="PK">Pokémon</button><button class="chip" data-g="PJ">Pokémon JP</button><button class="chip" data-g="DB">Dragon Ball</button></div>
   <div class="chips" id="filt"></div>
 </header>
@@ -60,7 +60,10 @@ function cardEl(c) { const d = el('div', 'card'), im = el('img'); im.src = c.img
   b.append(el('div', 'st ' + (c.stKey || ''), c.st + (c.thin ? ' · few sellers, price may be soft' : '')));
   if (c.check) { const w = el('div', 'st falling', 'Big drop on a rarely sold card: check the sold prices before trusting it'); b.append(w); }
   const L = el('div', 'links'), q = encodeURIComponent(`${c.name.replace(/\s*\(.*?\)\s*/g, ' ')} ${c.num || ''} ${c.g === 'OP' ? 'one piece' : c.g === 'DB' ? 'dragon ball' : 'pokemon'}`.trim());
-  for (const [t, u] of [['TCGplayer', c.url], ['eBay AU sold', `https://www.ebay.com.au/sch/i.html?_nkw=${q}&LH_Sold=1&LH_Complete=1`], ['PSA 10 sold', `https://www.ebay.com.au/sch/i.html?_nkw=${q}+psa+10&LH_Sold=1&LH_Complete=1`]]) { if (!u) continue; const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; L.append(a); }
+  /* 21 Nov: buy links first (Buy It Now in Australia, cheapest first; TCGplayer Direct ships Pokémon singles to Australia with GST and buyer protection), then the sold prices to check against */
+  const bin = (x) => `https://www.ebay.com.au/sch/i.html?_nkw=${x}&LH_BIN=1&_sop=15&LH_PrefLoc=1`, sold = (x) => `https://www.ebay.com.au/sch/i.html?_nkw=${x}&LH_Sold=1&LH_Complete=1`;
+  const B = el('div', 'links buy'); B.append(el('span', 'meta', 'Buy:')); for (const [t, u] of [['eBay AU', bin(q)], ['PSA 10 on eBay AU', bin(q + '+psa+10')], [c.g === 'PK' ? 'TCGplayer (Direct ships to AU)' : 'TCGplayer (US, via a forwarder)', c.url]]) { if (!u) continue; const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; B.append(a); } b.append(B);
+  L.append(el('span', 'meta', 'Check:')); for (const [t, u] of [['eBay AU sold', sold(q)], ['PSA 10 sold', sold(q + '+psa+10')]]) { const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; L.append(a); }
   b.append(L); d.append(b); return d; }
 const byGame = (x) => S.game === 'all' || x.g === S.game;
 const inBand = (c) => S.band === 'all' || (S.band === 'lo' ? c.aud < 300 : S.band === 'mid' ? c.aud >= 300 && c.aud < 600 : c.aud >= 600);
@@ -76,12 +79,19 @@ function draw() { const D = S.D, out = $('out'); out.replaceChildren(); document
     if (!L.length) { out.append(el('p', 'empty', 'No new sets in the last 10 weeks for this game.')); return; }
     for (const s of L) { const box = el('div', 'set'); box.append(el('h2', null, `${s.set}${s.abbr ? ' (' + s.abbr + ')' : ''}`), el('div', 'meta', `${GN[s.g]} · released ${s.rel || '?'} (${s.age} days ago) · chase cards ${pc(s.avgOff)} from their highs on average`));
       const v = el('div', 'verdict', s.verdict); v.style.color = s.ready ? 'var(--ok)' : s.falling ? 'var(--bad)' : 'var(--warn)'; box.append(v); const g = el('div', 'grid'); for (const c of s.chase) g.append(cardEl(c)); box.append(g); out.append(box); } return; }
+  if (S.tab === 'slabs') { const X = S.slabs; out.append(el('p', 'note', 'Graded slabs listed on Collector Crypt (the Pokémon gacha on Solana, sold through Magic Eden) for at least 10% under Collector Crypt\'s own valuation of the card. You pay in SOL from a Solana wallet such as Phantom. The slab sits in a US vault until you redeem it: redeeming costs 2% of the insured value plus insured shipping to Australia, so a small discount can disappear in fees. Check the grade, the card and the PSA 10 sold prices before buying.'));
+    if (!X || !X.items) { out.append(el('p', 'empty', 'The slab list fills in after the next daily run.')); return; } const L2 = X.items.filter(byGame); out.append(el('p', 'meta', `${X.seen} Collector Crypt listings read ${ago(X.at)} · SOL at US$${Math.round(X.solUsd)}`));
+    if (!L2.length) { out.append(el('p', 'empty', 'No slabs under their valuation for this game right now.')); return; } const g = el('div', 'grid');
+    for (const c of L2.slice(0, 60)) { const d = el('div', 'card'), im = el('img'); im.src = c.img || ''; im.alt = ''; im.loading = 'lazy'; im.onerror = () => { im.style.visibility = 'hidden'; }; d.append(im); const b = el('div'); b.append(el('div', 'name', c.name), el('div', 'meta', `${GN[c.g]}${c.grade ? ' · ' + c.grade : ''}${c.vault ? ' · vault: ' + c.vault : ''}`));
+      const pr = el('div', 'price'); pr.append(el('b', null, aud(c.aud)), el('span', 'off', `${Math.round(c.under * 100)}% under its ${aud(c.insAud)} valuation`)); b.append(pr); b.append(el('div', 'meta', `${c.sol} SOL`));
+      const Lk = el('div', 'links'), a = el('a', null, 'Buy on Magic Eden'); a.href = c.url; a.target = '_blank'; a.rel = 'noopener'; const q2 = encodeURIComponent(c.name.replace(/^\d{4}\s*#\S+\s*/, '').slice(0, 80)), a2 = el('a', null, 'eBay AU sold'); a2.href = `https://www.ebay.com.au/sch/i.html?_nkw=${q2}&LH_Sold=1&LH_Complete=1`; a2.target = '_blank'; a2.rel = 'noopener'; Lk.append(a, a2); b.append(Lk); d.append(b); g.append(d); }
+    out.append(g); out.append(el('p', 'note', 'Courtyard (courtyard.io) also sells vaulted slabs and buys any card back at 90% of its fair market value, so a Courtyard listing under 90% of its FMV is close to risk-free. It has no public search to scan, so check its marketplace by hand.')); return; }
   const L = D.upcoming.filter(byGame); out.append(el('p', 'note', 'Sets coming out soon. Prices before and just after release are usually the highest they will be: note the chase cards, then check the New releases tab 3–6 weeks after launch.'));
   if (!L.length) { out.append(el('p', 'empty', 'No upcoming sets listed for this game.')); return; }
   for (const s of L) { const box = el('div', 'set'); box.append(el('h2', null, `${s.set}${s.abbr ? ' (' + s.abbr + ')' : ''}`), el('div', 'meta', `${GN[s.g]} · out ${s.rel} (in ${s.days} days)`)); if (s.chase.length) { box.append(el('div', 'verdict', 'Pre-sale prices of its dearest cards:')); const g = el('div', 'grid'); for (const c of s.chase) g.append(cardEl(c)); box.append(g); } else box.append(el('p', 'note', 'No card prices listed yet.')); out.append(box); } }
 document.querySelectorAll('.tab').forEach((b) => { b.onclick = () => { S.tab = b.dataset.t; store.set('tab', S.tab); draw(); window.scrollTo(0, 0); }; });
 document.querySelectorAll('#games .chip').forEach((b) => { b.onclick = () => { S.game = b.dataset.g; store.set('game', S.game); draw(); }; });
-(async () => { try { const r = await fetch('data/cards.json?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) S.D = await r.json(); } catch {}
+(async () => { try { const r = await fetch('data/cards.json?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) S.D = await r.json(); } catch {} try { const r = await fetch('data/slabs.json?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) S.slabs = await r.json(); } catch {}
   $('upd').textContent = S.D ? `Updated ${ago(S.D.at)} · TCGplayer prices (raw, near mint) in AUD` : 'No data yet'; draw(); })();
 </script>
 </body>
