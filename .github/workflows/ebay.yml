@@ -1,0 +1,32 @@
+# eBay AU listings under market (src/ebaydeals.mjs), every 3 hours: about 450 searches a run, well inside eBay's free 5,000 a day.
+# Uses Ryan's eBay developer keys from GitHub Secrets (read-only public listings); skips quietly without them.
+name: eBay AU deals
+on:
+  schedule:
+    - cron: "47 */3 * * *"
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: card-finder
+  cancel-in-progress: false
+jobs:
+  ebay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: eBay AU listings under market
+        run: node src/ebaydeals.mjs
+        env:
+          EBAY_CLIENT_ID: ${{ secrets.EBAY_CLIENT_ID }}
+          EBAY_CLIENT_SECRET: ${{ secrets.EBAY_CLIENT_SECRET }}
+      - name: Save
+        run: |
+          git config user.name "rynoscan-bot"
+          git config user.email "rynoscan-bot@users.noreply.github.com"
+          git add docs/cards/data/
+          git diff --cached --quiet && echo "no changes" || (git commit -q -m "ebay $(date -u +%Y-%m-%dT%H:%MZ)" && (for i in 1 2 3 4 5; do git pull --rebase -X theirs -q && git push -q && break; sleep $((i*5)); done))
