@@ -1,7 +1,5 @@
-Full scan 11:29 Brisbane: 48 scanned, 39 scored, 4 above 65. On-chain volume Below normal (0.62x 7-day avg).
+Hourly refresh 12:11 Brisbane: 4 tracked coins refreshed, 4 scored, 4 above 65. On-chain volume Below normal (0.62x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
-NEW watch: MIHAO (Solana) Bottom reversal, opp 76, checks 6/6, stop 34.3% away, upside 173.4%.
-NEW watch: BUTTCOIN (Solana) Breakout retest, opp 69, checks 4/6, stop 21.1% away, upside 63.4%; more sellers than buyers in the last hour; volume fading.
+NEW watch: TROLL (Solana) Bottom reversal, opp 66, checks 4/6, stop 17.7% away, upside 53.2%; volume fading; weak last 6h.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: FARTCOIN (top 10 wallets hold 33.2% (gate 30%)), VINE (top 10 wallets hold 41.2% (gate 30%)), TRUMP (Top 10 holders high ownership), GTR (Top 10 holders high ownership), BP (Mint Authority still enabled), ANSEM (Single holder ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
