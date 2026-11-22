@@ -1,6 +1,5 @@
-Full scan 21:31 Brisbane: 48 scanned, 34 scored, 2 above 65. On-chain volume Below normal (0.63x 7-day avg).
+Full scan 22:28 Brisbane: 43 scanned, 33 scored, 3 above 65. On-chain volume Below normal (0.62x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
-NEW watch: GATO (Solana) Liquidity sweep reclaim, opp 71, checks 5/6, stop 83.7% away, upside 290.5%; volume fading; paid DexScreener boost active (promotion, not organic demand).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: ANSEM (Single holder ownership), FARTCOIN (top 10 wallets hold 33.2% (gate 30%)), PUMP (top 10 wallets hold 59.5% (gate 30%)), NET (owner can mint more), VINE (top 10 wallets hold 39.7% (gate 30%)), BP (Mint Authority still enabled).
+Removed for token safety: BP (Mint Authority still enabled), VINE (top 10 wallets hold 39.7% (gate 30%)), ANSEM (Single holder ownership), NET (owner can mint more), TRUMP (Top 10 holders high ownership), FARTCOIN (top 10 wallets hold 33.2% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
