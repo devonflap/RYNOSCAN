@@ -24,9 +24,10 @@ export function titleCheck(title, c) { const t = ` ${norm(title)} `, T = cardTer
   const BSTOP = new Set(['english', 'version', 'set', 'promo', 'promos', 'card', 'cards', 'foil', 'holo', 'the', 'and', 'pack', 'event', 'release', 'stamp', 'stamped', 'parallel', 'alternate', 'art', 'manga', 'rare', 'special', 'super']);
   const extra = [...String(c.name || '').matchAll(/\(([^)]*)\)/g)].map((m) => m[1]).filter((g) => !/^[A-Z]{0,5}\d+[-A-Z0-9/]*$/i.test(g.trim())).flatMap((g) => norm(g).split(/\s+/)).filter((w) => w.length >= 3 && !/^\d+$/.test(w) && !BSTOP.has(w));
   if (extra.length && !extra.some((w) => t.includes(` ${w}`))) other = true;
-  const setN = norm(`${c.name} ${c.set || ''}`); for (const w of ['demo', 'reprint', 'celebration', 'classic collection', 'jumbo', 'oversized', 'metal', 'replica']) if (t.includes(` ${w}`) && !setN.includes(w)) other = true;
+  const setN = norm(`${c.name} ${c.set || ''}`); for (const w of ['demo', 'reprint', 'celebration', 'anniversary', '30th', 'classic collection', 'jumbo', 'oversized', 'metal', 'replica']) if (t.includes(` ${w}`) && !setN.includes(w)) other = true;
   if (other) flags.push('maybe another version');
-  if (c.g === 'PJ' && !/\b(japanese|jp|japan|jpn)\b/.test(t)) flags.push('maybe the English copy'); if (c.g !== 'PJ' && /\b(japanese|jp|japan|jpn|korean|chinese)\b/.test(t)) flags.push(/korean/.test(t) ? 'Korean copy' : /chinese/.test(t) ? 'Chinese copy' : 'Japanese copy');
+  const jpSet = /\b(sv|sm|s|m)\d{1,2}[a-z]\b/.test(t) || /\b(japanese|jp|japan|jpn)\b/.test(t); /* Japanese set codes (SV2a, M2a, s8b) mark a Japanese copy too */
+  if (c.g === 'PJ' && !jpSet) flags.push('maybe the English copy'); if (c.g !== 'PJ' && (jpSet || /\b(korean|chinese)\b/.test(t))) flags.push(/korean/.test(t) ? 'Korean copy' : /chinese/.test(t) ? 'Chinese copy' : 'Japanese copy');
   return { flags }; }
 export const titleMatches = (title, c) => { const r = titleCheck(title, c); return !!r && !r.flags.length; };
 // one Browse API result -> a row (A$ including postage) with its labels, or null

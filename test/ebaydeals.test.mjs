@@ -33,4 +33,5 @@ const sl = listingRow({ title: 'PSA 10 Luffy OP05-119 Manga', price: { value: '7
   ok(lab('Monkey.D.Luffy (119) OP05-119 Secret Rare Awakening of the New Era', an) === 'maybe another version' && lab('Luffy OP05-119 2nd Anniversary Set English', an) === '', 'reprint set: "Anniversary" must be in the title');
   ok(lab('Magikarp 203/193 - 30th Celebration - Classic Collection - NM', mk) === 'maybe another version' && lab('Pokemon Paldea Evolved Magikarp 203/193 Illustration Rare', mk) === '', 'a later reprint of the same number');
   ok(lab('DEMO Monkey D. Luffy P-037 Gen Con 2023', gc) === 'maybe another version', 'demo copies'); }
+ok(lab('Squirtle 170/165 - Art Rare - SV2a: Pokemon Card 151 - NM', { name: 'Squirtle - 170/165', num: '170/165', g: 'PK', set: 'SV: Scarlet & Violet 151', sub: 'Holofoil' }) === 'Japanese copy', 'a Japanese set code (SV2a) marks a Japanese copy');
 process.exit(f);
