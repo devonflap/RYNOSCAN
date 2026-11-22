@@ -46,6 +46,7 @@ svg.sp { display:block; margin-top:4px; }
 .top { display:flex; align-items:center; gap:10px; } .back { border:1px solid var(--line); background:var(--card); color:var(--text); border-radius:999px; padding:5px 12px; font:inherit; font-size:.85rem; cursor:pointer; }
 h2.view { font-size:1.2rem; margin:4px 0 2px; }
 @media (min-width:640px) { .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; } .grid .card { margin:0; } }
+ h3.sec { font-size:18px; margin:22px 0 4px; }
 </style>
 </head>
 <body>
@@ -113,7 +114,7 @@ function go(t) { S.tab = t; S.q = ''; $('q').value = ''; draw(); window.scrollTo
 function home(out) { const D = S.D || { deals: [], newSets: [], upcoming: [] }, deals = D.deals.filter(byGame), ns = D.newSets.filter(byGame), look = ns.filter((s) => s.ready).length, sl = ((S.slabs && S.slabs.items) || []).filter(byGame), up = D.upcoming.filter(byGame), wn = Object.keys(S.wish).length, at = S.idx ? Object.keys(S.wish).filter((id) => { const c = S.idx.get(id); return c && c.aud <= S.wish[id].target; }).length : 0;
   const tile = (cls, key, n, t, d) => { const b = el('button', 'tile ' + cls); b.type = 'button'; b.append(el('div', 'n', String(n))); const w = el('div'); w.append(el('div', 't', t), el('div', 'd', d)); b.append(w); b.onclick = () => go(key); return b; };
   const g = el('div', 'tiles'); g.append(tile('t-deals wide', 'deals', deals.length, 'Dropped deals', `A$100–1,000 cards 25%+ off their high that have stopped falling${deals.length ? ` · best ${Math.round(-Math.min(...deals.filter((c) => !c.check).map((c) => c.off)) * 100) || 0}% off` : ''}`),
-    tile('t-new', 'new', ns.length, 'New releases', look ? `${look} set${look > 1 ? 's' : ''} settled: look now` : 'chase cards after launch'), tile('t-slabs', 'slabs', sl.length, 'Collector Crypt slabs', 'under what they usually sell for'),
+    tile('t-new', 'new', ns.length, 'New releases', look ? `${look} set${look > 1 ? 's' : ''} settled: look now` : 'chase cards after launch'), tile('t-slabs', 'slabs', S.slabs && S.slabs.buys ? S.slabs.buys.filter(byGame).length : sl.length, 'Collector Crypt slabs', S.slabs && S.slabs.buys ? 'dropped cards for sale as slabs, plus cheap slabs' : 'under what they usually sell for'),
     tile('t-wish', 'wish', wn, 'Wish list', at ? `${at} at your price: buy now` : wn ? 'none at your price yet' : 'star cards to add them'), tile('t-soon', 'soon', up.length, 'Upcoming', 'sets coming out soon'), tile('t-ebay wide', 'ebay', S.ebay && S.ebay.items ? S.ebay.items.filter((x) => byGame(x.card)).length : '–', 'eBay AU under market', S.ebay && S.ebay.items ? 'Australian Buy It Now listings 20%+ under market' : 'switches on once the eBay key is set up'));
   out.append(g); out.append(el('p', 'note', 'Search any card above, or pick a game. Prices are TCGplayer\'s market prices (raw, near mint) in AUD, refreshed every morning.')); }
 function draw() { const D = S.D, out = $('out'); out.replaceChildren(); badge();
@@ -142,15 +143,22 @@ function draw() { const D = S.D, out = $('out'); out.replaceChildren(); badge();
     if (!L.length) { out.append(el('p', 'empty', 'No new sets in the last 10 weeks for this game.')); return; }
     for (const s of L) { const box = el('div', 'set'); box.append(el('h2', null, `${s.set}${s.abbr ? ' (' + s.abbr + ')' : ''}`), el('div', 'meta', `${GN[s.g]} · released ${s.rel || '?'} (${s.age} days ago) · chase cards ${pc(s.avgOff)} from their highs on average`));
       const v = el('div', 'verdict', s.verdict); v.style.color = s.ready ? 'var(--ok)' : s.falling ? 'var(--bad)' : 'var(--warn)'; box.append(v); const g = el('div', 'grid'); for (const c of s.chase) g.append(cardEl(c)); box.append(g); out.append(box); } return; }
-  if (S.tab === 'slabs') { const X = S.slabs, typ = (X && X.typical) || 0.87; out.append(el('p', 'note', `Graded slabs to buy and sell on Collector Crypt's marketplace (USDC, from your Solana wallet), priced under what Collector Crypt cards usually sell for (about ${Math.round(typ * 100)}% of Collector Crypt's valuation). Like Dropped deals, each slab has a hold length and, where the Card Finder tracks the same card, its price over 6 months and whether it has settled or is still falling. That line is the raw card's price: graded prices usually move the same way. Buy the ones that have settled, hold for the time shown, and list them back on Collector Crypt. Fees: selling has a marketplace fee; redeeming the slab to Australia costs 2% of its value plus insured post.`));
+  if (S.tab === 'slabs') { const X = S.slabs, typ = (X && X.typical) || 0.87;
     if (!X || !X.items) { out.append(el('p', 'empty', 'The slab list fills in after the next daily run.')); return; } if (!S.idx) { out.append(el('p', 'empty', 'Loading price history…')); loadIndex().then(() => { if (S.tab === 'slabs') draw(); }); return; }
-    const all = X.items.filter((c) => c.src !== 'Magic Eden').filter(byGame).map((c) => { const raw = matchSlab(c, S.idx); return { ...c, raw, hz: slabHold(c, raw) }; });
-    const rank = (c) => (c.underBb ? 1 : 0) + (c.vsTyp || 0) + (c.raw ? ({ settled: 0.08, turning: 0.06, holding: 0.03, easing: 0.01, falling: -0.08, dropping: -0.1 }[c.raw.stKey] || 0) : 0);
-    const L2 = all.filter((c) => S.hz === 'all' || c.hz === S.hz).filter(inBand).sort((a, b) => rank(b) - rank(a));
-    out.append(el('p', 'meta', `${X.ccSeen || X.seen} Collector Crypt listings read ${ago(X.at)} · ${all.length} under the usual price · ${all.filter((c) => c.raw).length} with price history`));
-    if (!L2.length) { out.append(el('p', 'empty', 'Nothing here with these filters right now.')); return; } const g = el('div', 'grid');
-    for (const c of L2.slice(0, 80)) g.append(slabEl(c, typ));
-    out.append(g); return; }
+    const pass = (c) => byGame(c) && (S.hz === 'all' || c.hz === S.hz) && inBand(c);
+    /* 22 Nov: like Dropped deals. First the good buys: cards that have dropped 25%+ off their high and stopped falling, with a slab for sale on Collector Crypt at a fair price */
+    const buys = (X.buys || []).filter(pass).sort((a, b) => (a.raw.off || 0) - (b.raw.off || 0));
+    out.append(el('h3', 'sec', `Good buys on Collector Crypt (${buys.length})`));
+    out.append(el('p', 'note', `Cards that have dropped 25%+ under their 6-month high and stopped falling (the same cards as Dropped deals), with a graded slab of that exact card for sale on Collector Crypt at or under its valuation. Biggest drops first. Buy, hold for the time shown, and list it back on Collector Crypt when the price recovers. Paid in USDC from your Solana wallet.`));
+    if (buys.length) { const g = el('div', 'grid'); for (const c of buys.slice(0, 60)) g.append(slabEl(c, typ)); out.append(g); } else out.append(el('p', 'empty', X.buys ? 'None for these filters today.' : 'Fills in after the next daily run.'));
+    /* then: any slab listed under what Collector Crypt cards usually sell for */
+    const have = new Set(buys.map((c) => c.mint)), all = X.items.filter((c) => c.src !== 'Magic Eden' && !have.has(c.mint)).map((c) => { const raw = matchSlab(c, S.idx); return { ...c, raw, hz: slabHold(c, raw) }; }).filter(pass);
+    const rank = (c) => (c.underBb ? 1 : 0) + (c.vsTyp || 0) + (c.raw ? ({ settled: 0.08, turning: 0.06, holding: 0.03, easing: 0.01, falling: -0.08, dropping: -0.1 }[c.raw.stKey] || 0) : 0); all.sort((a, b) => rank(b) - rank(a));
+    out.append(el('h3', 'sec', `Cheap slabs: under the usual price (${all.length})`));
+    out.append(el('p', 'note', `Any slab listed under what Collector Crypt cards usually sell for (about ${Math.round(typ * 100)}% of their valuation), whether or not the card has dropped. Where the Card Finder tracks the card you get its price line and status; settled ones first.`));
+    out.append(el('p', 'meta', `${X.ccSeen || X.seen} Collector Crypt listings read ${ago(X.at)}`));
+    if (all.length) { const g = el('div', 'grid'); for (const c of all.slice(0, 60)) g.append(slabEl(c, typ)); out.append(g); } else out.append(el('p', 'empty', 'None for these filters today.'));
+    return; }
   const L = D.upcoming.filter(byGame); out.append(el('p', 'note', 'Sets coming out soon. Prices before and just after release are usually the highest they will be: note the chase cards, then check the New releases tab 3–6 weeks after launch.'));
   if (!L.length) { out.append(el('p', 'empty', 'No upcoming sets listed for this game.')); return; }
   for (const s of L) { const box = el('div', 'set'); box.append(el('h2', null, `${s.set}${s.abbr ? ' (' + s.abbr + ')' : ''}`), el('div', 'meta', `${GN[s.g]} · out ${s.rel} (in ${s.days} days)`)); if (s.chase.length) { box.append(el('div', 'verdict', 'Pre-sale prices of its dearest cards:')); const g = el('div', 'grid'); for (const c of s.chase) g.append(cardEl(c)); box.append(g); } else box.append(el('p', 'note', 'No card prices listed yet.')); out.append(box); } }

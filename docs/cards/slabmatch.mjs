@@ -17,7 +17,12 @@ export function matchSlab(slab, index) { const sn = String(slab.name || ''), g =
   // the version: the slab says it or doesn't; the card's name/printing must agree
   const ver = (c) => `${c.name} ${c.sub || ''}`; for (const [, re] of VERS) { const want = re.test(sn); C = C.filter((c) => re.test(ver(c)) === want); }
   if (C.length > 1) { const setHit = C.filter((c) => words(c.set).filter((w) => w.length > 3 && !STOP.has(w)).some((w) => sw.has(w))); if (setHit.length) C = setHit; }
-  if (C.length !== 1) return null; return C[0]; }
+  if (C.length !== 1) return null;
+  // the set must agree too (a reprint has the same name and number: Umbreon Gold Star in Celebrations is not the POP Series 5 one)
+  const SETSTOP = new Set(['series', 'black', 'star', 'cards', 'card', 'trainer', 'gallery', 'collection', 'expansion', 'pack', 'english', 'japanese', 'sword', 'shield', 'scarlet', 'violet', 'mega', 'evolution']);
+  const sk = words(C[0].set).filter((w) => w.length >= 3 && !STOP.has(w) && !SETSTOP.has(w)); const slabW = words(sn);
+  if (sk.length && !sk.some((w) => slabW.some((x) => x.slice(0, 5) === w.slice(0, 5) || x === w))) return null;
+  return C[0]; }
 // how long to plan to hold a slab: the matched card's hold length, or from its year when there's no match (as the Card Finder does by set age)
 export function slabHold(slab, raw, year = new Date().getFullYear()) { if (raw && raw.hz) return raw.hz; const y = +slab.year || +(String(slab.name || '').match(/^\s*(19|20)\d{2}/) || [])[0]; if (!y) return 'long'; return y >= year ? 'short' : y >= year - 2 ? 'medium' : 'long'; }
 // a slab title ("2021 #SV107/SV122 Charizard VMAX CGC 10 Shining Fates - English Pokemon") -> its parts for a tidy card:

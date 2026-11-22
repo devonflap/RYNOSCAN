@@ -1,5 +1,0 @@
-name: probe (one-off)
-on: workflow_dispatch
-permissions: { contents: read }
-jobs:
-  p: { runs-on: ubuntu-latest, timeout-minutes: 30, steps: [ { uses: actions/checkout@v4 }, { uses: actions/setup-node@v4, with: { node-version: 22 } }, { run: "mkdir -p /tmp/o && cp docs/cards/data/cards.json /tmp/o/ && OUT_DIR=/tmp/o node src/slabs.mjs && node -e \"const j=require('/tmp/o/slabs.json');for(const x of j.buys.slice(0,25))console.log(x.raw.off,x.raw.st.slice(0,30),'|',x.grade,x.aud,'val',x.insAud,'|',x.name.slice(0,60),'<=',x.raw.name)\"" } ] }

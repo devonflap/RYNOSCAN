@@ -10,11 +10,14 @@ ok(m('2005 #20 Chansey-Reverse Foil PSA 9 EX Unseen Forces Pokemon') === 'a', 'r
 ok(m('2005 #20 Chansey-Holo PSA 9 EX Unseen Forces') === 'b', 'holo slab -> the holo card');
 ok(m("2000 #39 Erika's Bulbasaur 1st Edition PSA 9 Gym Challenge") === 'c', '1st edition, number with leading zeros');
 ok(m('2021 #SV107/SV122 Charizard VMAX CGC 10 Shining Fates - English Pokemon') === 'e', 'shiny vault number');
-ok(m('2023 #OP05-119 Monkey D. Luffy PSA 10 Manga Rare', 'OP') === 'f', 'manga slab -> manga card');
+ok(m('2023 #OP05-119 Monkey D. Luffy PSA 10 Manga Rare Awakening of the New Era', 'OP') === 'f', 'manga slab -> manga card');
 ok(m('2023 #OP05-119 Monkey D. Luffy PSA 10 Japanese Manga', 'OP') === undefined, 'Japanese One Piece: no match (not tracked)');
 ok(m('2005 #21 Chansey PSA 9') === undefined, 'wrong number: no match');
 ok(slabNum('2023 #042 Golbat') === '42' && slabNum('2022 #ST01-008 Nico Robin') === 'ST1-8', 'slab numbers');
 ok(slabHold({ name: '2026 #1 X' }, null, 2026) === 'short' && slabHold({ name: '2025 #1 X' }, null, 2026) === 'medium' && slabHold({ name: '2019 #1 X' }, null, 2026) === 'long' && slabHold({ name: 'x' }, { hz: 'medium' }) === 'medium', 'hold length: the card\'s, else from the year');
 { const a = slabParts('2021 #SV107/SV122 Charizard VMAX CGC 10 Shining Fates - English Pokemon'), b = slabParts('2000 #6 Team Rocket 1st Edition Holo Dark Dugtrio MINT PSA 9'), c = slabParts("2021 #255 Full Art/Acerola's Premonition CGC 10 Pristine Japanese Sword & Shield Vmax Climax Pokemon");
   ok(a.name === 'Charizard VMAX' && a.num === 'SV107/SV122' && a.set === 'Shining Fates' && b.name === 'Team Rocket 1st Edition Holo Dark Dugtrio' && c.name === "Acerola's Premonition" && c.set === 'Sword & Shield Vmax Climax', 'slab title -> name, number and set for the card layout'); }
+{ const U = [{ id: 'u', g: 'PK', name: 'Umbreon Star', num: '17/17', sub: 'Holofoil', set: 'POP Series 5' }], B = [{ id: 'bl', g: 'PK', name: 'Blastoise ex - 200/165', num: '200/165', sub: 'Holofoil', set: 'SV: Scarlet & Violet 151' }], F = [{ id: 'fk', g: 'PJ', name: "Fukuoka's Pikachu - 289/SV-P", num: '289/SV-P', set: 'SV-P Promotional Cards' }];
+  ok(!matchSlab({ name: '2021 #17 Umbreon-Gold Star CGC 10 Celebrations Classic Collection', g: 'PK' }, U), 'a reprint in another set is not the same card');
+  ok((matchSlab({ name: '2023 #200 Blastoise EX PSA 10 Mew EN-151', g: 'PK' }, B) || {}).id === 'bl' && (matchSlab({ name: "2025 #289 Fukuoka's Pikachu PSA 10 Japanese SV-P Promo", g: 'PJ' }, F) || {}).id === 'fk', 'set agrees by a set word ("151", "Promo"/"Promotional")'); }
 process.exit(f);
