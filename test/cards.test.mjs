@@ -47,7 +47,7 @@ ok(targetOf(s1) === Math.round(404 * 0.9) && targetOf(s2) === Math.round(380 * 0
   ok(ccRow(cc('Umbreon PSA 10', 'Pokemon', 170, 165), { fx: 1.5 }) === null, '97% of its value: not a deal');
   ok(ccRow({ ...cc('Luffy PSA 10', 'One Piece', 200, 100), listing: null }, { fx: 1.5 }) === null, 'not listed: skipped');
   ok(ccRow(cc('Luffy PSA 10', 'One Piece', 200, 100, 'ME'), { fx: 1.5 }).src === 'Magic Eden', 'listed on Magic Eden through Collector Crypt: says so');
-  const b = ccBands(1.5); ok(b[0][0] === 66 && b[b.length - 1][1] >= 1000 && b.every(([lo, hi, m]) => hi > lo && m < hi), `${b.length} value bands cover A$100-1,500, each asking only for listings under 90% of its top`); }
+  const b = ccBands(1.5); ok(b[0][0] === 23 && b[b.length - 1][1] >= 2000 && b.every(([lo, hi, m]) => hi > lo && m < hi), `${b.length} value bands cover A$35-3,000, each asking only for listings under 90% of its top`); }
 { const r = ccRow({ itemName: 'Luffy PSA 10', category: 'One Piece', insuredValue: '200', nftStatus: 'Valid', nftAddress: 'Z9', getBuybackOffer: true, listing: { currency: 'USDC', price: 150, marketplace: 'CC' } }, { fx: 1.5 });
   ok(r.bb === true && r.bbAud === 260.1 && r.aud < r.bbAud, 'buyback open card: buyback A$260 (86.7%) is more than its A$225 price'); }
 process.exit(f);

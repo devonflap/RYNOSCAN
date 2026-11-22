@@ -11,7 +11,7 @@ import { cardTerms } from '../docs/cards/ebayq.mjs';
 const ME = 'https://api-mainnet.magiceden.dev/v2', CC = 'https://api.collectorcrypt.com', OUT = process.env.OUT_DIR || 'docs/cards/data', UA = 'RynoScan card finder (github.com/devonflap/RYNOSCAN)';
 /* 22 Nov (Ryan: "just focus on Collector Crypt, treat it like NFTs"): Collector Crypt's own marketplace only. Measured that day: buyers
    pay a median ~87% of insured value, and Collector Crypt's buybacks pay exactly 86.7% (38 of 38), but only on cards flagged for it. */
-export const SLAB = { buyback: 0.867, typical: 0.87, maxRatio: 0.9, minAud: 100, maxAud: 1500, pages: 60, per: 100 };
+export const SLAB = { buyback: 0.867, typical: 0.87, maxRatio: 0.9, minAud: 35, maxAud: 3000, /* 22 Nov: down to A$35 valuations (cheap long-term keepers) and up to A$3,000 (high end) */ pages: 60, per: 100 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function getJ(u) { for (let a = 0; a < 4; a++) { try { const r = await fetch(u, { headers: { 'user-agent': UA, accept: 'application/json' }, signal: AbortSignal.timeout(30000) }); if (r.ok) return await r.json(); if (r.status === 429) { await sleep(5000 * (a + 1)); continue; } return null; } catch { await sleep(2000); } } return null; }
 const attr = (t, k) => { const a = ((t && t.attributes) || []).find((x) => String(x.trait_type).toLowerCase() === k.toLowerCase()); return a ? a.value : null; };
