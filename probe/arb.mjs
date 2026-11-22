@@ -1,10 +1,10 @@
-// one-off probe (22 Nov): for the cheapest Magic Eden slabs, what does Collector Crypt's market say (offers, recent sales)? Deleted after.
-const UA = { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36', accept: 'application/json, text/html, */*' };
-async function get(u) { try { const r = await fetch(u, { headers: UA, signal: AbortSignal.timeout(25000) }); return { s: r.status, t: await r.text() }; } catch (e) { return { s: 'ERR', t: e.message }; } }
-const CC = 'https://api.collectorcrypt.com', sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const b = await get('https://collectorcrypt.com/bundle/urls-DBUlD70M.js');
-for (const k of ['getCardOffers', 'getSellerListings', 'criteriaOffers:', 'criteriaOffersReceived', 'recentSales', 'requestBuyback', 'getNFTCardMarket', 'buyback']) { const i = b.t.indexOf(k); if (i >= 0) console.log(`\nURL ${k}: ` + b.t.slice(i, i + 220)); }
-const mints = process.env.MINTS.split(',');
-for (const m of mints.slice(0, 6)) { console.log(`\n######## ${m}`);
-  for (const p of [`cards/publicNft/${m}`, `cards/publicNft/${m}/market`, `card-activity/${m}?v2=true`]) { const r = await get(`${CC}/${p}`); console.log(`-- ${r.s} ${p}\n` + r.t.replace(/\s+/g, ' ').slice(0, 1400)); await sleep(500); } }
-const rs = await get(`${CC}/card-activity/recent-sales?category=Pokemon`); console.log('\n-- recent-sales ' + rs.s + '\n' + rs.t.slice(0, 1500));
+// one-off probe 2 (22 Nov): are the cheapest Magic Eden slab listings live (seller = current owner on-chain)? Deleted after.
+const UA = { 'user-agent': 'RynoScan card finder (github.com/devonflap/RYNOSCAN)', accept: 'application/json' };
+async function getJ(u) { try { const r = await fetch(u, { headers: UA, signal: AbortSignal.timeout(25000) }); return r.ok ? await r.json() : { err: r.status }; } catch (e) { return { err: e.message }; } }
+const ME = 'https://api-mainnet.magiceden.dev/v2', CC = 'https://api.collectorcrypt.com', sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// on-chain owner of the token (public Solana RPC)
+async function owner(mint) { try { const r = await fetch('https://api.mainnet-beta.solana.com', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getTokenLargestAccounts', params: [mint] }) }); const a = (await r.json()).result.value.find((x) => x.uiAmount === 1); if (!a) return null;
+  const r2 = await fetch('https://api.mainnet-beta.solana.com', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getAccountInfo', params: [a.address, { encoding: 'jsonParsed' }] }) }); const info = (await r2.json()).result.value.data.parsed.info; return { owner: info.owner, state: info.state, delegate: info.delegate || null }; } catch (e) { return { err: e.message }; } }
+const rows = []; for (const m of process.env.MINTS.split(',')) { const L = await getJ(`${ME}/tokens/${m}/listings`); await sleep(600); const T = await getJ(`${ME}/tokens/${m}`); await sleep(600); const cc = await getJ(`${CC}/cards/publicNft/${m}/market`); const o = await owner(m); await sleep(400);
+  const l = Array.isArray(L) ? L[0] : null; rows.push({ m: m.slice(0, 6), name: (T.name || '').slice(0, 40), meSeller: l ? l.seller.slice(0, 6) : null, mePrice: l ? l.price : null, meOwner: T.owner ? T.owner.slice(0, 6) : null, chainOwner: o && o.owner ? o.owner.slice(0, 6) : JSON.stringify(o), frozen: o && o.state, delegate: o && o.delegate ? o.delegate.slice(0, 6) : null, ccOwner: cc.owner ? cc.owner.wallet.slice(0, 6) : null, ccListing: cc.listing ? cc.listing.price + ' ' + cc.listing.marketplace : null }); }
+console.table(rows);
