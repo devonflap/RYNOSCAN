@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="cc7894c397">
+<meta name="build" content="353798dbda">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Card Finder</title>
 <meta name="description" content="Pokémon, One Piece and Dragon Ball singles that have dropped in price: deals, new-release chase cards and upcoming sets.">
@@ -103,7 +103,8 @@ const KCC = 0.9, POST_EACH_AUD = () => 9.4 * ((S.slabs && S.slabs.fx) || 1.52); 
 function ccSections() { const X = S.slabs; if (!X || !X.items || !S.idx) return null; const typ = X.typical || 0.87, seen = new Set(), all = [];
   for (const c of [...(X.buys || []), ...X.items.filter((c) => c.src !== 'Magic Eden').map((c) => { const raw = c.raw || matchSlab(c, S.idx); return { ...c, raw, hz: slabHold(c, raw) }; })]) { if (seen.has(c.mint)) continue; seen.add(c.mint); all.push(c); }
   const notFalling = (c) => !(c.raw && /falling|dropping/.test(c.raw.stKey || '')), good = (c) => c.fv && c.fv.conf !== 'low', next = (c) => (c.supply && c.supply.next ? c.supply.next * 0.99 : Infinity);
-  const flipOf = (c) => { const sell = good(c) ? Math.min(c.fv.aud * KCC, next(c)) : Math.min(c.insAud * typ, next(c)), profit = sell * 0.98 - c.aud; return { sell, profit, pct: profit / c.aud, comps: good(c) }; };
+  const ccS = (c) => (c.ccSold && c.ccSold.n >= 2 ? c.ccSold.aud : Infinity); /* 23 Nov: and never above what it has actually sold for on Collector Crypt */
+  const flipOf = (c) => { const sell = good(c) ? Math.min(c.fv.aud * KCC, next(c), ccS(c)) : Math.min(c.insAud * typ, next(c), ccS(c)), profit = sell * 0.98 - c.aud; return { sell, profit, pct: profit / c.aud, comps: good(c) }; };
   const flipOk = (c, f) => f.profit >= 8 && f.pct >= 0.1 && notFalling(c) && !c.ivHigh && (good(c) ? c.fv.conf === 'high' && c.aud <= 0.85 * c.fv.aud && c.fv.n30 >= 3 && c.fv.n90 >= 8 && c.ivRatio >= 0.8 && c.aud >= 60 : true);
   const flips = all.map((c) => ({ c, f: flipOf(c) })).filter((x) => flipOk(x.c, x.f)).sort((a, b) => (b.f.comps - a.f.comps) || b.f.pct - a.f.pct);
   const buys = (X.buys || []).filter((c) => (good(c) ? c.aud <= 0.85 * c.fv.aud : !c.ivHigh)).sort((a, b) => (a.raw.off || 0) - (b.raw.off || 0));
@@ -130,15 +131,16 @@ function slabEl(c, typ, o = {}) { const r = c.raw, P = slabParts(c.name), d = el
   if (vs > 0.005) pr.append(el('span', 'off', `-${Math.round(vs * 100)}% under usual`)); if (r && r.ch7 != null) pr.append(el('span', r.ch7 >= 0 ? 'up' : 'down', `${pc(r.ch7)} 7d`)); if (r && r.ch30 != null) pr.append(el('span', r.ch30 >= 0 ? 'up' : 'down', `${pc(r.ch30)} 30d`)); b.append(pr);
   if (r) { const sp = spark(r.sp); if (sp) b.append(sp); b.append(el('div', 'st ' + (r.stKey || ''), r.st)); } else b.append(el('div', 'st', 'No price history for this card yet: check the sold prices'));
   b.append(el('div', 'meta', `Collector Crypt valuation ${aud(c.insAud)} · this slab is ${Math.round((1 - c.under) * 100)}% of it${r ? ` · raw card ${aud(r.aud)}` : ''}`));
+  if (c.ccSold) { const k = c.ccSold, dd = 1 - c.aud / k.aud; b.append(el('div', 'st ' + (dd >= 0.1 ? 'settled' : dd >= 0 ? 'holding' : 'easing'), `Sold on Collector Crypt: ${k.n} sale${k.n > 1 ? 's' : ''} of this card in this grade, median ${aud(k.aud)}${k.last ? ', last ' + ago(new Date(k.last).toISOString()) : ''} · this slab is ${dd >= 0 ? Math.round(dd * 100) + '% under' : Math.round(-dd * 100) + '% over'}`)); }
   if (c.fv) { const dsc = 1 - c.aud / c.fv.aud; b.append(el('div', 'st ' + (dsc >= 0.15 ? 'settled' : dsc >= 0 ? 'holding' : 'falling'), `Sold comps: this card in this grade sells for about ${aud(c.fv.aud)} (${c.fv.n90 != null ? c.fv.n90 + ' sales in 90 days' : c.fv.n + ' sales'}, ${c.fv.conf} confidence) · this slab is ${dsc >= 0 ? Math.round(dsc * 100) + '% under' : Math.round(-dsc * 100) + '% over'}`)); if (c.fv.conf !== 'low' && c.aud > c.fv.aud * 0.7) b.append(el('div', 'meta', `Offer idea: around ${aud(c.fv.aud * 0.7)} (70% of sold comps)`)); }
-  else b.append(el('div', 'meta', `No sold comps yet: judged on Collector Crypt's own valuation, so check the eBay sold prices`));
+  else if (!c.ccSold) b.append(el('div', 'meta', `No sold prices yet: judged on Collector Crypt's own valuation, so check eBay sold and PriceCharting`));
   if (c.ivHigh) b.append(el('div', 'st falling', c.fv ? `Collector Crypt's valuation (${aud(c.insAud)}) is ${c.ivRatio}x what it sells for: the "discount" isn't real` : `Collector Crypt's valuation (${aud(c.insAud)}) looks too high for this card${c.raw ? ` (raw ${aud(c.raw.aud)})` : ''}: don't trust the discount, check sold prices`)); else if (c.ivLag) b.append(el('div', 'st settled', 'Collector Crypt\'s valuation is behind the market: sellers pricing off it may be underpricing'));
   if (c.supply) { const u = c.supply, alone = u.n <= 1; b.append(el('div', 'st ' + (alone ? 'settled' : u.n <= 3 ? 'holding' : 'easing'), alone ? 'Only one listed on Collector Crypt (this one): once you own it, you set the price' : `${u.n} listed on Collector Crypt in this grade${u.next ? ` · cheapest other ${aud(u.next)}` : ''}${u.n <= 3 ? ': few sellers' : ': others to compete with'}`)); }
   if (o.flip) b.append(el('div', 'st settled', `Flip: relist at ${aud(o.flip.sell)} (${o.flip.comps ? '90% of sold comps' : 'the usual Collector Crypt price'}, or just under the cheapest other listing) and after the 2% seller fee you'd clear about ${aud(o.flip.profit)} (+${Math.round(o.flip.pct * 100)}%)`));
   if (o.keeper) b.append(el('div', 'meta', `To take it out of the vault: US$34.99 post to Australia, US$3 for each extra card in the same shipment (about ${aud(POST_EACH_AUD())} a card in a batch of 5). Collector Crypt is reported to have dropped its 2% withdrawal fee: check at checkout. Import GST may apply.`));
   if (c.bb) b.append(el('div', 'st ' + (c.underBb ? 'settled' : 'holding'), c.underBb ? `Buyback shown: ${aud(c.bbAud)}, above this price (check it still applies after you buy)` : `Buyback shown: ${aud(c.bbAud)}`));
   const B = el('div', 'links buy'); B.append(el('span', 'meta', 'Buy:')); const a = el('a', null, `Collector Crypt (US$${c.usd} USDC)`); a.href = c.url; a.target = '_blank'; a.rel = 'noopener'; B.append(a); b.append(B);
-  const L = el('div', 'links'); L.append(el('span', 'meta', 'Check:')); for (const [t, u] of [['eBay AU sold', `https://www.ebay.com.au/sch/i.html?_nkw=${encodeURIComponent(slabQuery(c.name))}&LH_Sold=1&LH_Complete=1`], r && r.url ? ['Raw card on TCGplayer', r.url] : null].filter(Boolean)) { const x = el('a', null, t); x.href = u; x.target = '_blank'; x.rel = 'noopener'; L.append(x); } b.append(L);
+  const L = el('div', 'links'); L.append(el('span', 'meta', 'Check:')); for (const [t, u] of [['eBay AU sold', `https://www.ebay.com.au/sch/i.html?_nkw=${encodeURIComponent(slabQuery(c.name))}&LH_Sold=1&LH_Complete=1`], ['PriceCharting', `https://www.pricecharting.com/search-products?type=prices&q=${encodeURIComponent(`${r ? cardTerms(r).core : P.name} ${P.num ? P.num.split('/')[0] : ''}`.trim())}`], r && r.url ? ['Raw card on TCGplayer', r.url] : null].filter(Boolean)) { const x = el('a', null, t); x.href = u; x.target = '_blank'; x.rel = 'noopener'; L.append(x); } b.append(L);
   d.append(b); return d; }
 /* THE WISH LIST (21 Nov): cards Ryan wants, each with the price he'd pay (it starts at a suggested target: the 2-week low, or 10% under
    today's price while it is still falling). Kept on this phone; Copy / Paste moves it to another device. */

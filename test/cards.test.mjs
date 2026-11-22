@@ -1,7 +1,7 @@
 // the card finder's signals (21 Nov): dropped deals, new-release chase cards, hold lengths
 import { CARD, stats, statusOf, horizonOf, newSetView, isDeal } from '../src/cardsig.mjs';
 import { sampleDays, slim, targetOf } from '../src/cards.mjs';
-import { slabRow, ccRow, ccBands, gradeOf, gameOf, sameSlab, gradeKey } from '../src/slabs.mjs';
+import { slabRow, ccRow, ccBands, gradeOf, gameOf, sameSlab, gradeKey, saleRow, ccComps } from '../src/slabs.mjs';
 const out = console.log; let f = 0; const ok = (c, m) => { out((c ? 'PASS ' : 'FAIL ') + m); if (!c) f = 1; };
 const D = 86400e3, now = Date.parse('2026-11-21T12:00:00Z'), ser = (pts) => pts.map(([daysAgo, v]) => [now - daysAgo * D, v]);
 // a $600 card that fell to $400 and has sat there for 3 weeks: a deal
@@ -53,4 +53,9 @@ ok(targetOf(s1) === Math.round(404 * 0.9) && targetOf(s2) === Math.round(380 * 0
 { const row = { name: '2024 #170 Terapagos EX PSA 10 Scr EN-Stellar Crown', grade: 'PSA 10' }, mk = (name, co, gr) => ({ itemName: name, gradingCompany: co, grade: gr });
   ok(sameSlab(row, mk('2024 #170 Terapagos EX PSA 10 Scr EN-Stellar Crown Pokemon', 'PSA', 'GEM MT 10')) && !sameSlab(row, mk('2024 #170 Terapagos EX PSA 9 Stellar Crown', 'PSA', 'MINT 9')) && !sameSlab(row, mk('2024 #170 Terapagos EX CGC 10', 'CGC', 'Pristine 10')) && !sameSlab(row, mk('2024 #128 Terapagos EX PSA 10', 'PSA', 'GEM MT 10')), 'supply counts the same card in the same grade only');
   ok(gradeKey('CGC', 'NM/MINT+ 8.5') === 'CGC 8.5' && gradeKey('PSA', 'GEM-MT 10') === 'PSA 10', 'grade keys'); }
+{ const x = saleRow({ amount: '120.5', createdAt: '2026-11-20T10:00:00Z', to: { name: 'someone' }, card: { nftAddress: 'A1', insuredValue: '140', itemName: '2024 #170 Terapagos EX PSA 10 Stellar Crown', gradingCompany: 'PSA', grade: 'GEM MT 10', category: 'Pokemon' } });
+  const bb = saleRow({ amount: '100', createdAt: '2026-11-21T10:00:00Z', to: { name: 'Collector Crypt Buybacks' }, card: { nftAddress: 'A2', insuredValue: '115', itemName: '2024 #170 Terapagos EX PSA 10', gradingCompany: 'PSA', grade: 'GEM MT 10' } });
+  const y = { ...x, k: 'b', usd: 130, t: Date.parse('2026-11-22') }, z = { ...x, k: 'c', usd: 90, name: '2024 #170 Terapagos EX PSA 9', grade: 'MINT 9' };
+  const cc = ccComps({ name: '2024 #170 Terapagos EX PSA 10 Scr EN-Stellar Crown', grade: 'PSA 10' }, [x, y, z, bb], 1.5, Date.parse('2026-11-23'));
+  ok(x.usd === 120.5 && bb.bb && cc && cc.n === 2 && cc.aud === 187.88, 'Collector Crypt sales log: same card and grade only, buybacks kept apart, median A$188'); }
 process.exit(f);
