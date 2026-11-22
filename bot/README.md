@@ -291,3 +291,4 @@ These apply to every bot. To change one bot only, put it under `"bots"`, for exa
   band's top, so ~90 requests cover A$100-1,500. First run: 148 deals there plus 36 on Magic Eden. Each slab says where it is listed;
   Magic Eden ones link to the same card on Collector Crypt too.
 - No-key eBay option (22 Nov): every card now has a price-capped eBay link (Buy It Now in Australia at 80% of market or less, or at his wish-list price for starred cards; eBay's own _udhi filter, checked on eBay AU). Saving that search on eBay gets eBay's own new-listing alerts.
+- Stale Magic Eden listings (22 Nov): Ryan saw Magic Eden slabs far under Collector Crypt prices. Checked: for the cheapest 12, the Magic Eden seller no longer owned the card (Collector Crypt showed another owner; several had since sold or been relisted on Collector Crypt at 2-3x). Magic Eden slabs are now kept only if Collector Crypt says the seller still owns the card: 29 of 31 dropped on the first run.
