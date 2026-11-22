@@ -28,4 +28,9 @@ ok(lab('Luffy OP05-119 manga Japanese', manga) === 'Japanese copy', 'Japanese co
 ok(lab('Mega Rayquaza ex SAR 110/076', pj) === 'maybe the English copy', 'Japanese card without "Japanese" labelled');
 ok(lab('Luffy OP05-118 manga', manga) === 'DROPPED' && lab('Luffy OP05-119 manga sleeve', manga) === 'DROPPED', 'wrong number or not a card: still dropped');
 const sl = listingRow({ title: 'PSA 10 Luffy OP05-119 Manga', price: { value: '700', currency: 'AUD' } }, manga); ok(sl && !sl.exact && sl.flags[0] === 'slab', 'slab under market is shown, labelled');
+{ const gc = { name: 'Monkey.D.Luffy (Gen Con 2023)', num: 'P-037', g: 'OP', sub: 'Foil', aud: 157 }, an = { name: 'Monkey.D.Luffy (119) (English Version 2nd Anniversary Set)', num: 'OP05-119', g: 'OP', sub: 'Foil', aud: 108 }, mk = { name: 'Magikarp - 203/193', num: '203/193', g: 'PK', set: 'SV02: Paldea Evolved', sub: 'Holofoil', aud: 439 };
+  ok(lab('Bandai One Piece Monkey.D.Luffy 1st Anniversary Promo Foil P-037', gc) === 'maybe another version' && lab('Monkey D Luffy P-037 Gen Con 2023 promo', gc) === '', 'event promo: the event must be in the title');
+  ok(lab('Monkey.D.Luffy (119) OP05-119 Secret Rare Awakening of the New Era', an) === 'maybe another version' && lab('Luffy OP05-119 2nd Anniversary Set English', an) === '', 'reprint set: "Anniversary" must be in the title');
+  ok(lab('Magikarp 203/193 - 30th Celebration - Classic Collection - NM', mk) === 'maybe another version' && lab('Pokemon Paldea Evolved Magikarp 203/193 Illustration Rare', mk) === '', 'a later reprint of the same number');
+  ok(lab('DEMO Monkey D. Luffy P-037 Gen Con 2023', gc) === 'maybe another version', 'demo copies'); }
 process.exit(f);

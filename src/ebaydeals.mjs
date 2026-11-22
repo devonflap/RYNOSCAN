@@ -19,6 +19,12 @@ export function titleCheck(title, c) { const t = ` ${norm(title)} `, T = cardTer
   if (/\b(psa|cgc|bgs|beckett|sgc|graded|slab|gem mint)\b/.test(t)) flags.push('slab');
   if (/\b(lot|lots|bundle|choose|pick|select your|you pick|u pick|complete set|playset|x2|x3|x4)\b/.test(t)) flags.push('lot or pick-a-card');
   let other = false; for (const v of T.vs) { if (v.startsWith('-')) { if (t.includes(` ${v.slice(1)} `)) other = true; continue; } const alts = v.replace(/[()]/g, '').split(',').map((x) => norm(x)); if (!alts.some((a) => t.includes(` ${a}`))) other = true; }
+  /* 22 Nov (first live run): a card's other bracket words name its printing - an event promo (Gen Con 2023), a reprint set (2nd Anniversary
+     Set) - so a listing that doesn't mention any of them may be a different printing with the same number; and reprint / demo copies */
+  const BSTOP = new Set(['english', 'version', 'set', 'promo', 'promos', 'card', 'cards', 'foil', 'holo', 'the', 'and', 'pack', 'event', 'release', 'stamp', 'stamped', 'parallel', 'alternate', 'art', 'manga', 'rare', 'special', 'super']);
+  const extra = [...String(c.name || '').matchAll(/\(([^)]*)\)/g)].map((m) => m[1]).filter((g) => !/^[A-Z]{0,5}\d+[-A-Z0-9/]*$/i.test(g.trim())).flatMap((g) => norm(g).split(/\s+/)).filter((w) => w.length >= 3 && !/^\d+$/.test(w) && !BSTOP.has(w));
+  if (extra.length && !extra.some((w) => t.includes(` ${w}`))) other = true;
+  const setN = norm(`${c.name} ${c.set || ''}`); for (const w of ['demo', 'reprint', 'celebration', 'classic collection', 'jumbo', 'oversized', 'metal', 'replica']) if (t.includes(` ${w}`) && !setN.includes(w)) other = true;
   if (other) flags.push('maybe another version');
   if (c.g === 'PJ' && !/\b(japanese|jp|japan|jpn)\b/.test(t)) flags.push('maybe the English copy'); if (c.g !== 'PJ' && /\b(japanese|jp|japan|jpn|korean|chinese)\b/.test(t)) flags.push(/korean/.test(t) ? 'Korean copy' : /chinese/.test(t) ? 'Chinese copy' : 'Japanese copy');
   return { flags }; }
