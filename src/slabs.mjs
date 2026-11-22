@@ -7,7 +7,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 const ME = 'https://api-mainnet.magiceden.dev/v2', CC = 'https://api.collectorcrypt.com', OUT = process.env.OUT_DIR || 'docs/cards/data', UA = 'RynoScan card finder (github.com/devonflap/RYNOSCAN)';
-export const SLAB = { maxRatio: 0.9, minAud: 100, maxAud: 1500, pages: 60, per: 100 };
+/* 22 Nov (Ryan: "just focus on Collector Crypt, treat it like NFTs"): Collector Crypt's own marketplace only. Measured that day: buyers
+   pay a median ~87% of insured value, and Collector Crypt's buybacks pay exactly 86.7% (38 of 38), but only on cards flagged for it. */
+export const SLAB = { buyback: 0.867, typical: 0.87, maxRatio: 0.9, minAud: 100, maxAud: 1500, pages: 60, per: 100 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function getJ(u) { for (let a = 0; a < 4; a++) { try { const r = await fetch(u, { headers: { 'user-agent': UA, accept: 'application/json' }, signal: AbortSignal.timeout(30000) }); if (r.ok) return await r.json(); if (r.status === 429) { await sleep(5000 * (a + 1)); continue; } return null; } catch { await sleep(2000); } } return null; }
 const attr = (t, k) => { const a = ((t && t.attributes) || []).find((x) => String(x.trait_type).toLowerCase() === k.toLowerCase()); return a ? a.value : null; };
@@ -25,6 +27,7 @@ export function ccRow(c, { fx, S = SLAB }) { const L = c && c.listing, ins = +(c
   const usd = +L.price, aud = usd * fx, insAud = ins * fx, ratio = usd / ins; if (insAud < S.minAud || insAud > S.maxAud || ratio > S.maxRatio || ratio < 0.2) return null;
   const img = (c.images && (c.images.frontM || c.images.frontS)) || c.frontImage || null, mp = String(L.marketplace || 'CC');
   return { g, name: String(c.itemName || '').trim(), grade: [c.gradingCompany, c.grade && String(c.grade).replace(/^[A-Z/ +-]*(?=\d)/, '')].filter(Boolean).join(' ') || gradeOf(c.itemName), year: c.year || null, img, aud: +aud.toFixed(2), insAud: +insAud.toFixed(2), usd: +usd.toFixed(2), under: +(1 - ratio).toFixed(3), vault: c.vault || null,
+    bb: c.getBuybackOffer === true ? true : c.getBuybackOffer === false ? false : null, bbAud: +(ins * S.buyback * fx).toFixed(2),
     src: /^ME|magic/i.test(mp) ? 'Magic Eden' : 'Collector Crypt', mint: c.nftAddress, url: `https://collectorcrypt.com/assets/solana/${c.nftAddress}` }; }
 // Collector Crypt's marketplace, one insured-value band at a time (10% wide), asking only for listings priced under the band's top x 0.9:
 // a small superset of the deals, so a few hundred requests cover every listing in A$100-1,500 instead of tens of thousands of pages
@@ -40,15 +43,18 @@ async function main() { fs.mkdirSync(OUT, { recursive: true });
   const fxj = await getJ('https://api.frankfurter.app/latest?from=USD&to=AUD'), fx = fxj && fxj.rates && fxj.rates.AUD > 1 ? fxj.rates.AUD : 1.53;
   const sp = await getJ('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd'), solUsd = sp && sp.solana && sp.solana.usd > 0 ? sp.solana.usd : null;
   if (!solUsd) { console.log('no SOL price: slabs skipped this run'); return; } console.log(`SOL $${solUsd}, USD to AUD ${fx}`);
-  const rows = []; let seen = 0;
-  for (let p = 0; p < SLAB.pages; p++) { const L = await getJ(`${ME}/collections/collector_crypt/listings?offset=${p * SLAB.per}&limit=${SLAB.per}`); await sleep(700); if (!Array.isArray(L) || !L.length) break; seen += L.length; for (const x of L) { const r = slabRow(x, { solUsd, fx }); if (r) rows.push(r); } if (L.length < SLAB.per) break; }
-  /* 22 Nov: Magic Eden keeps showing some listings after the card has been sold on Collector Crypt (all 12 of the cheapest, 50-70%
-     "under", had a Magic Eden seller who no longer owns the card). Keep a Magic Eden slab only if Collector Crypt says its seller still owns it. */
-  let stale = 0; for (const r of [...rows]) { const m = await getJ(`${CC}/cards/publicNft/${r.mint}/market`); await sleep(300); const w = m && m.owner && m.owner.wallet;
-    if (w && r.seller && w !== r.seller) { rows.splice(rows.indexOf(r), 1); stale++; } }
-  console.log(`Magic Eden: ${stale} listings dropped as stale (the seller no longer owns the card), ${rows.length} live`);
-  let ccReads = 0; try { const cc = await ccScan(fx); ccReads = cc.reads; const have = new Set(rows.map((r) => r.mint)); for (const r of cc.rows) if (!have.has(r.mint)) rows.push(r); } catch (e) { console.log('Collector Crypt marketplace skipped: ' + e.message); }
-  rows.sort((a, b) => b.under - a.under);
-  fs.writeFileSync(path.join(OUT, 'slabs.json'), JSON.stringify({ at: new Date().toISOString(), fx, solUsd, seen, source: 'Collector Crypt slabs on Magic Eden and on Collector Crypt', ccSeen: ccReads, items: rows.slice(0, 250) }));
-  console.log(`slabs: ${seen} listings read, ${rows.length} under ${Math.round(SLAB.maxRatio * 100)}% of their insured value`); }
+  // what Collector Crypt buyers actually pay, as a share of insured value: the median of recent marketplace sales (not buybacks)
+  const ratios = []; for (const cat of ['Pokemon', 'One Piece', 'Dragon Ball']) { const L = await getJ(`${CC}/card-activity/recent-sales?category=${encodeURIComponent(cat)}`); await sleep(500);
+    for (const x of Array.isArray(L) ? L : []) { const ins = +(x.card && x.card.insuredValue), amt = +x.amount; if (ins >= 30 && amt > 0 && !/buyback/i.test((x.to && x.to.name) || '')) ratios.push(amt / ins); } }
+  ratios.sort((a, b) => a - b); const med = ratios.length >= 10 ? ratios[Math.floor(ratios.length / 2)] : null, typ = med && med > 0.7 && med < 1.05 ? +med.toFixed(3) : SLAB.typical;
+  console.log(`recent Collector Crypt sales: ${ratios.length}, median ${med ? Math.round(med * 100) + '%' : '?'} of insured value (using ${Math.round(typ * 100)}%)`);
+  const rows = []; let ccReads = 0; try { const cc = await ccScan(fx); ccReads = cc.reads; rows.push(...cc.rows.filter((r) => r.src === 'Collector Crypt')); } catch (e) { console.log('Collector Crypt marketplace skipped: ' + e.message); }
+  // buyback flag: from the card's own page when the listing didn't carry it
+  for (const r of rows) if (r.bb == null) { const c = await getJ(`${CC}/cards/publicNft/${r.mint}`); await sleep(250); r.bb = !!(c && c.getBuybackOffer === true); }
+  for (const r of rows) { const ratio = 1 - r.under; r.vsTyp = +(1 - ratio / typ).toFixed(3); r.underBb = !!(r.bb && r.aud < r.bbAud); }
+  const keep = rows.filter((r) => r.vsTyp > 0 || r.underBb); rows.length = 0; rows.push(...keep);
+  console.log(`buyback open on ${rows.filter((r) => r.bb).length}, priced under its buyback on ${rows.filter((r) => r.underBb).length}`);
+  rows.sort((a, b) => (b.underBb - a.underBb) || b.vsTyp - a.vsTyp); const seen = ccReads;
+  fs.writeFileSync(path.join(OUT, 'slabs.json'), JSON.stringify({ at: new Date().toISOString(), fx, solUsd, seen, source: 'Collector Crypt marketplace', typical: typ, sales: ratios.length, buyback: SLAB.buyback, ccSeen: ccReads, items: rows.slice(0, 250) }));
+  console.log(`slabs: ${seen} listings read, ${rows.length} under what Collector Crypt cards usually sell for`); }
 if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]))) main().catch((e) => { console.error(e); process.exit(1); });
