@@ -27,7 +27,7 @@ jobs:
           restore-keys: cardarc-
       - name: Find the cards
         run: node src/cards.mjs
-      - name: Slabs on sale (Collector Crypt on Magic Eden)
+      - name: Collector Crypt lists (also refreshed hourly by slabs.yml)
         run: node src/slabs.mjs || true
       - name: eBay AU listings under market (needs the eBay keys in GitHub Secrets)
         run: node src/ebaydeals.mjs || true

@@ -19,3 +19,9 @@ export function stamp({ check = false } = {}) { const v = fingerprint(), stale =
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) { const check = process.argv.includes('--check'), r = stamp({ check });
   if (check && r.stale.length) { console.error(`page stamp out of date in ${r.stale.join(', ')}: run node src/stamp.mjs`); process.exit(1); }
   console.log(check ? `page stamp ${r.v} is current` : `page stamped ${r.v}${r.stale.length ? ` (${r.stale.length} files updated)` : ' (no change)'}`); }
+// 22 Nov: the Card Finder page (docs/index.html) carries <meta name="build"> = a fingerprint of itself and the scripts it loads from
+// docs/cards/; the page compares it with the live copy and reloads when they differ, so a phone never sticks on an old page.
+const IDX = join(DOCS, 'index.html'), CARDS = join(DOCS, 'cards');
+export function buildPrint() { const h = createHash('sha256'); h.update(readFileSync(IDX, 'utf8').replace(/<meta name="build" content="[^"]*">/, '')); for (const f of readdirSync(CARDS).filter((x) => x.endsWith('.mjs')).sort()) h.update(f + '\0' + readFileSync(join(CARDS, f), 'utf8')); return h.digest('hex').slice(0, 10); }
+export function stampIndex({ check = false } = {}) { const v = buildPrint(), s = readFileSync(IDX, 'utf8'), t = s.replace(/<meta name="build" content="[^"]*">/, `<meta name="build" content="${v}">`); if (t !== s && !check) writeFileSync(IDX, t); return { v, stale: t !== s }; }
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) { const r = stampIndex({ check: process.argv.includes('--check') }); if (process.argv.includes('--check') && r.stale) { console.error('Card Finder build stamp out of date: run node src/stamp.mjs'); process.exit(1); } console.log(`Card Finder build ${r.v}`); }
