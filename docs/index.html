@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="07f8951f7f">
+<meta name="build" content="dceb7cfaf4">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Card Finder</title>
 <meta name="description" content="Pokémon, One Piece and Dragon Ball singles that have dropped in price: deals, new-release chase cards and upcoming sets.">
@@ -97,7 +97,7 @@ const ccSearch = (q) => `https://collectorcrypt.com/marketplace/cards?search=${e
 /* 22 Nov: every Collector Crypt section from one list: drops (dropped cards for sale as slabs), quick flips, long-term keepers, cheap slabs */
 function ccSections() { const X = S.slabs; if (!X || !X.items || !S.idx) return null; const typ = X.typical || 0.87, seen = new Set(), all = [];
   for (const c of [...(X.buys || []), ...X.items.filter((c) => c.src !== 'Magic Eden').map((c) => { const raw = matchSlab(c, S.idx); return { ...c, raw, hz: slabHold(c, raw) }; })]) { if (seen.has(c.mint)) continue; seen.add(c.mint); all.push(c); }
-  const flipOf = (c) => { const sell = c.insAud * typ, profit = sell * 0.98 - c.aud; return { sell, profit, pct: profit / c.aud }; };
+  const flipOf = (c) => { const sell = Math.min(c.insAud * typ, c.supply && c.supply.next ? c.supply.next * 0.99 : Infinity), profit = sell * 0.98 - c.aud; return { sell, profit, pct: profit / c.aud }; }; /* relist just under the cheapest other listing if that is below the usual price */
   const flips = all.filter((c) => !(c.raw && /falling|dropping/.test(c.raw.stKey || ''))).map((c) => ({ c, f: flipOf(c) })).filter((x) => x.f.profit >= 8 && x.f.pct >= 0.1).sort((a, b) => b.f.pct - a.f.pct);
   const buys = (X.buys || []).slice().sort((a, b) => (a.raw.off || 0) - (b.raw.off || 0)), keep = all.filter(keeper).sort((a, b) => gradeNum(b.grade) - gradeNum(a.grade) || (b.vsTyp || 0) - (a.vsTyp || 0));
   const bm = new Set(buys.map((c) => c.mint)), rank = (c) => (c.underBb ? 1 : 0) + (c.vsTyp || 0) + (c.raw ? ({ settled: 0.08, turning: 0.06, holding: 0.03, easing: 0.01, falling: -0.08, dropping: -0.1 }[c.raw.stKey] || 0) : 0);
@@ -122,7 +122,8 @@ function slabEl(c, typ, o = {}) { const r = c.raw, P = slabParts(c.name), d = el
   if (vs > 0.005) pr.append(el('span', 'off', `-${Math.round(vs * 100)}% under usual`)); if (r && r.ch7 != null) pr.append(el('span', r.ch7 >= 0 ? 'up' : 'down', `${pc(r.ch7)} 7d`)); if (r && r.ch30 != null) pr.append(el('span', r.ch30 >= 0 ? 'up' : 'down', `${pc(r.ch30)} 30d`)); b.append(pr);
   if (r) { const sp = spark(r.sp); if (sp) b.append(sp); b.append(el('div', 'st ' + (r.stKey || ''), r.st)); } else b.append(el('div', 'st', 'No price history for this card yet: check the sold prices'));
   b.append(el('div', 'meta', `Collector Crypt valuation ${aud(c.insAud)} · this slab is ${Math.round((1 - c.under) * 100)}% of it${r ? ` · raw card ${aud(r.aud)}` : ''}`));
-  if (o.flip) b.append(el('div', 'st settled', `Flip: relist at the usual Collector Crypt price (${aud(o.flip.sell)}) and after the 2% seller fee you'd clear about ${aud(o.flip.profit)} (+${Math.round(o.flip.pct * 100)}%)`));
+  if (c.supply) { const u = c.supply, alone = u.n <= 1; b.append(el('div', 'st ' + (alone ? 'settled' : u.n <= 3 ? 'holding' : 'easing'), alone ? 'Only one listed on Collector Crypt (this one): once you own it, you set the price' : `${u.n} listed on Collector Crypt in this grade${u.next ? ` · cheapest other ${aud(u.next)}` : ''}${u.n <= 3 ? ': few sellers' : ': others to compete with'}`)); }
+  if (o.flip) b.append(el('div', 'st settled', `Flip: relist at ${aud(o.flip.sell)} (the usual price, or just under the cheapest other listing) and after the 2% seller fee you'd clear about ${aud(o.flip.profit)} (+${Math.round(o.flip.pct * 100)}%)`));
   if (o.keeper) b.append(el('div', 'meta', `To take it out of the vault: about ${aud(c.insAud * 0.02)} (2% of its valuation) plus US$34.99 post to Australia (US$3 for each extra card in the same shipment)`));
   if (c.bb) b.append(el('div', 'st ' + (c.underBb ? 'settled' : 'holding'), c.underBb ? `Buyback shown: ${aud(c.bbAud)}, above this price (check it still applies after you buy)` : `Buyback shown: ${aud(c.bbAud)}`));
   const B = el('div', 'links buy'); B.append(el('span', 'meta', 'Buy:')); const a = el('a', null, `Collector Crypt (US$${c.usd} USDC)`); a.href = c.url; a.target = '_blank'; a.rel = 'noopener'; B.append(a); b.append(B);

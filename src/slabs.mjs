@@ -6,7 +6,7 @@
 // listings carry no valuation, so neither is scanned.
 import fs from 'node:fs';
 import path from 'node:path';
-import { matchSlab } from '../docs/cards/slabmatch.mjs';
+import { matchSlab, slabParts, slabNum } from '../docs/cards/slabmatch.mjs';
 import { cardTerms } from '../docs/cards/ebayq.mjs';
 const ME = 'https://api-mainnet.magiceden.dev/v2', CC = 'https://api.collectorcrypt.com', OUT = process.env.OUT_DIR || 'docs/cards/data', UA = 'RynoScan card finder (github.com/devonflap/RYNOSCAN)';
 /* 22 Nov (Ryan: "just focus on Collector Crypt, treat it like NFTs"): Collector Crypt's own marketplace only. Measured that day: buyers
@@ -54,6 +54,20 @@ async function goodBuys(fx, typ, file = path.join(OUT, 'cards.json')) { let D; t
       const ratio = 1 - r.under; got.push({ ...r, vsTyp: +(1 - ratio / typ).toFixed(3), raw: Object.fromEntries(RAWKEEP.map((k) => [k, card[k]])), hz: card.hz, good: true }); }
     got.sort((a, b) => b.under - a.under); out.push(...got.slice(0, 3)); }
   console.log(`good buys: ${deals.length} dropped deals looked up on Collector Crypt (${calls} searches), ${out.length} slabs listed at a fair price`); return out; }
+// SUPPLY (22 Nov, Ryan: "add how many listings are available on the suggestions, so we know if we can set the price once we buy"): for
+// each suggested slab, every Collector Crypt listing of the same card in the same grade: how many, the cheapest and the cheapest other
+// than this one (what a relist has to beat).
+export const gradeKey = (company, grade) => { const n = (String(grade || '').match(/(\d+(?:\.5)?)\s*$/) || [])[1]; return n ? `${String(company || '').toUpperCase()} ${n}` : ''; };
+const nameWords = (s) => String(s || '').toLowerCase().replace(/['’]/g, '').split(/[^a-z0-9]+/).filter((w) => w.length > 2 && !['the', 'and', 'full', 'art', 'holo'].includes(w));
+export function sameSlab(a, b) { /* a: a row (name, grade); b: a raw marketplace card */ const na = slabNum(a.name), nb = slabNum(b.itemName); if (!na || na !== nb) return false;
+  const ka = a.grade && gradeKey(...String(a.grade).split(/\s+(?=\S+$)/)), kb = gradeKey(b.gradingCompany, b.grade); if (!ka || ka !== kb) return false;
+  const w = nameWords(slabParts(a.name).name), t = String(b.itemName || '').toLowerCase().replace(/['’]/g, ''); return w.length > 0 && w.every((x) => t.includes(x)); }
+async function supply(rows, fx) { const cache = new Map(); let calls = 0;
+  for (const r of rows) { const P = slabParts(r.name), key = `${r.g}|${P.name}|${P.num}|${r.grade}`; let comp = cache.get(key);
+    if (!comp) { const L = []; let cur = null; for (let p = 0; p < 3; p++) { const j = await getJ(`${CC}/marketplace?${cur ? 'cursor=' + encodeURIComponent(cur) + '&' : ''}step=96&cardType=Card&search=${encodeURIComponent(P.name)}&categories=${encodeURIComponent(CAT[r.g] || 'Pokemon')}`); calls++; await sleep(250); const A = (j && j.filterNFtCard) || []; L.push(...A); cur = j && j.nextCursor; if (!cur || A.length < 96) break; }
+      const same = L.filter((c) => c.listing && +c.listing.price > 0 && sameSlab(r, c)).map((c) => ({ mint: c.nftAddress, aud: +(+c.listing.price * fx).toFixed(2) })).sort((a, b) => a.aud - b.aud); comp = same; cache.set(key, comp); }
+    const others = comp.filter((x) => x.mint !== r.mint); r.supply = { n: Math.max(comp.length, others.length + 1), low: comp.length ? comp[0].aud : r.aud, next: others.length ? others[0].aud : null }; }
+  console.log(`supply: ${cache.size} different slabs looked up (${calls} searches)`); }
 async function main() { fs.mkdirSync(OUT, { recursive: true });
   const fxj = await getJ('https://api.frankfurter.app/latest?from=USD&to=AUD'), fx = fxj && fxj.rates && fxj.rates.AUD > 1 ? fxj.rates.AUD : 1.53;
   const sp = await getJ('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd'), solUsd = sp && sp.solana && sp.solana.usd > 0 ? sp.solana.usd : null;
@@ -71,6 +85,7 @@ async function main() { fs.mkdirSync(OUT, { recursive: true });
   console.log(`buyback open on ${rows.filter((r) => r.bb).length}, priced under its buyback on ${rows.filter((r) => r.underBb).length}`);
   rows.sort((a, b) => (b.underBb - a.underBb) || b.vsTyp - a.vsTyp); const seen = ccReads;
   let buys = []; try { buys = await goodBuys(fx, typ); } catch (e) { console.log('good buys skipped: ' + e.message); }
+  try { await supply([...buys, ...rows], fx); } catch (e) { console.log('supply skipped: ' + e.message); }
   fs.writeFileSync(path.join(OUT, 'slabs.json'), JSON.stringify({ buys, at: new Date().toISOString(), fx, solUsd, seen, source: 'Collector Crypt marketplace', typical: typ, sales: ratios.length, buyback: SLAB.buyback, ccSeen: ccReads, items: rows.slice(0, 250) }));
   console.log(`slabs: ${seen} listings read, ${rows.length} under what Collector Crypt cards usually sell for`); }
 if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]))) main().catch((e) => { console.error(e); process.exit(1); });

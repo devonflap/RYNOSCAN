@@ -1,7 +1,7 @@
 // the card finder's signals (21 Nov): dropped deals, new-release chase cards, hold lengths
 import { CARD, stats, statusOf, horizonOf, newSetView, isDeal } from '../src/cardsig.mjs';
 import { sampleDays, slim, targetOf } from '../src/cards.mjs';
-import { slabRow, ccRow, ccBands, gradeOf, gameOf } from '../src/slabs.mjs';
+import { slabRow, ccRow, ccBands, gradeOf, gameOf, sameSlab, gradeKey } from '../src/slabs.mjs';
 const out = console.log; let f = 0; const ok = (c, m) => { out((c ? 'PASS ' : 'FAIL ') + m); if (!c) f = 1; };
 const D = 86400e3, now = Date.parse('2026-11-21T12:00:00Z'), ser = (pts) => pts.map(([daysAgo, v]) => [now - daysAgo * D, v]);
 // a $600 card that fell to $400 and has sat there for 3 weeks: a deal
@@ -50,4 +50,7 @@ ok(targetOf(s1) === Math.round(404 * 0.9) && targetOf(s2) === Math.round(380 * 0
   const b = ccBands(1.5); ok(b[0][0] === 23 && b[b.length - 1][1] >= 2000 && b.every(([lo, hi, m]) => hi > lo && m < hi), `${b.length} value bands cover A$35-3,000, each asking only for listings under 90% of its top`); }
 { const r = ccRow({ itemName: 'Luffy PSA 10', category: 'One Piece', insuredValue: '200', nftStatus: 'Valid', nftAddress: 'Z9', getBuybackOffer: true, listing: { currency: 'USDC', price: 150, marketplace: 'CC' } }, { fx: 1.5 });
   ok(r.bb === true && r.bbAud === 260.1 && r.aud < r.bbAud, 'buyback open card: buyback A$260 (86.7%) is more than its A$225 price'); }
+{ const row = { name: '2024 #170 Terapagos EX PSA 10 Scr EN-Stellar Crown', grade: 'PSA 10' }, mk = (name, co, gr) => ({ itemName: name, gradingCompany: co, grade: gr });
+  ok(sameSlab(row, mk('2024 #170 Terapagos EX PSA 10 Scr EN-Stellar Crown Pokemon', 'PSA', 'GEM MT 10')) && !sameSlab(row, mk('2024 #170 Terapagos EX PSA 9 Stellar Crown', 'PSA', 'MINT 9')) && !sameSlab(row, mk('2024 #170 Terapagos EX CGC 10', 'CGC', 'Pristine 10')) && !sameSlab(row, mk('2024 #128 Terapagos EX PSA 10', 'PSA', 'GEM MT 10')), 'supply counts the same card in the same grade only');
+  ok(gradeKey('CGC', 'NM/MINT+ 8.5') === 'CGC 8.5' && gradeKey('PSA', 'GEM-MT 10') === 'PSA 10', 'grade keys'); }
 process.exit(f);
