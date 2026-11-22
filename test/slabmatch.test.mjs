@@ -1,5 +1,5 @@
 // Collector Crypt slab -> the tracked raw card (22 Nov): only confident matches
-import { matchSlab, slabNum, slabHold } from '../docs/cards/slabmatch.mjs';
+import { matchSlab, slabNum, slabHold, slabParts } from '../docs/cards/slabmatch.mjs';
 const out = console.log; let f = 0; const ok = (c, m) => { out((c ? 'PASS ' : 'FAIL ') + m); if (!c) f = 1; };
 const I = [{ id: 'a', g: 'PK', name: 'Chansey', num: '20/115', sub: 'Reverse Holofoil', set: 'EX Unseen Forces', hz: 'long' }, { id: 'b', g: 'PK', name: 'Chansey', num: '20/115', sub: 'Holofoil', set: 'EX Unseen Forces', hz: 'long' },
   { id: 'c', g: 'PK', name: "Erika's Bulbasaur", num: '039/132', sub: '1st Edition', set: 'Gym Challenge' }, { id: 'd', g: 'PK', name: "Erika's Bulbasaur", num: '039/132', sub: 'Unlimited', set: 'Gym Challenge' },
@@ -15,4 +15,6 @@ ok(m('2023 #OP05-119 Monkey D. Luffy PSA 10 Japanese Manga', 'OP') === undefined
 ok(m('2005 #21 Chansey PSA 9') === undefined, 'wrong number: no match');
 ok(slabNum('2023 #042 Golbat') === '42' && slabNum('2022 #ST01-008 Nico Robin') === 'ST1-8', 'slab numbers');
 ok(slabHold({ name: '2026 #1 X' }, null, 2026) === 'short' && slabHold({ name: '2025 #1 X' }, null, 2026) === 'medium' && slabHold({ name: '2019 #1 X' }, null, 2026) === 'long' && slabHold({ name: 'x' }, { hz: 'medium' }) === 'medium', 'hold length: the card\'s, else from the year');
+{ const a = slabParts('2021 #SV107/SV122 Charizard VMAX CGC 10 Shining Fates - English Pokemon'), b = slabParts('2000 #6 Team Rocket 1st Edition Holo Dark Dugtrio MINT PSA 9'), c = slabParts("2021 #255 Full Art/Acerola's Premonition CGC 10 Pristine Japanese Sword & Shield Vmax Climax Pokemon");
+  ok(a.name === 'Charizard VMAX' && a.num === 'SV107/SV122' && a.set === 'Shining Fates' && b.name === 'Team Rocket 1st Edition Holo Dark Dugtrio' && c.name === "Acerola's Premonition" && c.set === 'Sword & Shield Vmax Climax', 'slab title -> name, number and set for the card layout'); }
 process.exit(f);

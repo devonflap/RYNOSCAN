@@ -20,3 +20,10 @@ export function matchSlab(slab, index) { const sn = String(slab.name || ''), g =
   if (C.length !== 1) return null; return C[0]; }
 // how long to plan to hold a slab: the matched card's hold length, or from its year when there's no match (as the Card Finder does by set age)
 export function slabHold(slab, raw, year = new Date().getFullYear()) { if (raw && raw.hz) return raw.hz; const y = +slab.year || +(String(slab.name || '').match(/^\s*(19|20)\d{2}/) || [])[0]; if (!y) return 'long'; return y >= year ? 'short' : y >= year - 2 ? 'medium' : 'long'; }
+// a slab title ("2021 #SV107/SV122 Charizard VMAX CGC 10 Shining Fates - English Pokemon") -> its parts for a tidy card:
+// name "Charizard VMAX", number "SV107/SV122", set "Shining Fates"
+export function slabParts(title) { const t = String(title || '').trim(), num = (t.match(/#\s*([A-Z0-9/-]+)/i) || [])[1] || null, g = t.match(/\b(PSA|CGC|BGS|SGC|TAG|ACE|BECKETT)\b/i);
+  let rest = t.replace(/^\s*(19|20)\d{2}\s*/, '').replace(/#\s*\S+/, ' '), name = rest, set = '';
+  if (g) { const i = rest.search(new RegExp('\\b' + g[1] + '\\b', 'i')); name = rest.slice(0, i); set = rest.slice(i).replace(/^\S+\s*(GEM[ -]?MT|GEM MINT|PRISTINE|MINT|NM[-/ ]?MT\+?|NM|EX[-/ ]?MT|EX)?\s*\d+(\.5)?\s*(GEM[ -]?MT|GEM MINT|PRISTINE|MINT)?/i, ''); }
+  name = name.split('/').pop().replace(/\b(GEM[ -]?MT|GEM MINT|PRISTINE|MINT|NM[-/ ]?MT\+?|EX[-/ ]?MT)\s*$/i, '').replace(/\s+/g, ' ').trim(); set = set.replace(/\b(Pokemon|Pok[eé]mon|One Piece|Dragon Ball( Super)?|English|Japanese)\b/gi, ' ').replace(/\s*-\s*$|^\s*-\s*/g, '').replace(/\s+/g, ' ').trim();
+  return { name: name || t, num, set }; }

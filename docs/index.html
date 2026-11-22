@@ -60,7 +60,7 @@ h2.view { font-size:1.2rem; margin:4px 0 2px; }
 <main id="out"></main>
 <script type="module">
 import { ebayBuy, ebaySold, slabQuery } from './cards/ebayq.mjs?v=20261122c';
-import { matchSlab, slabHold } from './cards/slabmatch.mjs?v=20261122a';
+import { matchSlab, slabHold, slabParts } from './cards/slabmatch.mjs?v=20261122b';
 const $ = (id) => document.getElementById(id), el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
 const store = { get: (k, d) => { try { const v = localStorage.getItem('cf-' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set: (k, v) => { try { localStorage.setItem('cf-' + k, JSON.stringify(v)); } catch {} } };
 const S = { wish: store.get('wish', {}), q: '', idx: null, tab: 'home', game: store.get('game', 'all'), hz: store.get('hz', 'all'), band: store.get('band', 'all'), ex: store.get('ex', 'all'), D: null };
@@ -81,6 +81,19 @@ function cardEl(c) { const d = el('div', 'card'), im = el('img'); im.src = c.img
   const B = el('div', 'links buy'); B.append(el('span', 'meta', 'Buy:')); const wt = S.wish[c.id] && S.wish[c.id].target; for (const [t, u] of [['eBay AU', ebayBuy(c)], wt ? [`eBay AU at your price (A$${wt})`, ebayBuy(c, { max: wt })] : [`eBay AU 20%+ under market (A$${Math.round(c.aud * 0.8)} or less)`, ebayBuy(c, { max: c.aud * 0.8 })], ['PSA 10 on eBay AU', ebayBuy(c, { graded: true })], [c.g === 'PK' ? 'TCGplayer (Direct ships to AU)' : 'TCGplayer (US, via a forwarder)', c.url]]) { if (!u) continue; const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; B.append(a); } b.append(B);
   L.append(el('span', 'meta', 'Check:')); for (const [t, u] of [['eBay AU sold', ebaySold(c)], ['PSA 10 sold', ebaySold(c, { graded: true })]]) { const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; L.append(a); }
   b.append(L); if (S.tab === 'wish' && S.wish[c.id]) b.append(wishRow(c)); d.append(b); return d; }
+/* 22 Nov (Ryan: the Collector Crypt cards should look like Dropped deals): a slab drawn the same way as a deal card: short name and grade,
+   game, set and number with the hold length, price with its discount and 7/30-day change, the card's price line and status, Buy and Check links */
+function slabEl(c, typ) { const r = c.raw, P = slabParts(c.name), d = el('div', 'card'), im = el('img'); im.src = c.img || ''; im.alt = ''; im.loading = 'lazy'; im.onerror = () => { im.style.visibility = 'hidden'; }; d.append(im); const b = el('div');
+  b.append(el('div', 'name', `${r ? r.name.replace(/\s+-\s+\S+$/, '') : P.name}${c.grade ? ' · ' + c.grade : ''}`));
+  const m = el('div', 'meta', `${GN[c.g] || c.g} · ${(r && r.set) || P.set || 'Collector Crypt'}${P.num ? ' · #' + P.num : ''}${r && r.rar ? ' · ' + r.rar : ''}`); m.append(el('span', 'hz', c.hz === 'short' ? 'short hold' : c.hz === 'medium' ? 'medium hold' : 'long hold')); b.append(m);
+  const vs = c.vsTyp != null ? c.vsTyp : 1 - (1 - c.under) / typ, pr = el('div', 'price'); pr.append(el('b', null, aud(c.aud)));
+  if (vs > 0.005) pr.append(el('span', 'off', `-${Math.round(vs * 100)}% under usual`)); if (r && r.ch7 != null) pr.append(el('span', r.ch7 >= 0 ? 'up' : 'down', `${pc(r.ch7)} 7d`)); if (r && r.ch30 != null) pr.append(el('span', r.ch30 >= 0 ? 'up' : 'down', `${pc(r.ch30)} 30d`)); b.append(pr);
+  if (r) { const sp = spark(r.sp); if (sp) b.append(sp); b.append(el('div', 'st ' + (r.stKey || ''), r.st)); } else b.append(el('div', 'st', 'No price history for this card yet: check the sold prices'));
+  b.append(el('div', 'meta', `Collector Crypt valuation ${aud(c.insAud)} · this slab is ${Math.round((1 - c.under) * 100)}% of it${r ? ` · raw card ${aud(r.aud)}` : ''}`));
+  if (c.bb) b.append(el('div', 'st ' + (c.underBb ? 'settled' : 'holding'), c.underBb ? `Buyback shown: ${aud(c.bbAud)}, above this price (check it still applies after you buy)` : `Buyback shown: ${aud(c.bbAud)}`));
+  const B = el('div', 'links buy'); B.append(el('span', 'meta', 'Buy:')); const a = el('a', null, `Collector Crypt (US$${c.usd} USDC)`); a.href = c.url; a.target = '_blank'; a.rel = 'noopener'; B.append(a); b.append(B);
+  const L = el('div', 'links'); L.append(el('span', 'meta', 'Check:')); for (const [t, u] of [['eBay AU sold', `https://www.ebay.com.au/sch/i.html?_nkw=${encodeURIComponent(slabQuery(c.name))}&LH_Sold=1&LH_Complete=1`], r && r.url ? ['Raw card on TCGplayer', r.url] : null].filter(Boolean)) { const x = el('a', null, t); x.href = u; x.target = '_blank'; x.rel = 'noopener'; L.append(x); } b.append(L);
+  d.append(b); return d; }
 /* THE WISH LIST (21 Nov): cards Ryan wants, each with the price he'd pay (it starts at a suggested target: the 2-week low, or 10% under
    today's price while it is still falling). Kept on this phone; Copy / Paste moves it to another device. */
 function saveWish() { store.set('wish', S.wish); }
@@ -136,17 +149,7 @@ function draw() { const D = S.D, out = $('out'); out.replaceChildren(); badge();
     const L2 = all.filter((c) => S.hz === 'all' || c.hz === S.hz).filter(inBand).sort((a, b) => rank(b) - rank(a));
     out.append(el('p', 'meta', `${X.ccSeen || X.seen} Collector Crypt listings read ${ago(X.at)} · ${all.length} under the usual price · ${all.filter((c) => c.raw).length} with price history`));
     if (!L2.length) { out.append(el('p', 'empty', 'Nothing here with these filters right now.')); return; } const g = el('div', 'grid');
-    for (const c of L2.slice(0, 80)) { const r = c.raw, d = el('div', 'card'), im = el('img'); im.src = c.img || ''; im.alt = ''; im.loading = 'lazy'; im.onerror = () => { im.style.visibility = 'hidden'; }; d.append(im); const b = el('div');
-      b.append(el('div', 'name', c.name)); const m = el('div', 'meta', `${GN[c.g]}${c.grade ? ' · ' + c.grade : ''}${c.vault ? ' · vault: ' + c.vault : ''}`); m.append(el('span', 'hz', c.hz === 'short' ? 'short hold' : c.hz === 'medium' ? 'medium hold' : 'long hold')); b.append(m);
-      const vs = c.vsTyp != null ? c.vsTyp : 1 - (1 - c.under) / typ, pr = el('div', 'price'); pr.append(el('b', null, aud(c.aud)), el('span', 'off', vs > 0.005 ? `${Math.round(vs * 100)}% under the usual price` : 'about the usual price'));
-      if (r) { if (r.ch7 != null) pr.append(el('span', r.ch7 >= 0 ? 'up' : 'down', `${pc(r.ch7)} 7d`)); if (r.ch30 != null) pr.append(el('span', r.ch30 >= 0 ? 'up' : 'down', `${pc(r.ch30)} 30d`)); } b.append(pr);
-      b.append(el('div', 'meta', `US$${c.usd} USDC · ${Math.round((1 - c.under) * 100)}% of its ${aud(c.insAud)} valuation`));
-      if (r) { const sp = spark(r.sp); if (sp) b.append(sp); b.append(el('div', 'st ' + (r.stKey || ''), `Card price: ${r.st}${r.high && r.off != null && r.off < -0.05 ? ` (raw ${aud(r.aud)}, ${pc(r.off)} from ${aud(r.high)})` : ` (raw ${aud(r.aud)})`}`)); }
-      else b.append(el('div', 'st', 'No price history for this card: check the sold prices'));
-      if (c.bb) b.append(el('div', 'st ' + (c.underBb ? 'settled' : 'holding'), c.underBb ? `Buyback shown: ${aud(c.bbAud)} (86.7%), above this price. Check it still applies to you after buying` : `Buyback shown: ${aud(c.bbAud)} (86.7%)`));
-      const Lk = el('div', 'links buy'), a = el('a', null, 'Buy on Collector Crypt'); a.href = c.url; a.target = '_blank'; a.rel = 'noopener'; Lk.append(a); b.append(Lk);
-      const Ck = el('div', 'links'); Ck.append(el('span', 'meta', 'Check:')); const a2 = el('a', null, 'eBay AU sold'); a2.href = `https://www.ebay.com.au/sch/i.html?_nkw=${encodeURIComponent(slabQuery(c.name))}&LH_Sold=1&LH_Complete=1`; a2.target = '_blank'; a2.rel = 'noopener'; Ck.append(a2);
-      if (r && r.url) { const a3 = el('a', null, 'Raw card on TCGplayer'); a3.href = r.url; a3.target = '_blank'; a3.rel = 'noopener'; Ck.append(a3); } b.append(Ck); d.append(b); g.append(d); }
+    for (const c of L2.slice(0, 80)) g.append(slabEl(c, typ));
     out.append(g); return; }
   const L = D.upcoming.filter(byGame); out.append(el('p', 'note', 'Sets coming out soon. Prices before and just after release are usually the highest they will be: note the chase cards, then check the New releases tab 3–6 weeks after launch.'));
   if (!L.length) { out.append(el('p', 'empty', 'No upcoming sets listed for this game.')); return; }
