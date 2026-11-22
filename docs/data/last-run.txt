@@ -1,4 +1,5 @@
-Hourly refresh 19:11 Brisbane: 3 tracked coins refreshed, 3 scored, 1 above 65. On-chain volume Poor (0.58x 7-day avg).
+Full scan 20:28 Brisbane: 44 scanned, 33 scored, 1 above 65. On-chain volume Below normal (0.61x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: ANSEM (Single holder ownership), FARTCOIN (top 10 wallets hold 33.2% (gate 30%)), PUMP (top 10 wallets hold 59.5% (gate 30%)), NET (owner can mint more), VINE (top 10 wallets hold 39.7% (gate 30%)), BP (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
