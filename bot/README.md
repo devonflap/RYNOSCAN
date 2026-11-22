@@ -300,3 +300,13 @@ These apply to every bot. To change one bot only, put it under `"bots"`, for exa
 - 22 Nov (Ryan: "it didn't work, and make it refresh more often"): his phone kept an old copy. Page now has <meta name="build"> (node src/stamp.mjs sets it; tests check it), compares with the live copy and reloads once if newer; reloads when brought back after 20+ min. Collector Crypt lists refresh hourly (slabs.yml at :17); TCGplayer prices stay daily (tcgcsv updates once a day).
 - Supply on every Collector Crypt suggestion (22 Nov, Ryan: "how many listings are available, so we know if we can set the price once we buy"): same card number, name and grade listed on Collector Crypt now, cheapest other listing; flips relist at the lower of the usual price and just under the cheapest other listing.
 - eBay keys live (22 Nov): first run 272 cards, 392 listings 20%+ under (74 exact). Tightened exact: a card's printing words in brackets (event promos like Gen Con 2023, reprint sets like 2nd Anniversary Set) must be in the title, and demo/reprint/celebration/classic collection copies are labelled 'maybe another version'.
+- 23 Nov (deals research, Ryan: "build it all into the card scanner"): slabs judged against SOLD comps, not Collector Crypt's valuation.
+  src/comps.mjs (daily, after the slab step; needs PPT_API_KEY, PokemonPriceTracker, English + Japanese Pokémon; budget PPT_CREDITS,
+  default 95 = free plan) caches each suggested card's graded sales (docs/cards/data/comps.json). Fair value = exact grader + grade, last
+  180 days, sales outside 0.5-2x the median dropped, recency-weighted median (30-day half-life); confidence high (8+ in 90 days, latest
+  within 30) / medium (5+) / low (3+). Gates: flips 15%+ under comps, 3+/30d and 8+/90d, high confidence, exit = min(90% of comps, just
+  under the cheapest other listing); drops and cheap slabs 15%+ under comps; keepers price + postage share 15%+ under comps, 6+ sales.
+  Valuation checks: "too high" when over 1.5x comps, or (no comps) over 3x raw x grade premium (10: 8x, 9.5: 5x, 9: 3x, else 2x);
+  "behind the market" under 0.8x comps. Offer idea at 70% of comps. Redemption: US$34.99 + US$3 per extra card; 2% fee reportedly gone.
+  Without comps (One Piece, Dragon Ball, or no key) the old valuation-based rules apply, labelled. Collector Crypt requests now 200 a page;
+  SOL price no longer needed.

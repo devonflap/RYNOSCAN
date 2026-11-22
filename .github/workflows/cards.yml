@@ -29,6 +29,11 @@ jobs:
         run: node src/cards.mjs
       - name: Collector Crypt lists (also refreshed hourly by slabs.yml)
         run: node src/slabs.mjs || true
+      - name: Sold comps for the Pokémon slabs (needs the PokemonPriceTracker key in GitHub Secrets)
+        run: node src/comps.mjs || true
+        env:
+          PPT_API_KEY: ${{ secrets.PPT_API_KEY }}
+          PPT_CREDITS: ${{ vars.PPT_CREDITS }}
       - name: Save
         run: |
           git config user.name "rynoscan-bot"

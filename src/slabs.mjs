@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { matchSlab, slabParts, slabNum } from '../docs/cards/slabmatch.mjs';
 import { cardTerms } from '../docs/cards/ebayq.mjs';
+import { fairValue, gradeSummary, parseGrade } from './comps.mjs';
 const ME = 'https://api-mainnet.magiceden.dev/v2', CC = 'https://api.collectorcrypt.com', OUT = process.env.OUT_DIR || 'docs/cards/data', UA = 'RynoScan card finder (github.com/devonflap/RYNOSCAN)';
 /* 22 Nov (Ryan: "just focus on Collector Crypt, treat it like NFTs"): Collector Crypt's own marketplace only. Measured that day: buyers
    pay a median ~87% of insured value, and Collector Crypt's buybacks pay exactly 86.7% (38 of 38), but only on cards flagged for it. */
@@ -36,10 +37,10 @@ export function ccRow(c, { fx, S = SLAB }) { const L = c && c.listing, ins = +(c
 export function ccBands(fx, S = SLAB) { const out = []; for (let lo = S.minAud / fx; lo < S.maxAud / fx; lo *= 1.1) out.push([Math.floor(lo), Math.ceil(lo * 1.1), Math.ceil(lo * 1.1 * S.maxRatio)]); return out; }
 async function ccScan(fx) { const rows = [], seen = new Set(); let reads = 0, calls = 0;
   for (const cat of ['Pokemon', 'One Piece', 'Dragon Ball']) for (const [lo, hi, maxP] of ccBands(fx)) { let cur = null;
-    for (let p = 0; p < 12; p++) { const u = `${CC}/marketplace?${cur ? 'cursor=' + encodeURIComponent(cur) + '&' : ''}step=96&cardType=Card&insuredValueMin=${lo}&insuredValueMax=${hi}&listPriceMax=${maxP}&categories=${encodeURIComponent(cat)}`;
+    for (let p = 0; p < 12; p++) { const u = `${CC}/marketplace?${cur ? 'cursor=' + encodeURIComponent(cur) + '&' : ''}step=200&cardType=Card&insuredValueMin=${lo}&insuredValueMax=${hi}&listPriceMax=${maxP}&categories=${encodeURIComponent(cat)}`;
       const j = await getJ(u); calls++; await sleep(350); const L = (j && j.filterNFtCard) || []; reads += L.length;
       for (const c of L) { if (seen.has(c.nftAddress)) continue; seen.add(c.nftAddress); const r = ccRow(c, { fx }); if (r) rows.push(r); }
-      cur = j && j.nextCursor; if (!cur || L.length < 96) break; } }
+      cur = j && j.nextCursor; if (!cur || L.length < 200) break; } }
   console.log(`Collector Crypt marketplace: ${calls} requests, ${reads} listings read, ${rows.length} deals`); return { rows, reads }; }
 // GOOD BUYS (22 Nov, Ryan: "make the Collector Crypt section more like Dropped deals, showing good buys and deals available"): the
 // Card Finder's dropped deals (25%+ off their 6-month high and no longer falling), looked up on Collector Crypt's marketplace; every slab
@@ -49,7 +50,7 @@ export const RAWKEEP = ['id', 'name', 'set', 'num', 'rar', 'sub', 'st', 'stKey',
 async function goodBuys(fx, typ, file = path.join(OUT, 'cards.json')) { let D; try { D = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { console.log('good buys: no cards.json'); return []; }
   const deals = (D.deals || []).filter((c) => !c.check && CAT[c.g]), out = []; let calls = 0;
   for (const card of deals) { const q = cardTerms(card).core; if (!q) continue;
-    const j = await getJ(`${CC}/marketplace?step=96&cardType=Card&search=${encodeURIComponent(q)}&categories=${encodeURIComponent(CAT[card.g])}`); calls++; await sleep(300);
+    const j = await getJ(`${CC}/marketplace?step=200&cardType=Card&search=${encodeURIComponent(q)}&categories=${encodeURIComponent(CAT[card.g])}`); calls++; await sleep(300);
     const got = []; for (const c of (j && j.filterNFtCard) || []) { const r = ccRow(c, { fx, S: { ...SLAB, maxRatio: 1.0, maxAud: 4000 } }); if (!r || r.src !== 'Collector Crypt') continue; if (!matchSlab(r, [card])) continue;
       const ratio = 1 - r.under; got.push({ ...r, vsTyp: +(1 - ratio / typ).toFixed(3), raw: Object.fromEntries(RAWKEEP.map((k) => [k, card[k]])), hz: card.hz, good: true }); }
     got.sort((a, b) => b.under - a.under); out.push(...got.slice(0, 3)); }
@@ -64,14 +65,25 @@ export function sameSlab(a, b) { /* a: a row (name, grade); b: a raw marketplace
   const w = nameWords(slabParts(a.name).name), t = String(b.itemName || '').toLowerCase().replace(/['’]/g, ''); return w.length > 0 && w.every((x) => t.includes(x)); }
 async function supply(rows, fx) { const cache = new Map(); let calls = 0;
   for (const r of rows) { const P = slabParts(r.name), key = `${r.g}|${P.name}|${P.num}|${r.grade}`; let comp = cache.get(key);
-    if (!comp) { const L = []; let cur = null; for (let p = 0; p < 3; p++) { const j = await getJ(`${CC}/marketplace?${cur ? 'cursor=' + encodeURIComponent(cur) + '&' : ''}step=96&cardType=Card&search=${encodeURIComponent(P.name)}&categories=${encodeURIComponent(CAT[r.g] || 'Pokemon')}`); calls++; await sleep(250); const A = (j && j.filterNFtCard) || []; L.push(...A); cur = j && j.nextCursor; if (!cur || A.length < 96) break; }
+    if (!comp) { const L = []; let cur = null; for (let p = 0; p < 3; p++) { const j = await getJ(`${CC}/marketplace?${cur ? 'cursor=' + encodeURIComponent(cur) + '&' : ''}step=200&cardType=Card&search=${encodeURIComponent(P.name)}&categories=${encodeURIComponent(CAT[r.g] || 'Pokemon')}`); calls++; await sleep(250); const A = (j && j.filterNFtCard) || []; L.push(...A); cur = j && j.nextCursor; if (!cur || A.length < 200) break; }
       const same = L.filter((c) => c.listing && +c.listing.price > 0 && sameSlab(r, c)).map((c) => ({ mint: c.nftAddress, aud: +(+c.listing.price * fx).toFixed(2) })).sort((a, b) => a.aud - b.aud); comp = same; cache.set(key, comp); }
     const others = comp.filter((x) => x.mint !== r.mint); r.supply = { n: Math.max(comp.length, others.length + 1), low: comp.length ? comp[0].aud : r.aud, next: others.length ? others[0].aud : null }; }
   console.log(`supply: ${cache.size} different slabs looked up (${calls} searches)`); }
+// VALUATION CHECKS (23 Nov, from the deals research): Collector Crypt's valuation (insured value) is its own number and can be stale.
+// 1) With sold comps (PokemonPriceTracker, src/comps.mjs): fair value = what this card in this grade has actually sold for; the valuation
+//    is called stale when it is over 1.5x that, and lagging (sellers underpricing) when under 0.8x.
+// 2) Without comps: the valuation is called too high when it is over 3x what the raw card plus a typical grading premium would support.
+export const GRADE_MULT = (g) => (g >= 10 ? 8 : g >= 9.5 ? 5 : g >= 9 ? 3 : 2);
+export function valuation(r, comps, fx) { const pg = parseGrade(r.grade), raw = r.raw;
+  if (raw && raw.aud > 0 && pg) r.ivHigh = r.insAud > 3 * raw.aud * GRADE_MULT(pg.g);
+  const id = raw && raw.id && String(raw.id).split('|')[0], c = id && comps && comps[id];
+  if (c && pg && (r.g === 'PK' || r.g === 'PJ')) { const fv = fairValue(c.sales, { co: pg.co, g: pg.g }) || gradeSummary({ ebay: { salesByGrade: c.byGrade } }, pg.co, pg.g);
+    if (fv && fv.conf !== 'none') { r.fv = { aud: +(fv.usd * fx).toFixed(2), n: fv.n, n30: fv.n30, n90: fv.n90, last: fv.last, conf: fv.conf }; r.ivRatio = +(r.insAud / r.fv.aud).toFixed(2); r.ivHigh = r.ivRatio > 1.5; r.ivLag = r.ivRatio < 0.8; } }
+  return r; }
 async function main() { fs.mkdirSync(OUT, { recursive: true });
   const fxj = await getJ('https://api.frankfurter.app/latest?from=USD&to=AUD'), fx = fxj && fxj.rates && fxj.rates.AUD > 1 ? fxj.rates.AUD : 1.53;
   const sp = await getJ('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd'), solUsd = sp && sp.solana && sp.solana.usd > 0 ? sp.solana.usd : null;
-  if (!solUsd) { console.log('no SOL price: slabs skipped this run'); return; } console.log(`SOL $${solUsd}, USD to AUD ${fx}`);
+  console.log(`USD to AUD ${fx}`); /* 23 Nov: Collector Crypt only (USDC), so the SOL price is no longer needed */
   // what Collector Crypt buyers actually pay, as a share of insured value: the median of recent marketplace sales (not buybacks)
   const ratios = []; for (const cat of ['Pokemon', 'One Piece', 'Dragon Ball']) { const L = await getJ(`${CC}/card-activity/recent-sales?category=${encodeURIComponent(cat)}`); await sleep(500);
     for (const x of Array.isArray(L) ? L : []) { const ins = +(x.card && x.card.insuredValue), amt = +x.amount; if (ins >= 30 && amt > 0 && !/buyback/i.test((x.to && x.to.name) || '')) ratios.push(amt / ins); } }
@@ -86,6 +98,12 @@ async function main() { fs.mkdirSync(OUT, { recursive: true });
   rows.sort((a, b) => (b.underBb - a.underBb) || b.vsTyp - a.vsTyp); const seen = ccReads;
   let buys = []; try { buys = await goodBuys(fx, typ); } catch (e) { console.log('good buys skipped: ' + e.message); }
   try { await supply([...buys, ...rows], fx); } catch (e) { console.log('supply skipped: ' + e.message); }
+  // tag each slab with the card the Card Finder tracks (its price history), then the valuation checks
+  let idx = []; try { idx = JSON.parse(fs.readFileSync(path.join(OUT, 'index.json'), 'utf8')).cards || []; } catch { /* no index yet */ }
+  let comps = {}; try { comps = JSON.parse(fs.readFileSync(path.join(OUT, 'comps.json'), 'utf8')).cards || {}; } catch { /* no comps yet */ }
+  for (const r of rows) if (!r.raw) { const m = matchSlab(r, idx); if (m) r.raw = Object.fromEntries(RAWKEEP.map((k) => [k, m[k]])); }
+  for (const r of [...buys, ...rows]) valuation(r, comps, fx);
+  console.log(`valuation: ${[...buys, ...rows].filter((r) => r.fv).length} slabs with sold comps, ${[...buys, ...rows].filter((r) => r.ivHigh).length} with a valuation that looks too high`);
   fs.writeFileSync(path.join(OUT, 'slabs.json'), JSON.stringify({ buys, at: new Date().toISOString(), fx, solUsd, seen, source: 'Collector Crypt marketplace', typical: typ, sales: ratios.length, buyback: SLAB.buyback, ccSeen: ccReads, items: rows.slice(0, 250) }));
   console.log(`slabs: ${seen} listings read, ${rows.length} under what Collector Crypt cards usually sell for`); }
 if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]))) main().catch((e) => { console.error(e); process.exit(1); });
