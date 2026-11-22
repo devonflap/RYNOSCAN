@@ -6,6 +6,8 @@
 // listings carry no valuation, so neither is scanned.
 import fs from 'node:fs';
 import path from 'node:path';
+import { matchSlab } from '../docs/cards/slabmatch.mjs';
+import { cardTerms } from '../docs/cards/ebayq.mjs';
 const ME = 'https://api-mainnet.magiceden.dev/v2', CC = 'https://api.collectorcrypt.com', OUT = process.env.OUT_DIR || 'docs/cards/data', UA = 'RynoScan card finder (github.com/devonflap/RYNOSCAN)';
 /* 22 Nov (Ryan: "just focus on Collector Crypt, treat it like NFTs"): Collector Crypt's own marketplace only. Measured that day: buyers
    pay a median ~87% of insured value, and Collector Crypt's buybacks pay exactly 86.7% (38 of 38), but only on cards flagged for it. */
@@ -39,6 +41,19 @@ async function ccScan(fx) { const rows = [], seen = new Set(); let reads = 0, ca
       for (const c of L) { if (seen.has(c.nftAddress)) continue; seen.add(c.nftAddress); const r = ccRow(c, { fx }); if (r) rows.push(r); }
       cur = j && j.nextCursor; if (!cur || L.length < 96) break; } }
   console.log(`Collector Crypt marketplace: ${calls} requests, ${reads} listings read, ${rows.length} deals`); return { rows, reads }; }
+// GOOD BUYS (22 Nov, Ryan: "make the Collector Crypt section more like Dropped deals, showing good buys and deals available"): the
+// Card Finder's dropped deals (25%+ off their 6-month high and no longer falling), looked up on Collector Crypt's marketplace; every slab
+// of that exact card listed at a fair price (up to its valuation) is a good buy, cheapest against its valuation first, 3 per card.
+const CAT = { PK: 'Pokemon', PJ: 'Pokemon', OP: 'One Piece', DB: 'Dragon Ball' };
+export const RAWKEEP = ['id', 'name', 'set', 'num', 'rar', 'sub', 'st', 'stKey', 'hz', 'off', 'high', 'aud', 'ch7', 'ch30', 'sp', 'url'];
+async function goodBuys(fx, typ, file = path.join(OUT, 'cards.json')) { let D; try { D = JSON.parse(fs.readFileSync(file, 'utf8')); } catch { console.log('good buys: no cards.json'); return []; }
+  const deals = (D.deals || []).filter((c) => !c.check && CAT[c.g]), out = []; let calls = 0;
+  for (const card of deals) { const q = cardTerms(card).core; if (!q) continue;
+    const j = await getJ(`${CC}/marketplace?step=96&cardType=Card&search=${encodeURIComponent(q)}&categories=${encodeURIComponent(CAT[card.g])}`); calls++; await sleep(300);
+    const got = []; for (const c of (j && j.filterNFtCard) || []) { const r = ccRow(c, { fx, S: { ...SLAB, maxRatio: 1.0, maxAud: 4000 } }); if (!r || r.src !== 'Collector Crypt') continue; if (!matchSlab(r, [card])) continue;
+      const ratio = 1 - r.under; got.push({ ...r, vsTyp: +(1 - ratio / typ).toFixed(3), raw: Object.fromEntries(RAWKEEP.map((k) => [k, card[k]])), hz: card.hz, good: true }); }
+    got.sort((a, b) => b.under - a.under); out.push(...got.slice(0, 3)); }
+  console.log(`good buys: ${deals.length} dropped deals looked up on Collector Crypt (${calls} searches), ${out.length} slabs listed at a fair price`); return out; }
 async function main() { fs.mkdirSync(OUT, { recursive: true });
   const fxj = await getJ('https://api.frankfurter.app/latest?from=USD&to=AUD'), fx = fxj && fxj.rates && fxj.rates.AUD > 1 ? fxj.rates.AUD : 1.53;
   const sp = await getJ('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd'), solUsd = sp && sp.solana && sp.solana.usd > 0 ? sp.solana.usd : null;
@@ -55,6 +70,7 @@ async function main() { fs.mkdirSync(OUT, { recursive: true });
   const keep = rows.filter((r) => r.vsTyp > 0 || r.underBb); rows.length = 0; rows.push(...keep);
   console.log(`buyback open on ${rows.filter((r) => r.bb).length}, priced under its buyback on ${rows.filter((r) => r.underBb).length}`);
   rows.sort((a, b) => (b.underBb - a.underBb) || b.vsTyp - a.vsTyp); const seen = ccReads;
-  fs.writeFileSync(path.join(OUT, 'slabs.json'), JSON.stringify({ at: new Date().toISOString(), fx, solUsd, seen, source: 'Collector Crypt marketplace', typical: typ, sales: ratios.length, buyback: SLAB.buyback, ccSeen: ccReads, items: rows.slice(0, 250) }));
+  let buys = []; try { buys = await goodBuys(fx, typ); } catch (e) { console.log('good buys skipped: ' + e.message); }
+  fs.writeFileSync(path.join(OUT, 'slabs.json'), JSON.stringify({ buys, at: new Date().toISOString(), fx, solUsd, seen, source: 'Collector Crypt marketplace', typical: typ, sales: ratios.length, buyback: SLAB.buyback, ccSeen: ccReads, items: rows.slice(0, 250) }));
   console.log(`slabs: ${seen} listings read, ${rows.length} under what Collector Crypt cards usually sell for`); }
 if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]))) main().catch((e) => { console.error(e); process.exit(1); });
