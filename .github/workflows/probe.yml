@@ -2,4 +2,4 @@ name: probe (one-off)
 on: workflow_dispatch
 permissions: { contents: read }
 jobs:
-  p: { runs-on: ubuntu-latest, timeout-minutes: 15, steps: [ { uses: actions/checkout@v4 }, { uses: actions/setup-node@v4, with: { node-version: 22 } }, { run: node probe/arb.mjs, env: { PAIRS: "B1CmPfFCVWsCssWLFDgseT7qnEiu41cBbiTz7n7nE1j2:HaRn61,EigQpUbF4Yom7F8RPX5nTkKnTJgPMuk4o4M5xkcFwjsz:4NiBvn,5i29rnscLzvSedhQe4rjbQzdHP7wjW8ZJNyNAHvfX7rM:Cqpuut,36DncCWrdwgh6wa6Fmt5MbH9vrvcTHDpfNsjNcBqFo5f:HaRn61,2FMPU5wVDxWk3AmB6wGd56382rtkjAv26Zx2tmtGAiSM:B6tTud,8fGLnqgHyf37BAdN6s85p7YETWHbdNMV9ZDwpWW2rxQb:7scEVS" } } ] }
+  p: { runs-on: ubuntu-latest, timeout-minutes: 15, steps: [ { uses: actions/checkout@v4 }, { uses: actions/setup-node@v4, with: { node-version: 22 } }, { run: "OUT_DIR=/tmp/o node src/slabs.mjs" } ] }

@@ -35,6 +35,7 @@ const L = (name, cat, ins, price) => ({ tokenMint: 'Mint1', price, token: { name
 const env = { solUsd: 150, fx: 1.5 };
 const r1 = slabRow(L('2023 #GG40 Full Art/Glaceon Vstar PSA 10 Crown Zenith Pokemon', 'Pokemon', 200, 1), env);
 ok(r1 && r1.g === 'PK' && r1.grade === 'PSA 10' && r1.aud === 225 && r1.insAud === 300 && Math.abs(r1.under - 0.25) < 1e-9 && /magiceden\.io\/item-details\/Mint1/.test(r1.url), 'a PSA 10 listed at 1 SOL ($150) against a $200 insured value: 25% under, A$225 vs A$300, with its Magic Eden link');
+ok(r1 && 'seller' in r1, 'Magic Eden rows keep the seller (checked against the owner on Collector Crypt)');
 ok(slabRow(L('Luffy PSA 10', 'One Piece', 200, 1.25), env) === null, 'listed at 94% of its value: not a deal');
 ok(slabRow(L('Energy Removal CGC 8.5 Pokemon', 'Pokemon', 11, 0.03), env) === null && slabRow(L('Jordan PSA 9', 'Basketball', 400, 1), env) === null, 'under A$100, or not one of our games: left out');
 ok(gradeOf('2000 #119 BASE SET 2 ENERGY REMOVAL CGC 8.5 POKEMON') === 'CGC 8.5' && gradeOf('Charizard BGS 9.5') === 'BGS 9.5' && gameOf('One Piece', 'x') === 'OP' && gameOf('Pokemon', 'Pikachu Japanese PSA 10') === 'PJ' && gameOf('TCG', 'Goku Dragon Ball Super PSA 9') === 'DB', 'grades and games read from the listing');

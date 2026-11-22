@@ -18,7 +18,7 @@ export function gradeOf(name) { const m = String(name || '').match(/\b(PSA|CGC|B
 export function slabRow(x, { solUsd, fx, S = SLAB }) { const t = x.token || {}, ins = +attr(t, 'Insured Value'), g = gameOf(attr(t, 'Category'), t.name);
   if (!g || !(ins > 0) || !(x.price > 0) || String(attr(t, 'Status') || 'Valid') !== 'Valid') return null;
   const usd = x.price * solUsd, aud = usd * fx, insAud = ins * fx, ratio = usd / ins; if (insAud < S.minAud || insAud > S.maxAud || ratio > S.maxRatio || ratio < 0.2) return null;
-  return { g, name: String(t.name || '').trim(), grade: gradeOf(t.name), year: attr(t, 'Year'), img: t.image || null, aud: +aud.toFixed(2), insAud: +insAud.toFixed(2), sol: +x.price.toFixed(4), under: +(1 - ratio).toFixed(3), vault: attr(t, 'Vault'), src: 'Magic Eden', mint: x.tokenMint, url: `https://magiceden.io/item-details/${x.tokenMint}` }; }
+  return { g, name: String(t.name || '').trim(), grade: gradeOf(t.name), year: attr(t, 'Year'), img: t.image || null, aud: +aud.toFixed(2), insAud: +insAud.toFixed(2), sol: +x.price.toFixed(4), under: +(1 - ratio).toFixed(3), vault: attr(t, 'Vault'), src: 'Magic Eden', mint: x.tokenMint, seller: x.seller || null, url: `https://magiceden.io/item-details/${x.tokenMint}` }; }
 // one listing on Collector Crypt's own marketplace (price in USDC = US dollars) -> a deal row, or null
 export function ccRow(c, { fx, S = SLAB }) { const L = c && c.listing, ins = +(c && c.insuredValue), g = gameOf(c && c.category, c && c.itemName);
   if (!L || !g || !(ins > 0) || !(+L.price > 0) || !/^USDC?$/i.test(String(L.currency || 'USDC')) || String(c.nftStatus || 'Valid') !== 'Valid') return null;
@@ -42,6 +42,11 @@ async function main() { fs.mkdirSync(OUT, { recursive: true });
   if (!solUsd) { console.log('no SOL price: slabs skipped this run'); return; } console.log(`SOL $${solUsd}, USD to AUD ${fx}`);
   const rows = []; let seen = 0;
   for (let p = 0; p < SLAB.pages; p++) { const L = await getJ(`${ME}/collections/collector_crypt/listings?offset=${p * SLAB.per}&limit=${SLAB.per}`); await sleep(700); if (!Array.isArray(L) || !L.length) break; seen += L.length; for (const x of L) { const r = slabRow(x, { solUsd, fx }); if (r) rows.push(r); } if (L.length < SLAB.per) break; }
+  /* 22 Nov: Magic Eden keeps showing some listings after the card has been sold on Collector Crypt (all 12 of the cheapest, 50-70%
+     "under", had a Magic Eden seller who no longer owns the card). Keep a Magic Eden slab only if Collector Crypt says its seller still owns it. */
+  let stale = 0; for (const r of [...rows]) { const m = await getJ(`${CC}/cards/publicNft/${r.mint}/market`); await sleep(300); const w = m && m.owner && m.owner.wallet;
+    if (w && r.seller && w !== r.seller) { rows.splice(rows.indexOf(r), 1); stale++; } }
+  console.log(`Magic Eden: ${stale} listings dropped as stale (the seller no longer owns the card), ${rows.length} live`);
   let ccReads = 0; try { const cc = await ccScan(fx); ccReads = cc.reads; const have = new Set(rows.map((r) => r.mint)); for (const r of cc.rows) if (!have.has(r.mint)) rows.push(r); } catch (e) { console.log('Collector Crypt marketplace skipped: ' + e.message); }
   rows.sort((a, b) => b.under - a.under);
   fs.writeFileSync(path.join(OUT, 'slabs.json'), JSON.stringify({ at: new Date().toISOString(), fx, solUsd, seen, source: 'Collector Crypt slabs on Magic Eden and on Collector Crypt', ccSeen: ccReads, items: rows.slice(0, 250) }));

@@ -1,7 +1,0 @@
-// one-off probe 3 (22 Nov): on-chain owner of the cheap Magic Eden slabs vs the Magic Eden seller. Deleted after.
-const RPCS = ['https://api.mainnet-beta.solana.com', 'https://solana-rpc.publicnode.com', 'https://solana.drpc.org'];
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-async function rpc(method, params) { for (const u of RPCS) { try { const r = await fetch(u, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }), signal: AbortSignal.timeout(20000) }); const j = await r.json(); if (j.result) return j.result; console.log(u, JSON.stringify(j).slice(0, 150)); } catch (e) { console.log(u, e.message); } await sleep(1000); } return null; }
-for (const [m, seller] of process.env.PAIRS.split(',').map((x) => x.split(':'))) { const big = await rpc('getTokenLargestAccounts', [m]); const acc = big && big.value.find((x) => x.uiAmount === 1);
-  const info = acc && (await rpc('getAccountInfo', [acc.address, { encoding: 'jsonParsed' }])); const p = info && info.value && info.value.data.parsed.info;
-  console.log(`${m.slice(0, 6)}  Magic Eden seller ${seller}  on-chain owner ${p ? p.owner.slice(0, 6) : '?'}  ${p && p.owner.startsWith(seller) ? 'SAME (listing can be live)' : 'DIFFERENT (stale listing)'}  delegate ${p && p.delegate ? p.delegate.slice(0, 6) : '-'} state ${p ? p.state : '?'}`); await sleep(800); }
