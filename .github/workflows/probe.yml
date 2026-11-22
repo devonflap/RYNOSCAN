@@ -1,0 +1,5 @@
+name: probe (one-off)
+on: workflow_dispatch
+permissions: { contents: read }
+jobs:
+  p: { runs-on: ubuntu-latest, timeout-minutes: 15, steps: [ { uses: actions/checkout@v4 }, { uses: actions/setup-node@v4, with: { node-version: 22 } }, { run: node probe/arb.mjs, env: { MINTS: "B1CmPfFCVWsCssWLFDgseT7qnEiu41cBbiTz7n7nE1j2,EigQpUbF4Yom7F8RPX5nTkKnTJgPMuk4o4M5xkcFwjsz,5i29rnscLzvSedhQe4rjbQzdHP7wjW8ZJNyNAHvfX7rM,FjK1vtDXVC6TaasYJhYxMUg1o6eLQb3brmjWy2z5kQ7U,3xeJ5gpZcy398KopC8UX3157Eqq2ZYjYH7jUNJgdqBz5,6QPe5K8CGDDcQsAnbjpNiG8axDpL24N2xS2JCxomqafh,36DncCWrdwgh6wa6Fmt5MbH9vrvcTHDpfNsjNcBqFo5f,7NRfU1nu6tMD8Nm7b1tbKAuDi5g3borTBB5f3SkGFKus" } } ] }
