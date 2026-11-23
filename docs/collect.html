@@ -25,8 +25,8 @@ a { color:var(--link); }
 header { padding:14px 16px 6px; max-width:900px; margin:0 auto; }
 .top { display:flex; justify-content:space-between; align-items:center; font-size:.8rem; color:var(--muted); } .top a { text-decoration:none; font-weight:600; }
 #who { display:flex; gap:14px; align-items:baseline; margin:6px 0 2px; overflow-x:auto; scrollbar-width:none; }
-.tab { flex:none; background:none; border:0; padding:0; cursor:pointer; font:900 2.1rem/0.95 var(--disp); letter-spacing:.01em; color:transparent; -webkit-text-stroke:1.2px var(--muted); transition:color .2s; }
-.tab.on { font-size:3.6rem; color:var(--text); -webkit-text-stroke:0; }
+.tab { flex:none; background:none; border:0; padding:0; cursor:pointer; font:900 1.75rem/0.95 var(--disp); letter-spacing:.01em; color:transparent; -webkit-text-stroke:1.2px var(--muted); transition:color .2s; }
+.tab.on { font-size:3.1rem; color:var(--text); -webkit-text-stroke:0; }
 .prog { font-size:.86rem; color:var(--muted); margin:6px 0 6px; } .prog b { color:var(--text); font:800 1.25rem var(--disp); }
 .bar { height:6px; border-radius:6px; background:var(--s1); overflow:hidden; } .bar i { display:block; height:100%; border-radius:6px; background:linear-gradient(90deg, var(--hue), var(--gold), #fff5cc, var(--gold)); background-size:200% 100%; animation:foil 4s linear infinite; }
 @keyframes foil { to { background-position:-200% 0; } } @media (prefers-reduced-motion:reduce) { .bar i { animation:none; } body { transition:none; } }
@@ -229,7 +229,7 @@ let CARDS = []; const render = () => (view === 'check' ? checklist(CARDS) : view
   const LGc = document.getElementById('lang'); for (const [k, t] of [['en', 'English'], ['jp', 'Japanese'], ['cn', 'Chinese']]) { const b = el('button', 'chip' + (LG === k ? ' on' : ''), t); b.onclick = () => { LG = k; try { localStorage.setItem('collect-lang', k); } catch { /* private mode */ } [...LGc.children].forEach((x) => x.classList.toggle('on', x === b)); render(); }; LGc.append(b); }
   const S = document.getElementById('sort'); for (const [k, t] of [['price', 'Dearest first'], ['drop', 'Biggest drop first']]) { const b = el('button', 'chip' + (sort === k ? ' on' : ''), t); b.onclick = () => { sort = k; [...S.children].forEach((x) => x.classList.toggle('on', x === b)); render(); }; S.append(b); }
   const B = document.getElementById('band'); for (const [k, t] of [['all', 'Any price'], ['lo', 'Under A$60'], ['hi', 'A$60+']]) { const b = el('button', 'chip' + (band === k ? ' on' : ''), t); b.onclick = () => { band = k; [...B.children].forEach((x) => x.classList.toggle('on', x === b)); render(); }; B.append(b); }
-  { const W = document.getElementById('who'); CUR = want[0]; document.body.dataset.who = CUR; for (const w of want) { const b = el('button', 'tab' + (w === CUR ? ' on' : ''), w.replace(/^./, (x) => x.toUpperCase())); b.onclick = () => { CUR = w; document.body.dataset.who = w; [...W.children].forEach((x) => x.classList.toggle('on', x === b)); render(); window.scrollTo(0, 0); }; W.append(b); } }
+  { const W = document.getElementById('who'); CUR = want[0]; document.body.dataset.who = CUR; for (const w of want) { const b = el('button', 'tab' + (w === CUR ? ' on' : ''), w.replace(/^./, (x) => x.toUpperCase())); b.onclick = () => { CUR = w; document.body.dataset.who = w; requestAnimationFrame(() => b.scrollIntoView({ inline: 'nearest', block: 'nearest' })); [...W.children].forEach((x) => x.classList.toggle('on', x === b)); render(); window.scrollTo(0, 0); }; W.append(b); } }
   CARDS = I.cards; const V = document.getElementById('view'); for (const [k, t] of [['check', 'Checklist'], ['mine', 'My collection'], ['removed', 'Removed'], ['all', 'Every card']]) { const b = el('button', 'chip' + (view === k ? ' on' : ''), t); b.onclick = () => { view = k; [...V.children].forEach((x) => x.classList.toggle('on', x === b)); render(); }; V.append(b); }
   render(); })();
 </script>
