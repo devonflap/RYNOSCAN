@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="881b2b4769">
+<meta name="build" content="cdb275e489">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Card Finder</title>
 <meta name="description" content="Pokémon, One Piece and Dragon Ball singles that have dropped in price: deals, new-release chase cards and upcoming sets.">
@@ -171,7 +171,8 @@ function home(out) { const D = S.D || { deals: [], newSets: [], upcoming: [] }, 
   out.append(g); out.append(el('h3', 'sec', 'Raw cards: eBay and TCGplayer')); const g2 = el('div', 'tiles');
   g2.append(tile('t-deals', 'deals', deals.length, 'Raw card drops', `25%+ off their high, stopped falling${deals.length ? ` · best ${Math.round(-Math.min(...deals.filter((c) => !c.check).map((c) => c.off)) * 100) || 0}% off` : ''}`), tile('t-ebay', 'ebay', S.ebay && S.ebay.items ? S.ebay.items.filter((x) => byGame(x.card)).length : '–', 'eBay AU under market', S.ebay && S.ebay.items ? 'Buy It Now 20%+ under market' : 'switches on with the eBay key'),
     tile('t-new', 'new', ns.length, 'New releases', look ? `${look} set${look > 1 ? 's' : ''} settled: look now` : 'chase cards after launch'), tile('t-soon', 'soon', up.length, 'Upcoming', 'sets coming out soon'));
-  out.append(g2); out.append(el('p', 'note', 'Search any card above, or pick a game. Prices are TCGplayer\'s market prices (raw, near mint) in AUD, refreshed every morning.')); }
+  out.append(g2); { const p = el('p', 'note'), a = el('a', null, 'Character lists: every Zoro and Vegeta card →'); a.href = 'collect.html?c=zoro,vegeta'; a.style.color = 'var(--accent)'; p.append(a); out.append(p); }
+  out.append(el('p', 'note', 'Search any card above, or pick a game. Prices are TCGplayer\'s market prices (raw, near mint) in AUD, refreshed every morning.')); }
 function draw() { const D = S.D, out = $('out'); out.replaceChildren(); badge();
   const bk = $('backrow'); bk.replaceChildren(); if (S.tab !== 'home' || S.q.length >= 2) { const b = el('button', 'back', '← Home'); b.onclick = () => go('home'); bk.append(b, el('h2', 'view', S.q.length >= 2 ? 'Search' : TITLES[S.tab] || '')); }
   if (S.tab === 'home' && S.q.length < 2) { document.querySelectorAll('#games .chip').forEach((b) => b.classList.toggle('on', b.dataset.g === S.game)); $('filt').replaceChildren(); home(out); return; } document.querySelectorAll('#games .chip').forEach((b) => b.classList.toggle('on', b.dataset.g === S.game)); filters();

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Character Collection</title>
+<!-- 23 Nov (Ryan: "show me a list with a picture of each Zoro card and Vegeta card above $50 worth adding to my collection, no matter the price,
+     with pricing in Australian dollars and a link where to buy"). Every card the Card Finder tracks for the characters in ?c= (comma-separated),
+     dearest first, from its daily TCGplayer prices (A$60 and up is what it keeps). Default: Zoro and Vegeta. -->
+<style>
+:root { --bg:#14161c; --card:#1f232b; --line:#2f3540; --text:#f1efe9; --muted:#9aa3b0; --accent:#ff5a1f; --ok:#34c77b; --warn:#f2b33d; --bad:#ff5c6c; color-scheme:dark; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--text); font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+header { border-bottom:1px solid var(--line); padding:12px 16px 10px; }
+h1 { margin:0 0 2px; font-size:1.15rem; } h1 a { color:var(--accent); text-decoration:none; font-weight:400; font-size:.85rem; margin-left:6px; }
+.sub { color:var(--muted); font-size:.82rem; }
+.chips { display:flex; gap:6px; margin-top:8px; overflow-x:auto; scrollbar-width:none; } .chips::-webkit-scrollbar { display:none; }
+.chip { flex:none; border:1px solid var(--line); background:var(--card); color:var(--text); border-radius:999px; padding:6px 12px; font:inherit; font-size:.85rem; cursor:pointer; } .chip.on { border-color:var(--accent); color:var(--accent); font-weight:600; }
+main { padding:12px 16px 40px; max-width:900px; margin:0 auto; }
+h2 { font-size:1.05rem; margin:18px 0 8px; display:flex; align-items:baseline; gap:8px; } h2 small { color:var(--muted); font-weight:400; font-size:.8rem; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
+.c { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:8px; display:flex; flex-direction:column; gap:4px; min-width:0; }
+.c img { width:100%; aspect-ratio:5/7; object-fit:contain; border-radius:6px; background:#0e1014; }
+.nm { font-weight:600; font-size:.85rem; line-height:1.25; } .meta { color:var(--muted); font-size:.72rem; line-height:1.3; }
+.pr { display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; } .pr b { font-size:1.05rem; } .ok { color:var(--ok); } .warn { color:var(--warn); } .bad { color:var(--bad); }
+.st { font-size:.72rem; } .links { display:flex; flex-wrap:wrap; gap:2px 10px; font-size:.74rem; margin-top:auto; padding-top:4px; } .links a { color:var(--accent); text-decoration:none; }
+.tag { display:inline-block; background:var(--ok); color:#06210f; border-radius:999px; padding:0 6px; font-size:.68rem; font-weight:700; }
+.empty { color:var(--muted); padding:20px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Character Collection <a href="./">← Card Finder</a></h1>
+  <div class="sub" id="sub">Every tracked card for each character, dearest first. Prices in A$ from TCGplayer's market price (raw, near mint), refreshed daily.</div>
+  <div class="chips" id="sort"></div>
+</header>
+<main id="out"><p class="empty">Loading cards…</p></main>
+<script type="module">
+import { ebayBuy, ebaySold, cardTerms } from './cards/ebayq.mjs?v=20261123a';
+const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
+const aud = (n) => 'A$' + (n >= 100 ? Math.round(n).toLocaleString('en-AU') : n.toFixed(2));
+const GN = { OP: 'One Piece', PK: 'Pokémon', PJ: 'Pokémon JP', DB: 'Dragon Ball' };
+// characters: ?c=zoro,vegeta (default). Zoro must not catch Zoroark.
+const RX = { zoro: /\b(roronoa )?zoro\b(?!ark)/i, vegeta: /\bvegeta\b/i };
+const want = (new URLSearchParams(location.search).get('c') || 'zoro,vegeta').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+let sort = 'price';
+const draw = (cards) => { const out = document.getElementById('out'); out.textContent = '';
+  for (const who of want) { const re = RX[who] || new RegExp('\\b' + who.replace(/[^a-z0-9 ]/g, '') + '\\b', 'i'), L = cards.filter((c) => re.test(c.name) && c.aud >= 50);
+    L.sort(sort === 'drop' ? (a, b) => (a.off ?? 0) - (b.off ?? 0) : (a, b) => b.aud - a.aud);
+    const h = el('h2', null, who.replace(/^./, (x) => x.toUpperCase())); h.append(el('small', null, `${L.length} cards · ${L.filter((c) => c.stKey === 'settled' || c.stKey === 'turning').length} in a buy zone`)); out.append(h);
+    if (!L.length) { out.append(el('p', 'empty', 'No tracked cards for this character.')); continue; } const g = el('div', 'grid');
+    for (const c of L) { const d = el('div', 'c'), im = el('img'); im.src = c.img || ''; im.alt = c.name; im.loading = 'lazy'; im.onerror = () => { im.style.visibility = 'hidden'; }; d.append(im);
+      d.append(el('div', 'nm', c.name.replace(/\s+-\s+\S+$/, '')), el('div', 'meta', `${GN[c.g] || c.g} · ${c.set} · #${c.num}${c.rar ? ' · ' + c.rar : ''}${c.sub && !/^(normal|foil|holofoil)$/i.test(c.sub) ? ' · ' + c.sub : ''}`));
+      const pr = el('div', 'pr'); pr.append(el('b', null, aud(c.aud))); if (c.off != null && c.off < -0.05) pr.append(el('span', 'ok', `${Math.round(c.off * 100)}% off its high`)); d.append(pr);
+      const k = c.stKey || ''; d.append(el('div', 'st ' + (k === 'settled' || k === 'turning' ? 'ok' : k === 'falling' || k === 'dropping' ? 'bad' : 'warn'), c.st || ''));
+      if (k === 'settled' || k === 'turning') { const t = el('div'); t.append(el('span', 'tag', 'Good time to buy')); d.append(t); }
+      const L2 = el('div', 'links'); for (const [t, u] of [['eBay AU', ebayBuy(c)], [c.g === 'PK' ? 'TCGplayer (ships to AU)' : 'TCGplayer', c.url], ['Collector Crypt slabs', `https://collectorcrypt.com/marketplace/cards?search=${encodeURIComponent(cardTerms(c).core)}`], ['eBay sold', ebaySold(c)], ['PriceCharting', `https://www.pricecharting.com/search-products?type=prices&q=${encodeURIComponent(`${cardTerms(c).core} ${String(c.num || '').split('/')[0]}`.trim())}`]]) { if (!u) continue; const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; L2.append(a); }
+      d.append(L2); g.append(d); } out.append(g); } };
+(async () => { let I; try { I = await (await fetch('cards/data/index.json?t=' + Date.now(), { cache: 'no-store' })).json(); } catch { document.getElementById('out').textContent = 'Could not load the card list. Try again shortly.'; return; }
+  document.getElementById('sub').textContent = `Every tracked card for each character, A$50 and up (the Card Finder keeps cards from A$60), dearest first. TCGplayer market price (raw, near mint) in A$, updated ${new Date(I.at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}. "Good time to buy" = off its high and stopped falling.`;
+  const S = document.getElementById('sort'); for (const [k, t] of [['price', 'Dearest first'], ['drop', 'Biggest drop first']]) { const b = el('button', 'chip' + (sort === k ? ' on' : ''), t); b.onclick = () => { sort = k; [...S.children].forEach((x) => x.classList.toggle('on', x === b)); draw(I.cards); }; S.append(b); }
+  draw(I.cards); })();
+</script>
+</body>
+</html>
