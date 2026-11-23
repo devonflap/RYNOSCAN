@@ -1,4 +1,5 @@
-Hourly refresh 11:11 Brisbane: 3 tracked coins refreshed, 3 scored, 1 above 65. On-chain volume Poor (0.59x 7-day avg).
+Full scan 12:29 Brisbane: 41 scanned, 28 scored, 2 above 65. On-chain volume Below normal (0.65x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: SPCX (Mint Authority still enabled), BP (Mint Authority still enabled), PUMP (top 10 wallets hold 59.5% (gate 30%)), BONK (top 10 wallets hold 36.2% (gate 30%)), ANSEM (Single holder ownership), NET (owner can mint more).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
