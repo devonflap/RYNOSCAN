@@ -1,0 +1,19 @@
+# Japanese versions of the character cards on demand (the daily card run also does this after building chars.json).
+name: Japanese versions
+on: { workflow_dispatch: {} }
+permissions: { contents: write }
+concurrency: { group: card-finder, cancel-in-progress: false }
+jobs:
+  jp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - run: node src/japanese.mjs
+      - name: Save
+        run: |
+          git config user.name "rynoscan-bot"; git config user.email "rynoscan-bot@users.noreply.github.com"
+          git add docs/cards/data/japanese.json
+          git diff --cached --quiet || (git commit -q -m "japanese $(date -u +%FT%H:%MZ)" && (for i in 1 2 3; do git pull --rebase -X theirs -q && git push -q && break; sleep 5; done))

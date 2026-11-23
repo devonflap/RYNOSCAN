@@ -11,4 +11,6 @@ ok(pickJapanese(card('Roronoa Zoro'), L).yen === 680, 'plain card: cheapest in-s
 ok(pickJapanese(card('Roronoa Zoro (Alternate Art) (Manga)'), L).yen === 198000, 'manga: the manga parallel, not the played one');
 ok(pickJapanese(card('Roronoa Zoro (Alternate Art)'), L).yen === 4980, 'alternate art: the parallel without manga');
 ok(pickJapanese({ name: 'Roronoa Zoro', num: 'OP01-025', g: 'OP' }, L) === null, 'another number: no match');
+ok(pickJapanese(card('Roronoa Zoro (Serial Numbered)'), L) === null && pickJapanese(card('Roronoa Zoro (Treasure Cup August 2026)'), L) === null && pickJapanese({ name: 'Roronoa Zoro - ST01-013 (Treasure Cup)', num: 'OP06-118', g: 'OP' }, L) === null, 'special printings (serial, Treasure Cup, events) get no Japanese match');
+ok(pickJapanese({ name: 'Roronoa Zoro - OP06-118 (Alternate Art)', num: 'OP06-118', g: 'OP', rar: 'SEC' }, L).yen === 4980, 'a name with its number and a version in brackets still matches');
 process.exit(f);

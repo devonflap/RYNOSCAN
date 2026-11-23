@@ -16,6 +16,10 @@ export function parseList(html) { const out = [];
   return out; }
 // the Japanese printing that matches an English card: same number, same version (manga / parallel / SP / plain), new and ungraded
 export function pickJapanese(card, list) { const nm = String(card.name || ''), num = String(card.num || '').toUpperCase().trim();
+  /* a special English printing (serial numbered, Treasure Cup, championship and event promos, pre-release, winner...) has no plain
+     Japanese twin: matching it to the ordinary Japanese card would show a A$3 'version' of a A$3,000 card, so leave it unmatched */
+  const extra = [...nm.matchAll(/\(([^)]*)\)/g)].map((m) => m[1].trim()).filter((g) => !/^[A-Z]{0,5}\d+[-A-Z0-9/]*$/i.test(g) && !/^(alternate art|alt art|manga|sp|parallel|special parallel)$/i.test(g));
+  if (extra.length) return null;
   const manga = /manga/i.test(nm), par = /alternate art|alt art|parallel|\(sp\)|special/i.test(nm) || /\bSP\b/.test(String(card.rar || '')), sp = /\(sp\)|\bspr?\b/i.test(nm) || /^SP$/.test(String(card.rar || ''));
   const L = list.filter((x) => x.num && x.num.toUpperCase() === num && !x.cond && !/デッキ|スリーブ|プレイマット|ストレージ/.test(x.name))
     .filter((x) => (manga ? /漫画/.test(x.name) : !/漫画/.test(x.name)) && (par || manga ? /パラレル/.test(x.name) : !/パラレル/.test(x.name)) && (sp ? /SP/.test(x.name) : true));
