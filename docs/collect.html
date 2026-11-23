@@ -26,6 +26,8 @@ h2 { font-size:1.05rem; margin:18px 0 8px; display:flex; align-items:baseline; g
 .st { font-size:.72rem; } .links { display:flex; flex-wrap:wrap; gap:2px 10px; font-size:.74rem; margin-top:auto; padding-top:4px; } .links a { color:var(--accent); text-decoration:none; }
 .tag { display:inline-block; background:var(--ok); color:#06210f; border-radius:999px; padding:0 6px; font-size:.68rem; font-weight:700; }
 .empty { color:var(--muted); padding:20px 0; }
+.jp { margin-top:4px; padding-top:5px; border-top:1px dashed var(--line); display:grid; grid-template-columns:34px 1fr; gap:6px; align-items:start; font-size:.72rem; } .jp img { width:34px; aspect-ratio:5/7; object-fit:contain; border-radius:3px; background:#0e1014; }
+.jp b { font-size:.8rem; } .jp .links { padding-top:2px; } .jpt { color:var(--muted); font-size:.68rem; text-transform:uppercase; letter-spacing:.04em; }
 </style>
 </head>
 <body>
@@ -33,19 +35,22 @@ h2 { font-size:1.05rem; margin:18px 0 8px; display:flex; align-items:baseline; g
   <h1>Character Collection <a href="./">← Card Finder</a></h1>
   <div class="sub" id="sub">Every tracked card for each character, dearest first. Prices in A$ from TCGplayer's market price (raw, near mint), refreshed daily.</div>
   <div class="chips" id="sort"></div>
+  <div class="chips" id="band"></div>
 </header>
 <main id="out"><p class="empty">Loading cards…</p></main>
 <script type="module">
-import { ebayBuy, ebaySold, cardTerms } from './cards/ebayq.mjs?v=20261123a';
+import { ebayBuy, ebaySold, cardTerms } from './cards/ebayq.mjs?v=20261123b';
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
 const aud = (n) => 'A$' + (n >= 100 ? Math.round(n).toLocaleString('en-AU') : n.toFixed(2));
 const GN = { OP: 'One Piece', PK: 'Pokémon', PJ: 'Pokémon JP', DB: 'Dragon Ball' };
 // characters: ?c=zoro,vegeta (default). Zoro must not catch Zoroark.
 const RX = { zoro: /\b(roronoa )?zoro\b(?!ark)/i, vegeta: /\bvegeta\b/i };
 const want = (new URLSearchParams(location.search).get('c') || 'zoro,vegeta').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
-let sort = 'price';
+let sort = 'price', band = 'all', JP = {}; /* 23 Nov: A$10 and up from chars.json; Japanese versions from japanese.json (Card Rush) */
+const inBand = (c) => band === 'all' || (band === 'lo' ? c.aud < 60 : c.aud >= 60);
+const ebayJp = (c) => `https://www.ebay.com.au/sch/i.html?_nkw=${encodeURIComponent(`${cardTerms(c).core} "${String(c.num || '').trim()}" (japanese,jp,japan) -psa -cgc -bgs -proxy -custom`)}&LH_BIN=1&_sop=15&LH_PrefLoc=1`;
 const draw = (cards) => { const out = document.getElementById('out'); out.textContent = '';
-  for (const who of want) { const re = RX[who] || new RegExp('\\b' + who.replace(/[^a-z0-9 ]/g, '') + '\\b', 'i'), L = cards.filter((c) => re.test(c.name) && c.aud >= 50);
+  for (const who of want) { const re = RX[who] || new RegExp('\\b' + who.replace(/[^a-z0-9 ]/g, '') + '\\b', 'i'), L = cards.filter((c) => re.test(c.name) && c.aud >= 10 && inBand(c));
     L.sort(sort === 'drop' ? (a, b) => (a.off ?? 0) - (b.off ?? 0) : (a, b) => b.aud - a.aud);
     const h = el('h2', null, who.replace(/^./, (x) => x.toUpperCase())); h.append(el('small', null, `${L.length} cards · ${L.filter((c) => c.stKey === 'settled' || c.stKey === 'turning').length} in a buy zone`)); out.append(h);
     if (!L.length) { out.append(el('p', 'empty', 'No tracked cards for this character.')); continue; } const g = el('div', 'grid');
@@ -55,10 +60,17 @@ const draw = (cards) => { const out = document.getElementById('out'); out.textCo
       const k = c.stKey || ''; d.append(el('div', 'st ' + (k === 'settled' || k === 'turning' ? 'ok' : k === 'falling' || k === 'dropping' ? 'bad' : 'warn'), c.st || ''));
       if (k === 'settled' || k === 'turning') { const t = el('div'); t.append(el('span', 'tag', 'Good time to buy')); d.append(t); }
       const L2 = el('div', 'links'); for (const [t, u] of [['eBay AU', ebayBuy(c)], [c.g === 'PK' ? 'TCGplayer (ships to AU)' : 'TCGplayer', c.url], ['Collector Crypt slabs', `https://collectorcrypt.com/marketplace/cards?search=${encodeURIComponent(cardTerms(c).core)}`], ['eBay sold', ebaySold(c)], ['PriceCharting', `https://www.pricecharting.com/search-products?type=prices&q=${encodeURIComponent(`${cardTerms(c).core} ${String(c.num || '').split('/')[0]}`.trim())}`]]) { if (!u) continue; const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; L2.append(a); }
-      d.append(L2); g.append(d); } out.append(g); } };
-(async () => { let I; try { I = await (await fetch('cards/data/index.json?t=' + Date.now(), { cache: 'no-store' })).json(); } catch { document.getElementById('out').textContent = 'Could not load the card list. Try again shortly.'; return; }
-  document.getElementById('sub').textContent = `Every tracked card for each character, A$50 and up (the Card Finder keeps cards from A$60), dearest first. TCGplayer market price (raw, near mint) in A$, updated ${new Date(I.at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}. "Good time to buy" = off its high and stopped falling.`;
+      d.append(L2);
+      /* the Japanese printing of the same card */ if (c.g === 'OP' || (c.g === 'DB' && /fusion world/i.test(c.cat || ''))) { const j = JP[c.id], box = el('div', 'jp'), ji = el('img'); ji.alt = ''; ji.loading = 'lazy'; if (j && j.img) ji.src = j.img; else ji.style.visibility = 'hidden'; ji.onerror = () => { ji.style.visibility = 'hidden'; }; const t = el('div'); t.append(el('div', 'jpt', 'Japanese version'));
+        if (j) { const p = el('div'); p.append(el('b', null, aud(j.aud)), document.createTextNode(` (¥${j.yen.toLocaleString('en-AU')})${j.stock ? '' : ' · sold out'}`)); t.append(p); } else t.append(el('div', 'meta', 'Not found on Card Rush today'));
+        const jl = el('div', 'links'); for (const [tt, u] of [j ? ['Card Rush (Japan)', j.url] : null, ['eBay AU Japanese', ebayJp(c)]].filter(Boolean)) { const a = el('a', null, tt); a.href = u; a.target = '_blank'; a.rel = 'noopener'; jl.append(a); } t.append(jl); box.append(ji, t); d.append(box); }
+      g.append(d); } out.append(g); } };
+(async () => { let I; const J = async (f) => (await fetch(`cards/data/${f}?t=${Date.now()}`, { cache: 'no-store' })).json();
+  try { I = await J('chars.json'); } catch { try { I = await J('index.json'); } catch { document.getElementById('out').textContent = 'Could not load the card list. Try again shortly.'; return; } }
+  try { JP = (await J('japanese.json')).byId || {}; } catch { /* not built yet */ }
+  document.getElementById('sub').textContent = `Every card for each character from A$10, dearest first: English prices are TCGplayer's market price (raw, near mint) in A$, updated ${new Date(I.at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}. Under each One Piece and Fusion World card is its Japanese printing from Card Rush in Japan (they don't ship overseas: use a proxy like Buyee or ZenMarket) and on eBay AU. "Good time to buy" = off its high and stopped falling.`;
   const S = document.getElementById('sort'); for (const [k, t] of [['price', 'Dearest first'], ['drop', 'Biggest drop first']]) { const b = el('button', 'chip' + (sort === k ? ' on' : ''), t); b.onclick = () => { sort = k; [...S.children].forEach((x) => x.classList.toggle('on', x === b)); draw(I.cards); }; S.append(b); }
+  const B = document.getElementById('band'); for (const [k, t] of [['all', 'Any price'], ['lo', 'A$10–60'], ['hi', 'A$60+']]) { const b = el('button', 'chip' + (band === k ? ' on' : ''), t); b.onclick = () => { band = k; [...B.children].forEach((x) => x.classList.toggle('on', x === b)); draw(I.cards); }; B.append(b); }
   draw(I.cards); })();
 </script>
 </body>

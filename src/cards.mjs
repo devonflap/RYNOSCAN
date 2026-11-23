@@ -10,6 +10,11 @@ import { CARD, stats, statusOf, horizonOf, newSetView, isDeal, dealScore } from 
 const BASE_GAMES = [{ id: 3, code: 'PK', name: 'Pokémon' }, { id: 68, code: 'OP', name: 'One Piece' }, { id: 85, code: 'PJ', name: 'Pokémon Japan' }];
 let GAMES = BASE_GAMES; /* 21 Nov: plus every Dragon Ball category tcgcsv carries (Fusion World, Super, DBZ), looked up by name each run */
 const BASE = 'https://tcgcsv.com', UA = 'RynoScan card finder (github.com/devonflap/RYNOSCAN)', ARC = process.env.CARD_ARC || 'data/cardarc', OUT = process.env.OUT_DIR || 'docs/cards/data';
+/* 23 Nov (Ryan: "more options under $60, down to $10 cards, and the Japanese versions"): character lists keep every card of these
+   characters from A$10 (docs/cards/data/chars.json); every One Piece and Dragon Ball set is read for them, not only sets with an A$60+ card. */
+export const CHARS = (process.env.CHARS || 'zoro,vegeta').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
+export const charRe = (w) => (w === 'zoro' ? /\b(roronoa )?zoro\b(?!ark)/i : new RegExp('\\b' + w.replace(/[^a-z0-9 ]/g, '') + '\\b', 'i'));
+const CHAR_RX = CHARS.map(charRe), CHAR_MIN_AUD = 10;
 const MIN_KEEP_USD = 20, DAY = 86400e3, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), iso = (t) => new Date(t).toISOString().slice(0, 10);
 async function getJ(u, tries = 4) { for (let a = 0; a < tries; a++) { try { const r = await fetch(u, { headers: { 'user-agent': UA, accept: 'application/json' }, signal: AbortSignal.timeout(30000) }); if (r.ok) return await r.json(); if (r.status === 404) return null; } catch { /* retry */ } await sleep(1500 * (a + 1)); } return null; }
 const ext = (p, k) => { const e = (p.extendedData || []).find((x) => x.name === k); return e ? String(e.value) : null; };
@@ -30,11 +35,11 @@ async function main() { const now = Date.now(); fs.mkdirSync(OUT, { recursive: t
   console.log(`history: ${got} of ${days.length} archive days`);
   const tag = '.' + GAMES.map((g) => g.id).join('-') + '.json'; for (const f of fs.existsSync(ARC) ? fs.readdirSync(ARC) : []) if (f.slice(0, 10) < iso(now - 200 * DAY) || !f.endsWith(tag)) fs.rmSync(path.join(ARC, f));
   // today's prices, the sets and the cards
-  const rows = [], upcoming = [], newSets = [];
+  const rows = [], upcoming = [], newSets = [], chars = [];
   for (const g of GAMES) { const gj = await getJ(`${BASE}/tcgplayer/${g.id}/groups`); const groups = (gj && gj.results) || []; console.log(`${g.name}: ${groups.length} sets`);
     for (const grp of groups) { if (grp.isSupplemental) continue; const pub = Date.parse(grp.publishedOn || '') || null;
       const pj = await getJ(`${BASE}/tcgplayer/${g.id}/${grp.groupId}/prices`); await sleep(150); const prices = ((pj && pj.results) || []).filter((x) => x.marketPrice > 0 || x.midPrice > 0);
-      const upcomingSet = pub && pub > now; if (!upcomingSet && !prices.some((x) => (x.marketPrice || 0) * fx >= 60) && !(pub && now - pub < CARD.newSetDays * DAY)) continue;
+      const upcomingSet = pub && pub > now; if (!upcomingSet && !prices.some((x) => (x.marketPrice || 0) * fx >= 60) && !(pub && now - pub < CARD.newSetDays * DAY) && !(g.code === 'OP' || g.code === 'DB')) continue;
       const prj = await getJ(`${BASE}/tcgplayer/${g.id}/${grp.groupId}/products`); await sleep(150); const prods = new Map(((prj && prj.results) || []).filter((p) => ext(p, 'Number')).map((p) => [p.productId, p]));
       // a set's age: its release date, or how long its prices have been in the archives (some old sets carry a recent date)
       const inOld = prices.some((x) => { const h = hist[x.productId + '|' + x.subTypeName]; return h && h[0][0] < now - 150 * DAY; }), age = upcomingSet ? -Math.round((pub - now) / DAY) : Math.max(pub ? (now - pub) / DAY : 0, inOld ? 180 : 0);
@@ -44,11 +49,12 @@ async function main() { const now = Date.now(); fs.mkdirSync(OUT, { recursive: t
         cards.push({ id: k, g: g.code, cat: g.code === 'DB' ? g.name : null, set: grp.name, setAbbr: grp.abbreviation || '', rel: pub ? iso(pub) : null, age: Math.round(age), name: p.name, num: ext(p, 'Number'), rar: ext(p, 'Rarity'), sub: x.subTypeName, img: (p.imageUrl || '').replace('_200w', '_400w'), url: p.url, aud: +(usd * fx).toFixed(2), low: x.lowPrice ? +(x.lowPrice * fx).toFixed(2) : null, thin: !!(x.lowPrice && x.marketPrice && x.lowPrice < 0.55 * x.marketPrice), s, series }); }
       if (upcomingSet) { if (pub - now < 120 * DAY) upcoming.push({ g: g.code, set: grp.name, abbr: grp.abbreviation, rel: iso(pub), days: Math.round((pub - now) / DAY), chase: cards.filter((c) => c.aud > 0).sort((a, b) => b.aud - a.aud).slice(0, 6).map(slim) }); continue; }
       if (age <= CARD.newSetDays && cards.some((c) => c.aud >= CARD.minAud)) { const v = newSetView(cards); /* only sets with a chase card worth A$100+ (no deck sets or mis-dated old kits) */ newSets.push({ g: g.code, set: grp.name, abbr: grp.abbreviation, rel: pub ? iso(pub) : null, age: Math.round(age), verdict: v.verdict, falling: v.falling, ready: v.ready, avgOff: +v.avgOff.toFixed(3), chase: v.chase.map(slim) }); }
-      for (const c of cards) if (c.aud >= CARD.minAud * 0.6) rows.push(c); } }
+      for (const c of cards) { if (c.aud >= CARD.minAud * 0.6) rows.push(c); if (c.aud >= CHAR_MIN_AUD && CHAR_RX.some((re) => re.test(c.name))) chars.push(c); } } }
   const deals = rows.filter((c) => c.age > CARD.newSetDays && isDeal(c)).sort((a, b) => dealScore(b) - dealScore(a)).slice(0, 250).map(slim);
   const out = { at: new Date(now).toISOString(), fx, band: [CARD.minAud, CARD.maxAud], historyDays: got, counts: { tracked: rows.length, deals: deals.length, newSets: newSets.length, upcoming: upcoming.length }, upcoming: upcoming.sort((a, b) => a.days - b.days), newSets: newSets.sort((a, b) => a.age - b.age), deals };
   fs.writeFileSync(path.join(OUT, 'cards.json'), JSON.stringify(out));
   /* 21 Nov: every tracked card (A$60+), for the page's search and the wish list: the same fields, a shorter price line */
+  fs.writeFileSync(path.join(OUT, 'chars.json'), JSON.stringify({ at: out.at, chars: CHARS, cards: chars.map((c) => { const x = slim(c); x.sp = x.sp.slice(-13); delete x.rel; return x; }) })); console.log(`character lists: ${chars.length} cards for ${CHARS.join(', ')} from A$${CHAR_MIN_AUD}`);
   fs.writeFileSync(path.join(OUT, 'index.json'), JSON.stringify({ at: out.at, cards: rows.map((c) => { const x = slim(c); x.sp = x.sp.slice(-13); delete x.rel; return x; }) })); console.log(`cards: ${rows.length} tracked, ${deals.length} deals, ${newSets.length} new sets, ${upcoming.length} upcoming`); }
 // what the page needs for one card: the numbers, the status, the hold length and a weekly price line
 export function slim(c) { const s = c.s || {}, st = statusOf(c.s), sp = []; let last = 0; for (const p of c.series || []) if (p[0] - last >= 6.5 * DAY || p === c.series[c.series.length - 1]) { sp.push(Math.round(p[1])); last = p[0]; }

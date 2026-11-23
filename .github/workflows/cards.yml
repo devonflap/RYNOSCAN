@@ -29,6 +29,8 @@ jobs:
         run: node src/cards.mjs
       - name: Collector Crypt lists (also refreshed hourly by slabs.yml)
         run: node src/slabs.mjs || true
+      - name: Japanese versions of the character cards (Card Rush)
+        run: node src/japanese.mjs || true
       - name: Sold comps for the Pokémon slabs (needs the PokemonPriceTracker key in GitHub Secrets)
         run: node src/comps.mjs || true
         env:
