@@ -15,7 +15,7 @@ export function matchSlab(slab, index) { const sn = String(slab.name || ''), g =
   C = C.filter((c) => { const nw = words(String(c.name).replace(/\([^)]*\)/g, ' ').replace(/\s+-\s+.*$/, '')).filter((w) => w.length > 2 && !STOP.has(w)); return nw.length && nw.every((w) => sw.has(w) || sn.toLowerCase().includes(w)); });
   if (!C.length) return null;
   // the version: the slab says it or doesn't; the card's name/printing must agree
-  const ver = (c) => `${c.name} ${c.sub || ''}`; for (const [, re] of VERS) { const want = re.test(sn); C = C.filter((c) => re.test(ver(c)) === want); }
+  const ver = (c) => `${c.name} ${c.sub || ''}`; for (const [k, re] of VERS) { const want = re.test(sn); C = C.filter((c) => (k === 'alt' && /manga/i.test(sn) && /manga/i.test(ver(c))) || re.test(ver(c)) === want); } /* 23 Nov: a manga card is an alt art too; slab titles often say only "Manga" */
   if (C.length > 1) { const setHit = C.filter((c) => words(c.set).filter((w) => w.length > 3 && !STOP.has(w)).some((w) => sw.has(w))); if (setHit.length) C = setHit; }
   if (C.length !== 1) return null;
   // the set must agree too (a reprint has the same name and number: Umbreon Gold Star in Celebrations is not the POP Series 5 one)

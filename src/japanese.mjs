@@ -28,12 +28,24 @@ export function pickJapanese(card, list) { const nm = String(card.name || ''), n
   const inStock = L.filter((x) => x.stock), pool = inStock.length ? inStock : L; return pool.sort((a, b) => a.yen - b.yen)[0] || null; }
 const isJapanesePrinted = (c) => c.g === 'OP' || (c.g === 'DB' && /fusion world/i.test(c.cat || ''));
 async function getText(u) { for (let a = 0; a < 3; a++) { try { const r = await fetch(u, { headers: { 'user-agent': UA, 'accept-language': 'ja,en;q=0.8' }, signal: AbortSignal.timeout(30000) }); if (r.ok) return await r.text(); if (r.status === 404) return ''; } catch { /* retry */ } await sleep(3000 * (a + 1)); } return null; }
+// JAPANESE EXCLUSIVES (23 Nov, Ryan: "add Japanese-only Zoro cards"): every listing on Card Rush for the character's Japanese name that
+// isn't already the Japanese twin of an English card: Japan-only promos, prize and event cards, gold-letter parallels, DON!! cards.
+export const JPNAME = { zoro: { g: 'OP', q: 'ゾロ' }, vegeta: { g: 'DB', q: 'ベジータ', not: /ベジット|ゴジータ/ } };
+const NOT_CARD = /デッキ|スリーブ|プレイマット|ストレージ|ローダー|ボックス|BOX|パック|ケース|バインダー|セット$/;
+export function exclusives(list, { not = null, taken = new Set(), minYen = 1000 } = {}) { const best = new Map();
+  for (const x of list) { if (x.cond || x.yen < minYen || taken.has(x.url) || NOT_CARD.test(x.name) || (not && not.test(x.name))) continue; const k = `${x.num}|${x.name.replace(/^☆SALE☆/, '')}`, b = best.get(k);
+    if (!b || (x.stock && !b.stock) || (x.stock === b.stock && x.yen < b.yen)) best.set(k, x); }
+  return [...best.values()].sort((a, b) => b.yen - a.yen); }
 async function main() { const C = JSON.parse(fs.readFileSync(path.join(OUT, 'chars.json'), 'utf8')).cards.filter(isJapanesePrinted);
   const fxj = await fetch('https://api.frankfurter.app/latest?from=JPY&to=AUD').then((r) => r.json()).catch(() => null), fx = fxj && fxj.rates && fxj.rates.AUD > 0 ? fxj.rates.AUD : 0.0101;
   const byNum = new Map(); for (const c of C) { const k = `${c.g}|${String(c.num).toUpperCase()}`; if (!byNum.has(k)) byNum.set(k, []); byNum.get(k).push(c); }
   const out = {}; let pages = 0, found = 0;
   for (const [k, cards] of byNum) { const [g, num] = k.split('|'); const html = await getText(`${SITE[g]}/product-list?keyword=${encodeURIComponent(num)}`); pages++; await sleep(1500); if (html == null) continue;
     const list = parseList(html); for (const c of cards) { const j = pickJapanese(c, list); if (!j) continue; out[c.id] = { yen: j.yen, aud: +(j.yen * fx).toFixed(2), url: j.url, img: j.img, name: j.name, stock: j.stock }; found++; } }
-  fs.writeFileSync(path.join(OUT, 'japanese.json'), JSON.stringify({ at: new Date().toISOString(), jpyAud: fx, byId: out }));
+  const taken = new Set(Object.values(out).map((x) => x.url)), excl = {}; let epages = 0;
+  for (const [who, J] of Object.entries(JPNAME)) { const all = []; for (let page = 1; page <= 10; page++) { const html = await getText(`${SITE[J.g]}/product-list?keyword=${encodeURIComponent(J.q)}&num=100&page=${page}`); epages++; await sleep(1500); if (!html) break; const L = parseList(html); all.push(...L); if (L.length < 100) break; }
+    excl[who] = exclusives(all, { not: J.not, taken }).map((x) => ({ name: x.name, num: x.num, yen: x.yen, aud: +(x.yen * fx).toFixed(2), url: x.url, img: x.img, stock: x.stock, g: J.g })); }
+  fs.writeFileSync(path.join(OUT, 'japanese.json'), JSON.stringify({ at: new Date().toISOString(), jpyAud: fx, byId: out, exclusives: excl }));
+  console.log(`Japanese exclusives: ${Object.entries(excl).map(([k, v]) => `${k} ${v.length}`).join(', ')} (${epages} pages)`);
   console.log(`Japanese versions: ${C.length} One Piece / Fusion World character cards, ${pages} Card Rush searches, ${found} matched (JPY to AUD ${fx})`); }
 if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]))) main().catch((e) => { console.error(e.message); process.exit(1); });
