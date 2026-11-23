@@ -1,0 +1,11 @@
+// collector's groups (23 Nov)
+import { groupOf, GROUPS, ORDER } from '../docs/cards/collectible.mjs';
+const out = console.log; let f = 0; const ok = (c, m) => { out((c ? 'PASS ' : 'FAIL ') + m); if (!c) f = 1; };
+const op = (name, rar) => groupOf({ g: 'OP', name, rar }), fw = (name, rar) => groupOf({ g: 'DB', cat: 'Dragon Ball Super: Fusion World', name, rar }), ma = (name, rar) => groupOf({ g: 'DB', cat: 'Dragon Ball Super: Masters', name, rar });
+ok(op('Roronoa Zoro (Alternate Art) (Manga)', 'SEC') === 'op-manga' && op('Roronoa Zoro (EB04-007) (SP)', 'SP') === 'op-sp' && op('Roronoa Zoro (OP13-037)', 'TR') === 'op-tr', 'One Piece: manga, SP, treasure rare');
+ok(op('Roronoa Zoro (Parallel)', 'L') === 'op-leader-alt' && op('Roronoa Zoro (025) (Parallel)', 'SR') === 'op-sr-alt' && op('Roronoa Zoro (Alternate Art)', 'SEC') === 'op-sec-alt' && op('Roronoa Zoro (Alternate Art)', 'PR') === 'op-rare-alt', 'One Piece alt arts by rarity');
+ok(op('Roronoa Zoro (Serial Numbered)', 'L') === 'op-prize' && op('Roronoa Zoro - ST01-013 (Treasure Cup)', 'PR') === 'op-prize' && op('Roronoa Zoro (114)', 'PR') === 'op-promo' && op('Roronoa Zoro', 'SR') === 'op-sec' && op('Roronoa Zoro', 'C') === null && op('Roronoa Zoro', 'L') === null, 'One Piece prizes, promos, base SR; commons and base leaders left out');
+ok(fw('Vegeta - ST01-071 (Super Alternate Art)', 'SCR') === 'fw-saa' && fw('Vegeta (Alternate Art)', 'SCR') === 'fw-scr' && fw('Vegeta - ST01-053 (Alternate Art)', 'L') === 'fw-leader-alt' && fw('Vegeta (Alternate Art)', 'SR') === 'fw-sr-alt' && fw('Vegeta (Alternate Art)', 'R') === 'fw-rare-alt' && fw('Vegeta (Gold)', 'L') === 'fw-prize' && fw('Vegeta', 'UC') === null, 'Fusion World groups');
+ok(ma('SSB Vegeta, Unbridled Power (God Rare)', 'God Rare') === 'ma-gdr' && ma('Vegeta', 'Secret Rare') === 'ma-scr' && ma('Vegeta (SLR)', 'Special Leader Rare') === 'ma-slr' && ma('Vegeta (SPR)', 'Special Rare') === 'ma-spr' && ma('Vegeta, Attacker Fury', 'Iconic Attack Rare') === 'ma-special' && ma('Vegeta (Championship Pack 2022 Vol.2)(Winner Gold Stamped)', 'Promo') === 'ma-prize' && ma('Vegeta', 'Common') === null, 'Masters groups (Special Leader Rare is not a Special Rare)');
+ok(ORDER.every((k) => GROUPS[k].t && GROUPS[k].d), 'every group has a name and an explanation');
+process.exit(f);

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Character Collection</title>
+<title>Collector Checklist</title>
 <!-- 23 Nov (Ryan: "show me a list with a picture of each Zoro card and Vegeta card above $50 worth adding to my collection, no matter the price,
      with pricing in Australian dollars and a link where to buy"). Every card the Card Finder tracks for the characters in ?c= (comma-separated),
      dearest first, from its daily TCGplayer prices (A$60 and up is what it keeps). Default: Zoro and Vegeta. -->
@@ -26,26 +26,34 @@ h2 { font-size:1.05rem; margin:18px 0 8px; display:flex; align-items:baseline; g
 .st { font-size:.72rem; } .links { display:flex; flex-wrap:wrap; gap:2px 10px; font-size:.74rem; margin-top:auto; padding-top:4px; } .links a { color:var(--accent); text-decoration:none; }
 .tag { display:inline-block; background:var(--ok); color:#06210f; border-radius:999px; padding:0 6px; font-size:.68rem; font-weight:700; }
 .empty { color:var(--muted); padding:20px 0; }
+h3.grp { font-size:.95rem; margin:16px 0 2px; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; } h3.grp small { color:var(--muted); font-weight:400; font-size:.76rem; } .gd { color:var(--muted); font-size:.78rem; margin:0 0 8px; }
+.got { display:flex; align-items:center; gap:6px; font-size:.8rem; font-weight:600; cursor:pointer; } .got input { width:18px; height:18px; accent-color:var(--ok); } .c.have { opacity:.55; border-color:var(--ok); }
+.game { font-size:.72rem; color:var(--accent); text-transform:uppercase; letter-spacing:.05em; margin-top:14px; }
 .jp { margin-top:4px; padding-top:5px; border-top:1px dashed var(--line); display:grid; grid-template-columns:34px 1fr; gap:6px; align-items:start; font-size:.72rem; } .jp img { width:34px; aspect-ratio:5/7; object-fit:contain; border-radius:3px; background:#0e1014; }
 .jp b { font-size:.8rem; } .jp .links { padding-top:2px; } .jpt { color:var(--muted); font-size:.68rem; text-transform:uppercase; letter-spacing:.04em; }
 </style>
 </head>
 <body>
 <header>
-  <h1>Character Collection <a href="./">← Card Finder</a></h1>
+  <h1>Collector Checklist <a href="./">← Card Finder</a></h1>
   <div class="sub" id="sub">Every tracked card for each character, dearest first. Prices in A$ from TCGplayer's market price (raw, near mint), refreshed daily.</div>
+  <div class="chips" id="view"></div>
   <div class="chips" id="sort"></div>
   <div class="chips" id="band"></div>
 </header>
 <main id="out"><p class="empty">Loading cards…</p></main>
 <script type="module">
 import { ebayBuy, ebaySold, cardTerms } from './cards/ebayq.mjs?v=20261123b';
+import { groupOf, GROUPS, ORDER } from './cards/collectible.mjs?v=20261123a';
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
 const aud = (n) => 'A$' + (n >= 100 ? Math.round(n).toLocaleString('en-AU') : n.toFixed(2));
 const GN = { OP: 'One Piece', PK: 'Pokémon', PJ: 'Pokémon JP', DB: 'Dragon Ball' };
 // characters: ?c=zoro,vegeta (default). Zoro must not catch Zoroark.
 const RX = { zoro: /\b(roronoa )?zoro\b(?!ark)/i, vegeta: /\bvegeta\b/i };
 const want = (new URLSearchParams(location.search).get('c') || 'zoro,vegeta').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+/* 23 Nov (Ryan: a checklist of the Zoro and Vegeta cards worth collecting): the cards I own, ticked on this phone/browser */
+let GOT = {}; try { GOT = JSON.parse(localStorage.getItem('collect-got') || '{}'); } catch { GOT = {}; } const saveGot = () => { try { localStorage.setItem('collect-got', JSON.stringify(GOT)); } catch { /* private mode */ } };
+let view = 'check', hideGot = false;
 let sort = 'price', band = 'all', JP = {}; /* 23 Nov: A$10 and up from chars.json; Japanese versions from japanese.json (Card Rush) */
 const inBand = (c) => band === 'all' || (band === 'lo' ? c.aud < 60 : c.aud >= 60);
 const ebayJp = (c) => `https://www.ebay.com.au/sch/i.html?_nkw=${encodeURIComponent(`${cardTerms(c).core} "${String(c.num || '').trim()}" (japanese,jp,japan) -psa -cgc -bgs -proxy -custom`)}&LH_BIN=1&_sop=15&LH_PrefLoc=1`;
@@ -54,7 +62,8 @@ const draw = (cards) => { const out = document.getElementById('out'); out.textCo
     L.sort(sort === 'drop' ? (a, b) => (a.off ?? 0) - (b.off ?? 0) : (a, b) => b.aud - a.aud);
     const h = el('h2', null, who.replace(/^./, (x) => x.toUpperCase())); h.append(el('small', null, `${L.length} cards · ${L.filter((c) => c.stKey === 'settled' || c.stKey === 'turning').length} in a buy zone`)); out.append(h);
     if (!L.length) { out.append(el('p', 'empty', 'No tracked cards for this character.')); continue; } const g = el('div', 'grid');
-    for (const c of L) { const d = el('div', 'c'), im = el('img'); im.src = c.img || ''; im.alt = c.name; im.loading = 'lazy'; im.onerror = () => { im.style.visibility = 'hidden'; }; d.append(im);
+    for (const c of L) g.append(cardBox(c)); out.append(g); } };
+function cardBox(c) { { const d = el('div', 'c' + (GOT[c.id] ? ' have' : '')), im = el('img'); im.src = c.img || ''; im.alt = c.name; im.loading = 'lazy'; im.onerror = () => { im.style.visibility = 'hidden'; }; d.append(im);
       d.append(el('div', 'nm', c.name.replace(/\s+-\s+\S+$/, '')), el('div', 'meta', `${GN[c.g] || c.g} · ${c.set} · #${c.num}${c.rar ? ' · ' + c.rar : ''}${c.sub && !/^(normal|foil|holofoil)$/i.test(c.sub) ? ' · ' + c.sub : ''}`));
       const pr = el('div', 'pr'); pr.append(el('b', null, aud(c.aud))); if (c.off != null && c.off < -0.05) pr.append(el('span', 'ok', `${Math.round(c.off * 100)}% off its high`)); d.append(pr);
       const k = c.stKey || ''; d.append(el('div', 'st ' + (k === 'settled' || k === 'turning' ? 'ok' : k === 'falling' || k === 'dropping' ? 'bad' : 'warn'), c.st || ''));
@@ -64,14 +73,25 @@ const draw = (cards) => { const out = document.getElementById('out'); out.textCo
       /* the Japanese printing of the same card */ if (c.g === 'OP' || (c.g === 'DB' && /fusion world/i.test(c.cat || ''))) { const j = JP[c.id], box = el('div', 'jp'), ji = el('img'); ji.alt = ''; ji.loading = 'lazy'; if (j && j.img) ji.src = j.img; else ji.style.visibility = 'hidden'; ji.onerror = () => { ji.style.visibility = 'hidden'; }; const t = el('div'); t.append(el('div', 'jpt', 'Japanese version'));
         if (j) { const p = el('div'); p.append(el('b', null, aud(j.aud)), document.createTextNode(` (¥${j.yen.toLocaleString('en-AU')})${j.stock ? '' : ' · sold out'}`)); t.append(p); if (c.aud > 30 && c.aud / Math.max(j.aud, 0.01) > 15) t.append(el('div', 'warn', 'Big price gap: this may not be the same version as the English card, so compare the pictures')); } else t.append(el('div', 'meta', /\((?!alternate art|alt art|manga|sp|parallel)[^)]*[a-z][^)]*\)/i.test(c.name.replace(/\([A-Z]{0,5}\d+[-A-Z0-9/]*\)/g, '')) ? 'Special printing: no Japanese twin' : 'Not found on Card Rush today'));
         const jl = el('div', 'links'); for (const [tt, u] of [j ? ['Card Rush (Japan)', j.url] : null, ['eBay AU Japanese', ebayJp(c)]].filter(Boolean)) { const a = el('a', null, tt); a.href = u; a.target = '_blank'; a.rel = 'noopener'; jl.append(a); } t.append(jl); box.append(ji, t); d.append(box); }
-      g.append(d); } out.append(g); } };
+      const lab = el('label', 'got'), cb = el('input'); cb.type = 'checkbox'; cb.checked = !!GOT[c.id]; cb.onchange = () => { if (cb.checked) GOT[c.id] = new Date().toISOString().slice(0, 10); else delete GOT[c.id]; saveGot(); render(); }; lab.append(cb, document.createTextNode(GOT[c.id] ? 'Got it' : 'Got it?')); d.insertBefore(lab, d.children[1]);
+      return d; } }
+/* the checklist: each character's collectible versions in groups, rarest first, with how many you have and what's left to buy */
+function checklist(cards) { const out = document.getElementById('out'); out.textContent = '';
+  for (const who of want) { const re = RX[who] || new RegExp('\\b' + who.replace(/[^a-z0-9 ]/g, '') + '\\b', 'i'), L = cards.filter((c) => re.test(c.name) && c.aud >= 10 && inBand(c) && groupOf(c));
+    const got = L.filter((c) => GOT[c.id]), h = el('h2', null, who.replace(/^./, (x) => x.toUpperCase())); const left = L.filter((c) => !GOT[c.id]), trophy = left.filter((c) => c.aud > 2000); h.append(el('small', null, `${got.length} of ${L.length} collected · ${aud(left.filter((c) => c.aud <= 2000).reduce((s, c) => s + c.aud, 0))} to complete${trophy.length ? ` (plus ${trophy.length} trophy card${trophy.length > 1 ? 's' : ''} over A$2,000)` : ''}`)); out.append(h);
+    let lastGame = ''; for (const k of ORDER) { const G = L.filter((c) => groupOf(c) === k).sort(sort === 'drop' ? (a, b) => (a.off ?? 0) - (b.off ?? 0) : (a, b) => b.aud - a.aud), shown = hideGot ? G.filter((c) => !GOT[c.id]) : G; if (!G.length) continue;
+      if (GROUPS[k].game !== lastGame) { lastGame = GROUPS[k].game; out.append(el('div', 'game', lastGame === 'Fusion World' ? 'Dragon Ball Super: Fusion World (FB/ST cards, the current game)' : lastGame === 'Masters' ? 'Dragon Ball Super: Masters (BT cards, the older game)' : lastGame)); }
+      const hg = el('h3', 'grp', GROUPS[k].t), n = G.filter((c) => GOT[c.id]).length; hg.append(el('small', null, `${n} of ${G.length} · ${aud(Math.min(...G.map((c) => c.aud)))} to ${aud(Math.max(...G.map((c) => c.aud)))}`)); out.append(hg, el('p', 'gd', GROUPS[k].d));
+      if (!shown.length) { out.append(el('p', 'gd', 'All collected.')); continue; } const g = el('div', 'grid'); for (const c of shown) g.append(cardBox(c)); out.append(g); } } }
+let CARDS = []; const render = () => (view === 'check' ? checklist(CARDS) : draw(CARDS));
 (async () => { let I; const J = async (f) => (await fetch(`cards/data/${f}?t=${Date.now()}`, { cache: 'no-store' })).json();
   try { I = await J('chars.json'); } catch { try { I = await J('index.json'); } catch { document.getElementById('out').textContent = 'Could not load the card list. Try again shortly.'; return; } }
   try { JP = (await J('japanese.json')).byId || {}; } catch { /* not built yet */ }
   document.getElementById('sub').textContent = `Every card for each character from A$10, dearest first: English prices are TCGplayer's market price (raw, near mint) in A$, updated ${new Date(I.at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}. Under each One Piece and Fusion World card is its Japanese printing from Card Rush in Japan (they don't ship overseas: use a proxy like Buyee or ZenMarket) and on eBay AU. "Good time to buy" = off its high and stopped falling.`;
-  const S = document.getElementById('sort'); for (const [k, t] of [['price', 'Dearest first'], ['drop', 'Biggest drop first']]) { const b = el('button', 'chip' + (sort === k ? ' on' : ''), t); b.onclick = () => { sort = k; [...S.children].forEach((x) => x.classList.toggle('on', x === b)); draw(I.cards); }; S.append(b); }
-  const B = document.getElementById('band'); for (const [k, t] of [['all', 'Any price'], ['lo', 'A$10–60'], ['hi', 'A$60+']]) { const b = el('button', 'chip' + (band === k ? ' on' : ''), t); b.onclick = () => { band = k; [...B.children].forEach((x) => x.classList.toggle('on', x === b)); draw(I.cards); }; B.append(b); }
-  draw(I.cards); })();
+  const S = document.getElementById('sort'); for (const [k, t] of [['price', 'Dearest first'], ['drop', 'Biggest drop first']]) { const b = el('button', 'chip' + (sort === k ? ' on' : ''), t); b.onclick = () => { sort = k; [...S.children].forEach((x) => x.classList.toggle('on', x === b)); render(); }; S.append(b); }
+  const B = document.getElementById('band'); for (const [k, t] of [['all', 'Any price'], ['lo', 'A$10–60'], ['hi', 'A$60+']]) { const b = el('button', 'chip' + (band === k ? ' on' : ''), t); b.onclick = () => { band = k; [...B.children].forEach((x) => x.classList.toggle('on', x === b)); render(); }; B.append(b); }
+  CARDS = I.cards; const V = document.getElementById('view'); for (const [k, t] of [['check', 'Collector checklist'], ['all', 'Every card'], ['hide', 'Hide ones I have']]) { const b = el('button', 'chip' + ((k === 'hide' ? hideGot : view === k) ? ' on' : ''), t); b.onclick = () => { if (k === 'hide') { hideGot = !hideGot; b.classList.toggle('on', hideGot); } else { view = k; [...V.children].slice(0, 2).forEach((x) => x.classList.toggle('on', x === b)); } render(); }; V.append(b); }
+  render(); })();
 </script>
 </body>
 </html>
