@@ -1,4 +1,3 @@
-Full scan 03:25 Brisbane: 36 scanned, 29 scored, 3 above 65. On-chain volume Strong (1.54x 7-day avg).
+Hourly refresh 04:11 Brisbane: 3 tracked coins refreshed, 3 scored, 2 above 65. On-chain volume Strong (1.54x 7-day avg).
 Market: SOL neutral, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: CARDS (Top 10 holders high ownership), HSOL (Mint Authority still enabled), BONK (top 10 wallets hold 36.2% (gate 30%)), NVDAX (Mint Authority still enabled), NVDA (Mint Authority still enabled), ANSEM (Single holder ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
