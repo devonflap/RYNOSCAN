@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="build" content="f8481530e0">
+<meta name="build" content="c0d6bdaf26">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Card Finder</title>
 <meta name="description" content="Pokémon, One Piece and Dragon Ball singles that have dropped in price: deals, new-release chase cards and upcoming sets.">
@@ -67,7 +67,7 @@ h2.view { font-size:1.2rem; margin:4px 0 2px; }
 (async () => { try { const mine = document.querySelector('meta[name=build]').content, r = await fetch(location.pathname + '?b=' + Date.now(), { cache: 'no-store' }), t = await r.text(), live = (t.match(/<meta name="build" content="([^"]+)"/) || [])[1];
   if (live && live !== mine && sessionStorage.getItem('reloadedFor') !== live) { sessionStorage.setItem('reloadedFor', live); location.replace(location.pathname + '?v=' + live + location.hash); } } catch {} })();
 { let hidden = 0; document.addEventListener('visibilitychange', () => { if (document.hidden) hidden = Date.now(); else if (hidden && Date.now() - hidden > 20 * 60e3) location.reload(); }); }
-import { ebayBuy, ebaySold, slabQuery, cardTerms } from './cards/ebayq.mjs?v=20261122c';
+import { ebayBuy, ebaySold, slabQuery, cardTerms } from './cards/ebayq.mjs?v=20261123c';
 import { matchSlab, slabHold, slabParts } from './cards/slabmatch.mjs?v=20261122c';
 const $ = (id) => document.getElementById(id), el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
 const store = { get: (k, d) => { try { const v = localStorage.getItem('cf-' + k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set: (k, v) => { try { localStorage.setItem('cf-' + k, JSON.stringify(v)); } catch {} } };

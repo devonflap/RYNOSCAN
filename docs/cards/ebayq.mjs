@@ -13,11 +13,23 @@ export function cardTerms(c) { const raw = String(c.name || ''), groups = [...ra
   const sub = String(c.sub || ''); if (/reverse/i.test(sub)) vs.push('reverse'); if (/1st edition/i.test(sub)) vs.push('1st');
   const num = c.num && !/^none$/i.test(c.num) ? String(c.num).trim() : ''; /* as printed on the card (sellers copy it) */
   return { core: shortName(raw), num: num ? (/[-/]/.test(num) ? `"${num}"` : num) : '', vs, game: c.g === 'PJ' ? '(japanese,jp,japan)' : '' }; }
-export function ebayQuery(c, { graded = false } = {}) { const t = cardTerms(c);
-  return [t.core, t.num, ...t.vs, t.game, graded ? 'psa 10' : '-psa -cgc -bgs -graded -slab', '-proxy -custom -orica -replica'].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim(); }
+// 23 Nov (Ryan: the search should read like a listing title, e.g. "Roronoa Zoro OP01-025 SR Parallel Alt Art ... One Piece Japanese"):
+// full name, card number, rarity, version in plain words, the game, and "Japanese" for Japanese copies. The set name and condition are
+// left out on purpose: eBay only shows titles with every word, and many sellers don't write them. A short tail keeps slabs and proxies
+// out of the raw-card searches.
+const RAR = /^(C|UC|R|SR|SEC|L|SCR|TR|SP|SPR|SLR|PR|P)$/i, GAMEW = { OP: 'One Piece', DB: 'Dragon Ball', PK: 'Pokemon', PJ: 'Pokemon' };
+export function ebayQuery(c, { graded = false, jp = false } = {}) { const raw = String(c.name || ''), t = cardTerms(c);
+  const name = /\./.test(raw) ? t.core : raw.replace(/\([^)]*\)/g, ' ').replace(/\s+-\s+.*$/, ' ').replace(/\s+/g, ' ').trim(); /* dotted names (Monkey.D.Luffy) stay short: Luffy */
+  const groups = [...raw.matchAll(/\(([^)]*)\)/g)].map((m) => m[1]).join(' '), ver = [];
+  if (/manga/i.test(groups)) ver.push('Manga'); else if (/super alternate art/i.test(groups)) ver.push('Super Alt Art'); else if (/alternate art|alt art|parallel/i.test(groups)) ver.push(jp || c.g === 'PJ' ? 'Parallel' : 'Alt Art');
+  for (const [re, w] of [[/winner/i, 'Winner'], [/\bgold\b/i, 'Gold'], [/pre-?release/i, 'Pre-Release'], [/serial/i, 'Serial']]) if (re.test(groups)) ver.push(w);
+  if (/\(sp\)/i.test(raw)) ver.push('SP'); if (/reverse/i.test(String(c.sub || ''))) ver.push('Reverse'); if (/1st edition/i.test(String(c.sub || ''))) ver.push('1st Edition');
+  const rar = RAR.test(String(c.rar || '').trim()) && !/^(C|UC|P|PR)$/i.test(c.rar) ? String(c.rar).toUpperCase() : '', num = String(c.num || '').trim();
+  return [name, num, rar, ...ver, GAMEW[c.g] || '', jp || c.g === 'PJ' ? 'Japanese' : '', graded ? 'PSA 10' : '-psa -cgc -bgs -proxy'].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim(); }
 const E = 'https://www.ebay.com.au/sch/i.html?_nkw=';
 // max: only listings at or under that price in A$ (eBay's own price filter), e.g. 80% of market or Ryan's wish-list price. Saved on eBay
 // ("Save this search"), eBay itself alerts him when a new one is listed: the under-market scan without a developer key.
+export const ebayJapanese = (c) => `${E}${encodeURIComponent(ebayQuery(c, { jp: true }))}&LH_BIN=1&_sop=15&LH_PrefLoc=1`;
 export const ebayBuy = (c, o = {}) => `${E}${encodeURIComponent(ebayQuery(c, o))}&LH_BIN=1&_sop=15&LH_PrefLoc=1${o.max > 0 ? `&_udhi=${Math.round(o.max)}` : ''}`;
 export const ebaySold = (c, o) => `${E}${encodeURIComponent(ebayQuery(c, o))}&LH_Sold=1&LH_Complete=1`;
 // a slab's title from Collector Crypt ("2015 #123 Rayquaza EX CGC 9 Japanese XY Promo Pokemon", "2023 #GG40 Full Art/Glaceon Vstar PSA 10

@@ -321,3 +321,4 @@ These apply to every bot. To change one bot only, put it under `"bots"`, for exa
   an English twin, fusions out of Vegeta); graded versions (src/charslabs.mjs, graded.json: cheapest Collector Crypt slab per grade for
   each checklist card; manga slabs match manga cards); grails (♛ per card, target price, saved on the phone, shown first); PSA 10 eBay
   link on each card; Super Dragon Ball Heroes link (no free price source: not on Card Rush or TCGplayer).
+- 23 Nov: eBay searches read like a listing title (Ryan's example): full name (dotted names short), number, rarity, version in plain words (Alt Art / Parallel for Japanese / Manga / Super Alt Art / SP / Winner / Gold / Pre-Release / Serial), game, Japanese for Japanese copies, short -psa -cgc -bgs -proxy tail; set name and condition left out (eBay needs every word). Checklist: ☆ top-right of every card = buy first; a 'Buy first' list with its total opens each character (saved on the phone).
