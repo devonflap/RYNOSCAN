@@ -1,3 +1,4 @@
-Hourly refresh 06:11 Brisbane: 3 tracked coins refreshed, 3 scored, 1 above 65. On-chain volume Strong (1.57x 7-day avg).
+Full scan 07:31 Brisbane: 44 scanned, 35 scored, 1 above 65. On-chain volume Strong (1.64x 7-day avg).
 Market: SOL neutral, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: CARDS (Top 10 holders high ownership), PIPPIN (Single holder ownership), TRUMP (Top 10 holders high ownership), HSOL (Mint Authority still enabled), NVDAX (Mint Authority still enabled), NVDA (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
