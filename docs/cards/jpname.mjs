@@ -2,7 +2,7 @@
 // like ロロノア・ゾロ(パラレル/漫画背景)【SEC】; this turns the words its listings use into English. Card text and quotes it doesn't know are
 // dropped rather than shown in Japanese.
 const W = [
-  ['ブロリー＆ベジータ', 'Broly & Vegeta'], ['ゾロ＆サンジ', 'Zoro & Sanji'], ['ロロノア・ゾロ', 'Roronoa Zoro'], ['ゾロ十郎', 'Zoro-Juurou'], ['ロロノア', 'Roronoa'], ['ゾロ', 'Zoro'],
+  ['ブロリー＆ベジータ', 'Broly & Vegeta'], ['ゾロ＆サンジ', 'Zoro & Sanji'], ['ニコ・ロビン', 'Nico Robin'], ['ロビン', 'Robin'], ['ロロノア・ゾロ', 'Roronoa Zoro'], ['ゾロ十郎', 'Zoro-Juurou'], ['ロロノア', 'Roronoa'], ['ゾロ', 'Zoro'],
   ['ベジータミニ', 'Vegeta (Mini)'], ['ベジータ：幼年期', 'Vegeta: Childhood'], ['ベジータ', 'Vegeta'], ['孫悟空', 'Son Goku'], ['ラディッツ', 'Raditz'], ['スーパーベビー', 'Super Baby'], ['ベジット', 'Vegito'], ['ゴジータ', 'Gogeta'], ['たしぎ', 'Tashigi'], ['ルフィ', 'Luffy'], ['サンジ', 'Sanji'],
   ['スーパーパラレル', 'Super Parallel'], ['パラレル', 'Parallel'], ['漫画背景', 'Manga background'], ['漫画絵', 'Manga art'], ['漫画', 'Manga'], ['金文字', 'Gold letter'], ['フルアート', 'Full art'], ['シリアル', 'Serial'],
   ['ダンボール付未開封', 'Sealed, with box'], ['フィギュア付未開封', 'Sealed, with figure'], ['未開封', 'Sealed'], ['英語版', 'English edition'], ['中国語版', 'Chinese edition'], ['中国版', 'Chinese edition'], ['中国語', 'Chinese'],

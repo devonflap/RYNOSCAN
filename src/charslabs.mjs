@@ -7,7 +7,7 @@ import path from 'node:path';
 import { matchSlab } from '../docs/cards/slabmatch.mjs';
 import { gradeKey } from './slabs.mjs';
 const OUT = process.env.OUT_DIR || 'docs/cards/data', CC = 'https://api.collectorcrypt.com', UA = 'RynoScan card finder (github.com/devonflap/RYNOSCAN)', sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const SEARCH = { zoro: [['Zoro', 'One Piece']], vegeta: [['Vegeta', 'Dragon Ball']] };
+const SEARCH = { zoro: [['Zoro', 'One Piece']], vegeta: [['Vegeta', 'Dragon Ball']], robin: [['Robin', 'One Piece']] };
 async function getJ(u) { for (let a = 0; a < 3; a++) { try { const r = await fetch(u, { headers: { 'user-agent': UA, accept: 'application/json' }, signal: AbortSignal.timeout(30000) }); if (r.ok) return await r.json(); } catch { /* retry */ } await sleep(2000 * (a + 1)); } return null; }
 // the cheapest listing per grade for one card, from a list of marketplace slabs
 export function gradesFor(card, slabs, fx) { const out = {};

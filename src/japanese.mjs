@@ -30,7 +30,7 @@ const isJapanesePrinted = (c) => c.g === 'OP' || (c.g === 'DB' && /fusion world/
 async function getText(u) { for (let a = 0; a < 3; a++) { try { const r = await fetch(u, { headers: { 'user-agent': UA, 'accept-language': 'ja,en;q=0.8' }, signal: AbortSignal.timeout(30000) }); if (r.ok) return await r.text(); if (r.status === 404) return ''; } catch { /* retry */ } await sleep(3000 * (a + 1)); } return null; }
 // JAPANESE EXCLUSIVES (23 Nov, Ryan: "add Japanese-only Zoro cards"): every listing on Card Rush for the character's Japanese name that
 // isn't already the Japanese twin of an English card: Japan-only promos, prize and event cards, gold-letter parallels, DON!! cards.
-export const JPNAME = { zoro: { g: 'OP', q: 'ゾロ' }, vegeta: { g: 'DB', q: 'ベジータ', not: /ベジット|ゴジータ/ } };
+export const JPNAME = { zoro: { g: 'OP', q: 'ゾロ' }, vegeta: { g: 'DB', q: 'ベジータ', not: /ベジット|ゴジータ/ }, robin: { g: 'OP', q: 'ロビン' } };
 const NOT_CARD = /デッキ|スリーブ|プレイマット|ストレージ|ローダー|ボックス|BOX|パック|ケース|バインダー|セット$/;
 export function exclusives(list, { not = null, taken = new Set(), minYen = 1000 } = {}) { const best = new Map();
   for (const x of list) { if (x.cond || x.yen < minYen || taken.has(x.url) || NOT_CARD.test(x.name) || (not && not.test(x.name))) continue; const k = `${x.num}|${x.name.replace(/^☆SALE☆/, '')}`, b = best.get(k);

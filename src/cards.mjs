@@ -12,7 +12,7 @@ let GAMES = BASE_GAMES; /* 21 Nov: plus every Dragon Ball category tcgcsv carrie
 const BASE = 'https://tcgcsv.com', UA = 'RynoScan card finder (github.com/devonflap/RYNOSCAN)', ARC = process.env.CARD_ARC || 'data/cardarc', OUT = process.env.OUT_DIR || 'docs/cards/data';
 /* 23 Nov (Ryan: "more options under $60, down to $10 cards, and the Japanese versions"): character lists keep every card of these
    characters from A$10 (docs/cards/data/chars.json); every One Piece and Dragon Ball set is read for them, not only sets with an A$60+ card. */
-export const CHARS = (process.env.CHARS || 'zoro,vegeta').split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
+export const CHARS = (process.env.CHARS || 'zoro,vegeta,robin' /* 24 Nov: Nico Robin added (Ryan) */).split(',').map((x) => x.trim().toLowerCase()).filter(Boolean);
 export const charRe = (w) => (w === 'zoro' ? /\b(roronoa )?zoro\b(?!ark)/i : new RegExp('\\b' + w.replace(/[^a-z0-9 ]/g, '') + '\\b', 'i'));
 const CHAR_RX = CHARS.map(charRe), CHAR_MIN_AUD = 10;
 const MIN_KEEP_USD = 20, DAY = 86400e3, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), iso = (t) => new Date(t).toISOString().slice(0, 10);

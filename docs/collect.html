@@ -14,6 +14,8 @@
    and armour gold; the character's name is the big, loud thing, everything under it stays quiet so the card pictures and prices do the work. */
 :root { --bg:#0c1f17; --s1:#123026; --s2:#173b2f; --line:#22493b; --text:#eef4ec; --muted:#93b1a2; --hue:#45c486; --gold:#e3bb55; --ok:#5fd394; --warn:#f2bf4a; --bad:#ff6b6b; --link:#e3bb55; color-scheme:dark;
   --disp:"Big Shoulders Display",Impact,"Arial Narrow",sans-serif; --body:Figtree,system-ui,-apple-system,"Segoe UI",sans-serif; }
+/* 24 Nov: Nico Robin's binder: Ohara-night plum with a warm apricot */
+body[data-who="robin"] { --bg:#1c1029; --s1:#29183a; --s2:#331f48; --line:#4a3067; --text:#f7f1fb; --muted:#bba7cf; --hue:#b884ff; --gold:#f3b27a; --link:#f3b27a; }
 body[data-who="vegeta"] { --bg:#0b1433; --s1:#121f4a; --s2:#182858; --line:#26397a; --text:#f1f4fc; --muted:#a2afd8; --hue:#5b86ff; --gold:#f0c84e; --link:#f0c84e; }
 * { box-sizing:border-box; }
 body { margin:0; background:var(--bg); color:var(--text); font:15px/1.45 var(--body); transition:background .35s; }
@@ -93,10 +95,10 @@ const el = (t, c, x) => { const e = document.createElement(t); if (c) e.classNam
 const aud = (n) => 'A$' + (n >= 100 ? Math.round(n).toLocaleString('en-AU') : n.toFixed(2));
 const GN = { OP: 'One Piece', PK: 'Pokémon', PJ: 'Pokémon JP', DB: 'Dragon Ball' };
 // characters: ?c=zoro,vegeta (default). Zoro must not catch Zoroark.
-const RX = { zoro: /\b(roronoa )?zoro\b(?!ark)/i, vegeta: /\bvegeta\b/i };
+const RX = { zoro: /\b(roronoa )?zoro\b(?!ark)/i, vegeta: /\bvegeta\b/i, robin: /\b(nico )?robin\b/i };
 /* 23 Nov (Ryan: "drop Vegito and Gogeta"): fusion cards are left out of Vegeta's list */
 const EXCL = { vegeta: /vegito|vegetto|gogeta/i };
-const want = (new URLSearchParams(location.search).get('c') || 'zoro,vegeta').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+const want = (new URLSearchParams(location.search).get('c') || 'zoro,vegeta,robin').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
 /* 23 Nov (Ryan: a checklist of the Zoro and Vegeta cards worth collecting): the cards I own, ticked on this phone/browser */
 let GOT = {}; try { GOT = JSON.parse(localStorage.getItem('collect-got') || '{}'); } catch { GOT = {}; } const saveGot = () => { try { localStorage.setItem('collect-got', JSON.stringify(GOT)); } catch { /* private mode */ } };
 let view = 'check', hideGot = false;
@@ -165,7 +167,7 @@ let CUR = null; const keyOf = (kind, o) => (kind === 'c' ? o.id : kind === 'jp' 
 const priceOf = (kind, o) => (kind === 'x' ? ((XP[o.id] && XP[o.id].aud) || o.seen.aud) : o.aud);
 function item(kind, o, extra) { const k = keyOf(kind, o), d = el('details', 'row' + (GOT[k] ? ' have' : '') + (FIRST[k] ? ' isfirst' : '')), sm = el('summary'), im = el('img');
   im.src = kind === 'x' ? ((XP[o.id] && XP[o.id].img) || '') : o.img || ''; im.alt = ''; im.loading = 'lazy'; im.onerror = () => { im.style.visibility = 'hidden'; };
-  const tx = el('div', 'rt'), nm = (kind === 'c' ? o.name.replace(/\s+-\s+\S+$/, '') : kind === 'jp' ? jpName(o.name) : o.name).replace(/\s*\((?:[A-Z]{0,5}\d+[-A-Z0-9/]*)\)/g, '').replace(/^Roronoa (?=Zoro)/, '') /* the binder is Zoro's already; the card number shows underneath */; tx.append(el('div', 'rn', nm), el('div', 'rm', kind === 'c' ? `${o.num}${o.rar ? '  ' + rarS(o) : ''}${o.set ? '  ' + o.set : ''}` : kind === 'jp' ? `Japanese · #${o.num || '?'}` : `${o.lang} · #${o.num}`));
+  const tx = el('div', 'rt'), nm = (kind === 'c' ? o.name.replace(/\s+-\s+\S+$/, '') : kind === 'jp' ? jpName(o.name) : o.name).replace(/\s*\((?:[A-Z]{0,5}\d+[-A-Z0-9/]*)\)/g, '').replace(/^Roronoa (?=Zoro)/, '').replace(/^Nico (?=Robin)/, '') /* the binder is Zoro's already; the card number shows underneath */; tx.append(el('div', 'rn', nm), el('div', 'rm', kind === 'c' ? `${o.num}${o.rar ? '  ' + rarS(o) : ''}${o.set ? '  ' + o.set : ''}` : kind === 'jp' ? `Japanese · #${o.num || '?'}` : `${o.lang} · #${o.num}`));
   if (kind === 'c' && asian(o)) { const lg = el('div', 'lg'), P = ['en', 'jp', 'cn'].map((g) => [g, pIn(o, g)]), lo = Math.min(...P.filter((x) => x[1]).map((x) => x[1])); for (const [g, p] of P) lg.append(el('span', (g === LG ? 'on' : '') + (p && p === lo && P.filter((x) => x[1]).length > 1 ? ' cheap' : ''), `${g.toUpperCase()} ${p ? (p >= 100 ? Math.round(p).toLocaleString('en-AU') : p.toFixed(p < 10 ? 2 : 0)) : '–'}`)); tx.append(lg); }
   const lead = kind === 'c' && LG !== 'en' ? pIn(o, LG) : null, k2 = o.stKey || '', pr = el('div', 'rp'); if (kind === 'c' && LG !== 'en' && !lead) pr.append(el('small', null, 'EN')); pr.append(el('b', null, aud(lead || priceOf(kind, o)))); if (kind === 'c' && (k2 === 'settled' || k2 === 'turning')) pr.append(el('span', 'dot ok', 'buy zone')); else if (kind === 'c' && (k2 === 'falling' || k2 === 'dropping')) pr.append(el('span', 'dot bad', 'falling'));
   const bt = el('div', 'rb'), mk = (t, cls, title, fn) => { const b = el('button', cls, t); b.type = 'button'; b.title = title; b.setAttribute('aria-label', title); b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); fn(); }; return b; };
