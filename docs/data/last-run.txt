@@ -1,6 +1,6 @@
-Full scan 19:28 Brisbane: 41 scanned, 29 scored, 2 above 65. On-chain volume Poor (0.55x 7-day avg).
+Full scan 20:27 Brisbane: 39 scanned, 27 scored, 2 above 65. On-chain volume Poor (0.59x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
-NEW watch: TROLL (Solana) Bottom reversal, opp 68, checks 5/6, stop 22.3% away, upside 67%; volume fading.
+NEW watch: CHUMP (Robinhood) Bottom reversal, opp 66, checks 5/6, stop 19.8% away, upside 211.4%; more sellers than buyers in the last hour.
 Market: SOL neutral, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: SPCX (Mint Authority still enabled), PUMP (top 10 wallets hold 59.5% (gate 30%)), HSOL (Mint Authority still enabled), BP (Mint Authority still enabled), ANSEM (Single holder ownership), FARTCOIN (top 10 wallets hold 33.1% (gate 30%)).
+Removed for token safety: PUMP (top 10 wallets hold 59.5% (gate 30%)), BP (Mint Authority still enabled), TRUMP (Top 10 holders high ownership), HSOL (Mint Authority still enabled), ANSEM (Single holder ownership), FARTCOIN (top 10 wallets hold 33.1% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
