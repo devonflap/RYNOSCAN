@@ -1,6 +1,5 @@
-Full scan 08:26 Brisbane: 44 scanned, 35 scored, 2 above 65. On-chain volume Strong (1.81x 7-day avg).
-NEW watch: CLAUDIA (Solana) Breakout retest, opp 69, checks 4/6, stop 59.2% away, upside 177.5%; volume fading; weak last 6h.
-NEW watch: MICRODUCK (Robinhood) Falling wedge, opp 67, checks 5/6, stop 56.7% away, upside 170.2%; volume fading.
+Full scan 09:31 Brisbane: 49 scanned, 38 scored, 1 above 65. On-chain volume Strong (1.65x 7-day avg).
+NEW watch: RINGS (Solana) Breakout retest, opp 72, checks 5/6, stop null% away, upside null%; weak last 6h.
 Market: SOL neutral, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: PEPE (Mint Authority still enabled), CARDS (Top 10 holders high ownership), PIPPIN (Single holder ownership), TRUMP (Top 10 holders high ownership), HSOL (Mint Authority still enabled), FLOCK (owner can mint more).
+Removed for token safety: CARDS (Top 10 holders high ownership), PIPPIN (Single holder ownership), TRUMP (Top 10 holders high ownership), HSOL (Mint Authority still enabled), FLOCK (owner can mint more), NVDAX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
