@@ -1,3 +1,5 @@
-Hourly refresh 04:11 Brisbane: 3 tracked coins refreshed, 3 scored, 2 above 65. On-chain volume Strong (1.54x 7-day avg).
+Full scan 05:30 Brisbane: 41 scanned, 31 scored, 3 above 65. On-chain volume Strong (1.57x 7-day avg).
+NEW watch: RINGS (Solana) Breakout retest, opp 66, checks 4/6, stop null% away, upside null%; volume fading; weak last 6h.
 Market: SOL neutral, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: CARDS (Top 10 holders high ownership), HSOL (Mint Authority still enabled), SPCX (Mint Authority still enabled), NVDAX (Mint Authority still enabled), NVDA (Mint Authority still enabled), PIPPIN (Single holder ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
