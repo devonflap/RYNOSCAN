@@ -50,6 +50,8 @@ const aud = (n) => 'A$' + (n >= 100 ? Math.round(n).toLocaleString('en-AU') : n.
 const GN = { OP: 'One Piece', PK: 'Pokémon', PJ: 'Pokémon JP', DB: 'Dragon Ball' };
 // characters: ?c=zoro,vegeta (default). Zoro must not catch Zoroark.
 const RX = { zoro: /\b(roronoa )?zoro\b(?!ark)/i, vegeta: /\bvegeta\b/i };
+/* 23 Nov (Ryan: "drop Vegito and Gogeta"): fusion cards are left out of Vegeta's list */
+const EXCL = { vegeta: /vegito|vegetto|gogeta/i };
 const want = (new URLSearchParams(location.search).get('c') || 'zoro,vegeta').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
 /* 23 Nov (Ryan: a checklist of the Zoro and Vegeta cards worth collecting): the cards I own, ticked on this phone/browser */
 let GOT = {}; try { GOT = JSON.parse(localStorage.getItem('collect-got') || '{}'); } catch { GOT = {}; } const saveGot = () => { try { localStorage.setItem('collect-got', JSON.stringify(GOT)); } catch { /* private mode */ } };
@@ -58,7 +60,7 @@ let sort = 'price', band = 'all', JP = {}; /* 23 Nov: A$10 and up from chars.jso
 const inBand = (c) => band === 'all' || (band === 'lo' ? c.aud < 60 : c.aud >= 60);
 const ebayJp = (c) => `https://www.ebay.com.au/sch/i.html?_nkw=${encodeURIComponent(`${cardTerms(c).core} "${String(c.num || '').trim()}" (japanese,jp,japan) -psa -cgc -bgs -proxy -custom`)}&LH_BIN=1&_sop=15&LH_PrefLoc=1`;
 const draw = (cards) => { const out = document.getElementById('out'); out.textContent = '';
-  for (const who of want) { const re = RX[who] || new RegExp('\\b' + who.replace(/[^a-z0-9 ]/g, '') + '\\b', 'i'), L = cards.filter((c) => re.test(c.name) && c.aud >= 10 && inBand(c));
+  for (const who of want) { const re = RX[who] || new RegExp('\\b' + who.replace(/[^a-z0-9 ]/g, '') + '\\b', 'i'), L = cards.filter((c) => re.test(c.name) && !(EXCL[who] && EXCL[who].test(c.name)) && c.aud >= 10 && inBand(c));
     L.sort(sort === 'drop' ? (a, b) => (a.off ?? 0) - (b.off ?? 0) : (a, b) => b.aud - a.aud);
     const h = el('h2', null, who.replace(/^./, (x) => x.toUpperCase())); h.append(el('small', null, `${L.length} cards · ${L.filter((c) => c.stKey === 'settled' || c.stKey === 'turning').length} in a buy zone`)); out.append(h);
     if (!L.length) { out.append(el('p', 'empty', 'No tracked cards for this character.')); continue; } const g = el('div', 'grid');
@@ -77,7 +79,7 @@ function cardBox(c) { { const d = el('div', 'c' + (GOT[c.id] ? ' have' : '')), i
       return d; } }
 /* the checklist: each character's collectible versions in groups, rarest first, with how many you have and what's left to buy */
 function checklist(cards) { const out = document.getElementById('out'); out.textContent = '';
-  for (const who of want) { const re = RX[who] || new RegExp('\\b' + who.replace(/[^a-z0-9 ]/g, '') + '\\b', 'i'), L = cards.filter((c) => re.test(c.name) && c.aud >= 10 && inBand(c) && groupOf(c));
+  for (const who of want) { const re = RX[who] || new RegExp('\\b' + who.replace(/[^a-z0-9 ]/g, '') + '\\b', 'i'), L = cards.filter((c) => re.test(c.name) && !(EXCL[who] && EXCL[who].test(c.name)) && c.aud >= 10 && inBand(c) && groupOf(c));
     const got = L.filter((c) => GOT[c.id]), h = el('h2', null, who.replace(/^./, (x) => x.toUpperCase())); const left = L.filter((c) => !GOT[c.id]), trophy = left.filter((c) => c.aud > 2000); h.append(el('small', null, `${got.length} of ${L.length} collected · ${aud(left.filter((c) => c.aud <= 2000).reduce((s, c) => s + c.aud, 0))} to complete${trophy.length ? ` (plus ${trophy.length} trophy card${trophy.length > 1 ? 's' : ''} over A$2,000)` : ''}`)); out.append(h);
     let lastGame = ''; for (const k of ORDER) { const G = L.filter((c) => groupOf(c) === k).sort(sort === 'drop' ? (a, b) => (a.off ?? 0) - (b.off ?? 0) : (a, b) => b.aud - a.aud), shown = hideGot ? G.filter((c) => !GOT[c.id]) : G; if (!G.length) continue;
       if (GROUPS[k].game !== lastGame) { lastGame = GROUPS[k].game; out.append(el('div', 'game', lastGame === 'Fusion World' ? 'Dragon Ball Super: Fusion World (FB/ST cards, the current game)' : lastGame === 'Masters' ? 'Dragon Ball Super: Masters (BT cards, the older game)' : lastGame)); }
