@@ -7,48 +7,84 @@
 <!-- 23 Nov (Ryan: "show me a list with a picture of each Zoro card and Vegeta card above $50 worth adding to my collection, no matter the price,
      with pricing in Australian dollars and a link where to buy"). Every card the Card Finder tracks for the characters in ?c= (comma-separated),
      dearest first, from its daily TCGplayer prices (A$60 and up is what it keeps). Default: Zoro and Vegeta. -->
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800;900&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root { --bg:#14161c; --card:#1f232b; --line:#2f3540; --text:#f1efe9; --muted:#9aa3b0; --accent:#ff5a1f; --ok:#34c77b; --warn:#f2b33d; --bad:#ff5c6c; color-scheme:dark; }
+/* 23 Nov (Ryan: "give it a better vibe, more style"): a binder per character. Zoro's page is sword-green and brass, Vegeta's is Saiyan navy
+   and armour gold; the character's name is the big, loud thing, everything under it stays quiet so the card pictures and prices do the work. */
+:root { --bg:#0c1f17; --s1:#123026; --s2:#173b2f; --line:#22493b; --text:#eef4ec; --muted:#93b1a2; --hue:#45c486; --gold:#e3bb55; --ok:#5fd394; --warn:#f2bf4a; --bad:#ff6b6b; --link:#e3bb55; color-scheme:dark;
+  --disp:"Big Shoulders Display",Impact,"Arial Narrow",sans-serif; --body:Figtree,system-ui,-apple-system,"Segoe UI",sans-serif; }
+body[data-who="vegeta"] { --bg:#0b1433; --s1:#121f4a; --s2:#182858; --line:#26397a; --text:#f1f4fc; --muted:#a2afd8; --hue:#5b86ff; --gold:#f0c84e; --link:#f0c84e; }
 * { box-sizing:border-box; }
-body { margin:0; background:var(--bg); color:var(--text); font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
-header { border-bottom:1px solid var(--line); padding:12px 16px 10px; }
-h1 { margin:0 0 2px; font-size:1.15rem; } h1 a { color:var(--accent); text-decoration:none; font-weight:400; font-size:.85rem; margin-left:6px; }
-.sub { color:var(--muted); font-size:.82rem; }
-.chips { display:flex; gap:6px; margin-top:8px; overflow-x:auto; scrollbar-width:none; } .chips::-webkit-scrollbar { display:none; }
-.chip { flex:none; border:1px solid var(--line); background:var(--card); color:var(--text); border-radius:999px; padding:6px 12px; font:inherit; font-size:.85rem; cursor:pointer; } .chip.on { border-color:var(--accent); color:var(--accent); font-weight:600; }
-main { padding:12px 16px 40px; max-width:900px; margin:0 auto; }
-h2 { font-size:1.05rem; margin:18px 0 8px; display:flex; align-items:baseline; gap:8px; } h2 small { color:var(--muted); font-weight:400; font-size:.8rem; }
-.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
-.c { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:8px; display:flex; flex-direction:column; gap:4px; min-width:0; }
-.c img { width:100%; aspect-ratio:5/7; object-fit:contain; border-radius:6px; background:#0e1014; }
-.nm { font-weight:600; font-size:.85rem; line-height:1.25; } .meta { color:var(--muted); font-size:.72rem; line-height:1.3; }
-.pr { display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; } .pr b { font-size:1.05rem; } .ok { color:var(--ok); } .warn { color:var(--warn); } .bad { color:var(--bad); }
-.st { font-size:.72rem; } .links { display:flex; flex-wrap:wrap; gap:2px 10px; font-size:.74rem; margin-top:auto; padding-top:4px; } .links a { color:var(--accent); text-decoration:none; }
-.tag { display:inline-block; background:var(--ok); color:#06210f; border-radius:999px; padding:0 6px; font-size:.68rem; font-weight:700; }
-.empty { color:var(--muted); padding:20px 0; }
-h3.grp { font-size:.95rem; margin:16px 0 2px; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 10px; } h3.grp small { color:var(--muted); font-weight:400; font-size:.76rem; } .gd { color:var(--muted); font-size:.78rem; margin:0 0 8px; }
-.got { display:flex; align-items:center; gap:6px; font-size:.8rem; font-weight:600; cursor:pointer; } .got input { width:18px; height:18px; accent-color:var(--ok); } .c.have { opacity:.55; border-color:var(--ok); }
-.c { position:relative; } .first { position:absolute; top:6px; right:6px; width:34px; height:34px; border-radius:999px; border:0; background:rgba(0,0,0,.55); color:#fff; font-size:1.25rem; line-height:1; cursor:pointer; } .first.on { color:var(--warn); background:rgba(0,0,0,.75); } .c.isfirst { border-color:var(--warn); box-shadow:0 0 0 1px var(--warn) inset; }
-.del { position:absolute; top:6px; left:6px; height:30px; padding:0 10px; border-radius:999px; border:0; background:rgba(0,0,0,.55); color:#fff; font:inherit; font-size:.75rem; cursor:pointer; } .del:hover, .del:focus-visible { background:var(--bad); }
-.grail { border:1px solid var(--warn); color:var(--warn); background:none; border-radius:999px; padding:1px 8px; font:inherit; font-size:.72rem; cursor:pointer; } .grail.on { background:var(--warn); color:#2a1c00; font-weight:700; }
-.c.isgrail { border-color:var(--warn); } .gl { font-size:.74rem; } .gl input { width:5.5em; background:var(--bg); border:1px solid var(--line); color:var(--text); border-radius:6px; padding:2px 4px; font:inherit; }
-.slab { font-size:.72rem; color:var(--muted); } .slab a { color:var(--accent); text-decoration:none; }
-.game { font-size:.72rem; color:var(--accent); text-transform:uppercase; letter-spacing:.05em; margin-top:14px; }
-.jp { margin-top:4px; padding-top:5px; border-top:1px dashed var(--line); display:grid; grid-template-columns:34px 1fr; gap:6px; align-items:start; font-size:.72rem; } .jp img { width:34px; aspect-ratio:5/7; object-fit:contain; border-radius:3px; background:#0e1014; }
-.jp b { font-size:.8rem; } .jp .links { padding-top:2px; } .jpt { color:var(--muted); font-size:.68rem; text-transform:uppercase; letter-spacing:.04em; }
+body { margin:0; background:var(--bg); color:var(--text); font:15px/1.45 var(--body); transition:background .35s; }
+body::before { content:''; position:fixed; inset:0 0 auto; height:340px; background:radial-gradient(120% 100% at 85% -20%, color-mix(in srgb, var(--hue) 28%, transparent), transparent 70%); pointer-events:none; z-index:-1; }
+a { color:var(--link); }
+:focus-visible { outline:2px solid var(--gold); outline-offset:2px; }
+header { padding:14px 16px 6px; max-width:900px; margin:0 auto; }
+.top { display:flex; justify-content:space-between; align-items:center; font-size:.8rem; color:var(--muted); } .top a { text-decoration:none; font-weight:600; }
+#who { display:flex; gap:14px; align-items:baseline; margin:6px 0 2px; overflow-x:auto; scrollbar-width:none; }
+.tab { flex:none; background:none; border:0; padding:0; cursor:pointer; font:900 2.1rem/0.95 var(--disp); letter-spacing:.01em; color:transparent; -webkit-text-stroke:1.2px var(--muted); transition:color .2s; }
+.tab.on { font-size:3.6rem; color:var(--text); -webkit-text-stroke:0; }
+.prog { font-size:.86rem; color:var(--muted); margin:6px 0 6px; } .prog b { color:var(--text); font:800 1.25rem var(--disp); }
+.bar { height:6px; border-radius:6px; background:var(--s1); overflow:hidden; } .bar i { display:block; height:100%; border-radius:6px; background:linear-gradient(90deg, var(--hue), var(--gold), #fff5cc, var(--gold)); background-size:200% 100%; animation:foil 4s linear infinite; }
+@keyframes foil { to { background-position:-200% 0; } } @media (prefers-reduced-motion:reduce) { .bar i { animation:none; } body { transition:none; } }
+.sub { color:var(--muted); font-size:.76rem; margin:8px 0 0; }
+.chips { display:flex; gap:6px; margin-top:8px; overflow-x:auto; scrollbar-width:none; } .chips::-webkit-scrollbar, #who::-webkit-scrollbar { display:none; }
+.tools { display:flex; gap:6px; overflow-x:auto; scrollbar-width:none; margin-top:6px; } .tools::-webkit-scrollbar { display:none; } .tools .chips { margin:0; flex:none; background:var(--s1); border-radius:999px; padding:3px; gap:2px; }
+.chip { flex:none; border:0; background:none; color:var(--muted); border-radius:999px; padding:6px 11px; font:600 .8rem var(--body); cursor:pointer; } .chip.on { background:var(--s2); color:var(--text); box-shadow:inset 0 0 0 1px var(--line); }
+#view .chip.on { background:var(--gold); color:#1d1500; box-shadow:none; }
+main { padding:6px 16px 48px; max-width:900px; margin:0 auto; }
+.empty { color:var(--muted); padding:20px 0; } .gd { color:var(--muted); font-size:.78rem; margin:0 0 8px; }
+.game { font:800 1.05rem var(--disp); color:var(--hue); letter-spacing:.02em; margin:22px 0 4px; }
+/* categories: binder dividers */
+details.sec { margin:6px 0; background:var(--s1); border-radius:14px; border-left:4px solid var(--hue); overflow:hidden; }
+details.sec > summary { list-style:none; cursor:pointer; padding:11px 14px 11px 12px; display:flex; justify-content:space-between; gap:10px; align-items:center; } details.sec > summary::-webkit-details-marker { display:none; }
+details.sec > summary::after { content:''; width:8px; height:8px; border-right:2px solid var(--muted); border-bottom:2px solid var(--muted); transform:rotate(-45deg); transition:transform .2s; flex:none; } details.sec[open] > summary::after { transform:rotate(45deg); }
+.st2 { font:800 1.25rem/1.05 var(--disp); letter-spacing:.01em; flex:1; } .ss { color:var(--muted); font-size:.74rem; white-space:nowrap; text-align:right; }
+details.sec.gold { border-left-color:var(--gold); } details.sec.gold .st2 { color:var(--gold); }
+details.sec > .gd { padding:0 14px; } .rows { display:flex; flex-direction:column; }
+/* card rows */
+details.row { border-top:1px solid var(--line); } details.row > summary { list-style:none; cursor:pointer; display:grid; grid-template-columns:40px 1fr auto; gap:10px; align-items:center; padding:7px 12px 7px 10px; } details.row > summary::-webkit-details-marker { display:none; }
+details.row[open] > summary { background:var(--s2); }
+details.row img { width:40px; height:56px; object-fit:cover; border-radius:4px; background:var(--bg); box-shadow:0 0 0 1px var(--line); }
+.rt { min-width:0; } .rn { font-size:.86rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .rm { font-size:.7rem; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
+.lg { display:flex; gap:3px; margin-top:4px; flex-wrap:nowrap; overflow:hidden; } .lg span { font-size:.66rem; font-weight:600; color:var(--muted); background:var(--bg); border-radius:5px; padding:1px 5px; white-space:nowrap; } .lg span.on { color:var(--text); box-shadow:inset 0 0 0 1px var(--hue); } .lg span.cheap { color:var(--ok); }
+.rside { display:flex; flex-direction:column; align-items:flex-end; gap:4px; } .rp { text-align:right; white-space:nowrap; } .rp b { font:800 1.15rem var(--disp); letter-spacing:.01em; } .rp small { color:var(--muted); font-size:.62rem; margin-right:3px; }
+.dot { font-size:.62rem; margin-left:4px; } .dot.ok { color:var(--ok); } .dot.bad { color:var(--bad); }
+.rb { display:flex; gap:3px; } .ib { width:27px; height:25px; border-radius:7px; border:0; background:var(--bg); color:var(--muted); font-size:.85rem; line-height:1; cursor:pointer; } .ib.on { color:#1d1500; background:var(--gold); } .ib.got { color:#05210f; background:var(--ok); }
+details.row.isfirst > summary { background:linear-gradient(90deg, color-mix(in srgb, var(--gold) 14%, transparent), transparent 55%); } details.row.isfirst img { box-shadow:0 0 0 2px var(--gold); } details.row.have { opacity:.7; }
+/* a card opened */
+.c { background:var(--s2); border-radius:12px; padding:10px; display:flex; flex-direction:column; gap:5px; min-width:0; position:relative; }
+.c.detail { margin:0; border-radius:0; padding:4px 12px 14px 60px; } .c.detail > img, .c.detail > .first, .c.detail > .del, .c.detail > .got { display:none; }
+.nm { font-weight:600; font-size:.86rem; line-height:1.25; } .c.detail > .nm { display:none; } .meta { color:var(--muted); font-size:.72rem; line-height:1.35; }
+.pr { display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; } .pr b { font:800 1.2rem var(--disp); } .ok { color:var(--ok); } .warn { color:var(--warn); } .bad { color:var(--bad); }
+.st { font-size:.72rem; } .tag { display:inline-block; background:var(--ok); color:#05210f; border-radius:999px; padding:0 7px; font-size:.66rem; font-weight:700; }
+.links { display:flex; flex-wrap:wrap; gap:5px; font-size:.74rem; padding-top:4px; } .links a { text-decoration:none; background:var(--bg); color:var(--text); border-radius:999px; padding:4px 10px; font-weight:600; } .links a:hover { color:var(--gold); }
+.grail { align-self:flex-start; border:1px solid var(--gold); color:var(--gold); background:none; border-radius:999px; padding:2px 10px; font:600 .72rem var(--body); cursor:pointer; } .grail.on { background:var(--gold); color:#1d1500; }
+.gl { font-size:.76rem; } .gl input { width:5.5em; background:var(--bg); border:1px solid var(--line); color:var(--text); border-radius:6px; padding:3px 5px; font:inherit; }
+.slab { font-size:.74rem; color:var(--muted); } .slab a { text-decoration:none; font-weight:600; }
+.langs { display:grid; gap:6px; margin-top:4px; } .lrow { display:grid; grid-template-columns:34px 1fr; gap:8px; align-items:start; background:var(--bg); border-radius:10px; padding:7px 8px; font-size:.74rem; }
+.lrow img { width:34px; aspect-ratio:5/7; object-fit:cover; border-radius:3px; } .lrow .lt { font:800 .95rem var(--disp); color:var(--hue); } .lrow b { font:800 1.05rem var(--disp); margin-right:4px; } .lrow .links { padding-top:3px; } .lrow .links a { background:var(--s1); }
+.c.have { opacity:.6; } .got { display:flex; align-items:center; gap:6px; font-size:.8rem; font-weight:600; cursor:pointer; } .got input { width:18px; height:18px; accent-color:var(--ok); }
+.first { position:absolute; top:6px; right:6px; width:34px; height:34px; border-radius:999px; border:0; background:rgba(0,0,0,.5); color:#fff; font-size:1.2rem; cursor:pointer; } .first.on { color:var(--gold); }
+.del { position:absolute; top:6px; left:6px; height:30px; padding:0 10px; border-radius:999px; border:0; background:rgba(0,0,0,.5); color:#fff; font:inherit; font-size:.75rem; cursor:pointer; }
+.warn.small { font-size:.7rem; }
 </style>
 </head>
-<body>
+<body data-who="zoro">
 <header>
-  <h1>Collector Checklist <a href="./">← Card Finder</a></h1>
-  <div class="sub" id="sub">Every tracked card for each character, dearest first. Prices in A$ from TCGplayer's market price (raw, near mint), refreshed daily.</div>
+  <div class="top"><span>Collector checklist</span><a href="./">Card Finder</a></div>
+  <div id="who" role="tablist" aria-label="Character"></div>
+  <div class="prog" id="prog"></div>
+  <div class="bar" aria-hidden="true"><i id="barfill" style="width:0"></i></div>
   <div class="chips" id="view"></div>
-  <div class="chips" id="sort"></div>
-  <div class="chips" id="band"></div>
+  <div class="tools"><div class="chips" id="lang" aria-label="Price in"></div><div class="chips" id="sort"></div><div class="chips" id="band"></div></div>
+  <p class="sub" id="sub"></p>
 </header>
 <main id="out"><p class="empty">Loading cards…</p></main>
 <script type="module">
-import { ebayBuy, ebaySold, ebayJapanese, cardTerms } from './cards/ebayq.mjs?v=20261123c';
+import { ebayBuy, ebaySold, ebayJapanese, ebayChinese, cardTerms } from './cards/ebayq.mjs?v=20261123d';
+import { homeFor } from './cards/langs.mjs?v=20261123a';
 import { groupOf, GROUPS, ORDER } from './cards/collectible.mjs?v=20261123b';
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
 const aud = (n) => 'A$' + (n >= 100 ? Math.round(n).toLocaleString('en-AU') : n.toFixed(2));
@@ -75,12 +111,27 @@ let GRADED = {}, EXCLU = {}, EXTRA = [], XP = {}; /* 23 Nov: Ryan's own addition
 let sort = 'price', band = 'all', JP = {}; /* 23 Nov: A$10 and up from chars.json; Japanese versions from japanese.json (Card Rush) */
 const inBand = (c) => band === 'all' || (band === 'lo' ? c.aud < 60 : c.aud >= 60);
 const ebayJp = (c) => ebayJapanese(c);
-const draw = (cards) => { const out = document.getElementById('out'); out.textContent = '';
-  for (const who of want) { const re = RX[who] || new RegExp('\\b' + who.replace(/[^a-z0-9 ]/g, '') + '\\b', 'i'), L = cards.filter((c) => re.test(c.name) && !(EXCL[who] && EXCL[who].test(c.name)) && (c.aud >= 10 || /^(SEC|SCR|TR|SP)$|secret|god rare/i.test(String(c.rar || ''))) && inBand(c));
-    L.sort(sort === 'drop' ? (a, b) => (a.off ?? 0) - (b.off ?? 0) : (a, b) => b.aud - a.aud);
-    const h = el('h2', null, who.replace(/^./, (x) => x.toUpperCase())); h.append(el('small', null, `${L.length} cards · ${L.filter((c) => c.stKey === 'settled' || c.stKey === 'turning').length} in a buy zone`)); out.append(h);
-    if (!L.length) { out.append(el('p', 'empty', 'No tracked cards for this character.')); continue; } const g = el('div', 'grid');
-    for (const c of L) g.append(cardBox(c)); out.append(g); } };
+const draw = (cards) => { const out = document.getElementById('out'); out.textContent = ''; const who = CUR || want[0];
+  const re = RX[who] || new RegExp('\\b' + who.replace(/[^a-z0-9 ]/g, '') + '\\b', 'i'), L = cards.filter((c) => re.test(c.name) && !(EXCL[who] && EXCL[who].test(c.name)) && c.aud >= 10 && inBand(c));
+  L.sort(sort === 'drop' ? (a, b) => (a.off ?? 0) - (b.off ?? 0) : (a, b) => b.aud - a.aud); const s2 = section('Every card', `${L.length} · ${L.filter((c) => c.stKey === 'settled' || c.stKey === 'turning').length} in a buy zone`, null, L.map((c) => item('c', c)), true); if (s2) out.append(s2); else out.append(el('p', 'empty', 'No cards.')); };
+/* 23 Nov (Ryan: "show the price for Japanese or English or Chinese on that card instead of showing the card twice"): one row per card with
+   its price in each language; the Price in chips pick which one leads. Japanese: eBay copies that post to AU (Card Rush in Japan as a
+   fallback); Chinese: eBay. Card Rush listings with an English card's number fold into that card instead of a row of their own. */
+let LANG = {}, LG = 'en', HOME = {}; const LGN = { en: 'English', jp: 'Japanese', cn: 'Chinese' };
+const asian = (c) => c.g === 'OP' || (c.g === 'DB' && /fusion world/i.test(c.cat || ''));
+const pIn = (c, lg) => (lg === 'en' ? c.aud : lg === 'jp' ? (LANG[c.id] && LANG[c.id].jp && LANG[c.id].jp.aud) || (JP[c.id] && JP[c.id].aud) || null : (LANG[c.id] && LANG[c.id].cn && LANG[c.id].cn.aud) || null);
+const rarS = (c) => (c.rar ? c.rar + (/alternate art|alt art|parallel/i.test(c.name) && !/manga|\(sp\)/i.test(c.name) ? '★' : '') : '');
+const linkRow = (pairs) => { const L = el('div', 'links'); for (const [t, u] of pairs) { if (!u) continue; const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; L.append(a); } return L; };
+function langBox(c) { const box = el('div', 'langs'), j = JP[c.id], E = LANG[c.id] || {};
+  const row = (title, img, lines, links) => { const r = el('div', 'lrow'), im = el('img'); im.alt = ''; im.loading = 'lazy'; if (img) im.src = img; else im.style.visibility = 'hidden'; im.onerror = () => { im.style.visibility = 'hidden'; }; const t = el('div'); t.append(el('div', 'lt', title)); for (const x of lines) t.append(x); t.append(linkRow(links)); r.append(im, t); return r; };
+  const line = (p, what) => { const d = el('div'); if (p != null) d.append(el('b', null, aud(p))); d.append(document.createTextNode(what)); return d; };
+  { const L = []; if (E.jp) L.push(line(E.jp.aud, ` cheapest on eBay, posted to AU (${E.jp.n} listed)`)); if (j) L.push(line(j.aud, ` Card Rush, Japan (¥${j.yen.toLocaleString('en-AU')}${j.stock ? '' : ', sold out'}; doesn't post overseas)`));
+    if (!L.length) L.push(el('div', 'meta', /\((?!alternate art|alt art|manga|sp|parallel)[^)]*[a-z][^)]*\)/i.test(c.name.replace(/\([A-Z]{0,5}\d+[-A-Z0-9/]*\)/g, '')) ? 'Special printing: no Japanese twin' : 'No price found today: check eBay'));
+    const jp = pIn(c, 'jp'); if (jp && c.aud > 30 && c.aud / jp > 15) L.push(el('div', 'warn small', 'Big price gap: compare the pictures, it may be another version'));
+    box.append(row('Japanese', (E.jp && E.jp.img) || (j && j.img), L, [E.jp ? ['Cheapest on eBay', E.jp.url] : null, ['Search eBay', ebayJapanese(c)], j ? ['Card Rush', j.url] : null].filter(Boolean))); }
+  box.append(row('Chinese', E.cn && E.cn.img, [E.cn ? line(E.cn.aud, ` cheapest on eBay, posted to AU (${E.cn.n} listed)`) : el('div', 'meta', 'No price found today: check eBay')], [E.cn ? ['Cheapest on eBay', E.cn.url] : null, ['Search eBay', ebayChinese(c)]].filter(Boolean)));
+  for (const x of HOME[c.id] || []) box.append(row('Other Japanese printing', x.img, [line(x.aud, ` ${x.name.replace(/【[^】]*】/, '')} (Card Rush${x.stock ? '' : ', sold out'})`)], [['Card Rush', x.url], ['Search eBay', `https://www.ebay.com.au/sch/i.html?_nkw=${encodeURIComponent(`${x.num} japanese`)}&_sop=15`]]));
+  return box; }
 function cardBox(c) { { const d = el('div', 'c' + (GOT[c.id] ? ' have' : '')), im = el('img'); im.src = c.img || ''; im.alt = c.name; im.loading = 'lazy'; im.onerror = () => { im.style.visibility = 'hidden'; }; d.append(im);
       d.append(el('div', 'nm', c.name.replace(/\s+-\s+\S+$/, '')), el('div', 'meta', `${GN[c.g] || c.g} · ${c.set} · #${c.num}${c.rar ? ' · ' + c.rar : ''}${c.sub && !/^(normal|foil|holofoil)$/i.test(c.sub) ? ' · ' + c.sub : ''}`));
       const pr = el('div', 'pr'); pr.append(el('b', null, aud(c.aud))); if (c.off != null && c.off < -0.05) pr.append(el('span', 'ok', `${Math.round(c.off * 100)}% off its high`)); d.append(pr);
@@ -88,9 +139,7 @@ function cardBox(c) { { const d = el('div', 'c' + (GOT[c.id] ? ' have' : '')), i
       if (k === 'settled' || k === 'turning') { const t = el('div'); t.append(el('span', 'tag', 'Good time to buy')); d.append(t); }
       const L2 = el('div', 'links'); for (const [t, u] of [['eBay AU', ebayBuy(c)], [c.g === 'PK' ? 'TCGplayer (ships to AU)' : 'TCGplayer', c.url], ['Collector Crypt slabs', `https://collectorcrypt.com/marketplace/cards?search=${encodeURIComponent(cardTerms(c).core)}`], ['eBay sold', ebaySold(c)], ['PriceCharting', `https://www.pricecharting.com/search-products?type=prices&q=${encodeURIComponent(`${cardTerms(c).core} ${String(c.num || '').split('/')[0]}`.trim())}`]]) { if (!u) continue; const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; L2.append(a); }
       d.append(L2);
-      /* the Japanese printing of the same card */ if (c.g === 'OP' || (c.g === 'DB' && /fusion world/i.test(c.cat || ''))) { const j = JP[c.id], box = el('div', 'jp'), ji = el('img'); ji.alt = ''; ji.loading = 'lazy'; if (j && j.img) ji.src = j.img; else ji.style.visibility = 'hidden'; ji.onerror = () => { ji.style.visibility = 'hidden'; }; const t = el('div'); t.append(el('div', 'jpt', 'Japanese version'));
-        if (j) { const p = el('div'); p.append(el('b', null, aud(j.aud)), document.createTextNode(` (¥${j.yen.toLocaleString('en-AU')})${j.stock ? '' : ' · sold out'}`)); t.append(p); if (c.aud > 30 && c.aud / Math.max(j.aud, 0.01) > 15) t.append(el('div', 'warn', 'Big price gap: this may not be the same version as the English card, so compare the pictures')); } else t.append(el('div', 'meta', /\((?!alternate art|alt art|manga|sp|parallel)[^)]*[a-z][^)]*\)/i.test(c.name.replace(/\([A-Z]{0,5}\d+[-A-Z0-9/]*\)/g, '')) ? 'Special printing: no Japanese twin' : 'Not found on Card Rush today'));
-        const jl = el('div', 'links'); for (const [tt, u] of [j ? ['Card Rush (Japan)', j.url] : null, ['eBay AU Japanese', ebayJp(c)]].filter(Boolean)) { const a = el('a', null, tt); a.href = u; a.target = '_blank'; a.rel = 'noopener'; jl.append(a); } t.append(jl); box.append(ji, t); d.append(box); }
+      if (asian(c)) d.append(langBox(c));
       { const G = GRADED[c.id]; if (G) { const ks = GRADE_ORDER.filter((k) => G[k]).concat(Object.keys(G).filter((k) => !GRADE_ORDER.includes(k))).slice(0, 3), sl = el('div', 'slab', 'Graded on Collector Crypt: '); ks.forEach((k, i) => { const a = el('a', null, `${k} ${aud(G[k].aud)}${G[k].n > 1 ? ` (${G[k].n})` : ''}`); a.href = G[k].url; a.target = '_blank'; a.rel = 'noopener'; if (i) sl.append(document.createTextNode(' · ')); sl.append(a); }); d.insertBefore(sl, d.querySelector('.links')); } }
       { const L3 = d.querySelector('.links'), a = el('a', null, 'PSA 10 on eBay AU'); a.href = ebayBuy(c, { graded: true }); a.target = '_blank'; a.rel = 'noopener'; L3.insertBefore(a, L3.children[1] || null); }
       { const gb = el('button', 'grail' + (GRAIL[c.id] ? ' on' : ''), GRAIL[c.id] ? '♛ Grail' : '♛ Make grail'); gb.type = 'button'; gb.onclick = () => { if (GRAIL[c.id]) delete GRAIL[c.id]; else GRAIL[c.id] = Math.round(c.aud * 0.85); saveGrail(); render(); }; if (GRAIL[c.id]) d.classList.add('isgrail'); d.insertBefore(gb, d.children[1]); }
@@ -98,22 +147,41 @@ function cardBox(c) { { const d = el('div', 'c' + (GOT[c.id] ? ' have' : '')), i
       const lab = el('label', 'got'), cb = el('input'); cb.type = 'checkbox'; cb.checked = !!GOT[c.id]; cb.onchange = () => { if (cb.checked) GOT[c.id] = new Date().toISOString().slice(0, 10); else delete GOT[c.id]; saveGot(); render(); }; lab.append(cb, document.createTextNode(GOT[c.id] ? 'Got it' : 'Got it?')); d.insertBefore(lab, d.children[1]);
       return d; } }
 /* the checklist: each character's collectible versions in groups, rarest first, with how many you have and what's left to buy */
-function checklist(cards) { const out = document.getElementById('out'); out.textContent = '';
-  for (const who of want) { const re = RX[who] || new RegExp('\\b' + who.replace(/[^a-z0-9 ]/g, '') + '\\b', 'i'), L = cards.filter((c) => re.test(c.name) && !(EXCL[who] && EXCL[who].test(c.name)) && (c.aud >= 10 || /^(SEC|SCR|TR|SP)$|secret|god rare/i.test(String(c.rar || ''))) && inBand(c) && groupOf(c) && !DEL[c.id]);
-    const got = L.filter((c) => GOT[c.id]), h = el('h2', null, who.replace(/^./, (x) => x.toUpperCase())); const left = L.filter((c) => !GOT[c.id]), trophy = left.filter((c) => c.aud > 2000); h.append(el('small', null, `${got.length} of ${L.length} collected · ${aud(left.filter((c) => c.aud <= 2000).reduce((s, c) => s + c.aud, 0))} to complete${trophy.length ? ` (plus ${trophy.length} trophy card${trophy.length > 1 ? 's' : ''} over A$2,000)` : ''}`)); out.append(h);
-    { const F = L.filter((c) => FIRST[c.id] && !off(c.id)), FJ = (EXCLU[who] || []).filter((x) => FIRST['jp:' + x.url] && !off('jp:' + x.url)), FX = EXTRA.filter((x) => x.who === who && FIRST['x:' + x.id] && !off('x:' + x.id)), n = F.length + FJ.length + FX.length; if (n) { out.append(el('div', 'game', `★ Buy list: ${n} card${n > 1 ? 's' : ''}, ${aud([...F, ...FJ].reduce((t, c) => t + c.aud, 0) + FX.reduce((t, x) => t + x.seen.aud, 0))}`)); const g = el('div', 'grid'); for (const c of F.sort((a, b) => b.aud - a.aud)) g.append(cardBox(c)); for (const x of FJ) g.append(jpBox(x)); for (const x of FX) g.append(extraBox(x)); out.append(g); } }
-    { const Gr = cards.filter((c) => GRAIL[c.id] && re.test(c.name) && !off(c.id)); if (Gr.length) { out.append(el('div', 'game', 'Your grails')); const g = el('div', 'grid');
-        for (const c of Gr.sort((a, b) => b.aud - a.aud)) { const d = cardBox(c), row = el('div', 'gl'), inp = el('input'); inp.type = 'number'; inp.inputMode = 'decimal'; inp.value = GRAIL[c.id]; inp.setAttribute('aria-label', 'Target price'); inp.onchange = () => { GRAIL[c.id] = Math.max(1, +inp.value || GRAIL[c.id]); saveGrail(); render(); };
-          const gap = c.aud / GRAIL[c.id] - 1; row.append(document.createTextNode('Target A$'), inp, el('span', gap <= 0 ? 'ok' : 'warn', gap <= 0 ? ' At your price: buy' : ` ${aud(c.aud - GRAIL[c.id])} (${Math.round(gap * 100)}%) to go`)); d.insertBefore(row, d.children[3]); g.append(d); } out.append(g); } }
-    { const A = EXTRA.filter((x) => x.who === who && !DEL['x:' + x.id]), shownA = A.filter((x) => !off('x:' + x.id)); if (shownA.length) { out.append(el('div', 'game', 'Your additions')); const hg = el('h3', 'grp', 'Cards you added'); hg.append(el('small', null, `${A.filter((x) => GOT['x:' + x.id]).length} of ${A.length}`)); out.append(hg, el('p', 'gd', 'Cards you found and asked to add. Price: what you saw on eBay, plus Card Rush in Japan where it has them.'));
-      const g = el('div', 'grid'); for (const x of shownA) g.append(extraBox(x)); out.append(g); } }
-    let lastGame = ''; for (const k of ORDER) { const G = L.filter((c) => groupOf(c) === k).sort(sort === 'drop' ? (a, b) => (a.off ?? 0) - (b.off ?? 0) : (a, b) => b.aud - a.aud), shown = G.filter((c) => !off(c.id)); if (!G.length) continue;
-      if (GROUPS[k].game !== lastGame) { lastGame = GROUPS[k].game; out.append(el('div', 'game', lastGame === 'Fusion World' ? 'Dragon Ball Super: Fusion World (FB/ST cards, the current game)' : lastGame === 'Masters' ? 'Dragon Ball Super: Masters (BT cards, the older game)' : lastGame)); }
-      const hg = el('h3', 'grp', GROUPS[k].t), n = G.filter((c) => GOT[c.id]).length; hg.append(el('small', null, `${n} of ${G.length} · ${aud(Math.min(...G.map((c) => c.aud)))} to ${aud(Math.max(...G.map((c) => c.aud)))}`)); out.append(hg, el('p', 'gd', GROUPS[k].d));
-      if (!shown.length) { out.append(el('p', 'gd', 'All collected.')); continue; } const g = el('div', 'grid'); for (const c of shown) g.append(cardBox(c)); out.append(g); }
-    /* Japanese cards with no English twin (Card Rush) */ { const X = (EXCLU[who] || []).filter((x) => inBand(x) && !DEL['jp:' + x.url]), shownX = X.filter((x) => !off('jp:' + x.url)); if (X.length) { out.append(el('div', 'game', 'Japanese')); const hg = el('h3', 'grp', GROUPS['jp-only'].t); hg.append(el('small', null, `${X.filter((x) => GOT['jp:' + x.url]).length} of ${X.length} · ${aud(Math.min(...X.map((x) => x.aud)))} to ${aud(Math.max(...X.map((x) => x.aud)))}`)); out.append(hg, el('p', 'gd', GROUPS['jp-only'].d));
-      const g = el('div', 'grid'); for (const x of shownX.slice(0, 120)) g.append(jpBox(x)); out.append(g); if (shownX.length > 120) out.append(el('p', 'gd', `…and ${shownX.length - 120} more on Card Rush.`)); } }
-    if (who === 'vegeta') { const p = el('p', 'gd'), a = el('a', null, 'Super Dragon Ball Heroes Vegeta cards on eBay AU →'); a.href = 'https://www.ebay.com.au/sch/i.html?_nkw=' + encodeURIComponent('super dragon ball heroes vegeta (UR,SEC,parallel) -proxy -custom') + '&_sop=15&LH_PrefLoc=1'; a.target = '_blank'; a.rel = 'noopener'; a.style.color = 'var(--accent)'; p.append(el('b', null, 'Super Dragon Ball Heroes: '), document.createTextNode('the Japanese arcade card line with lots of Vegeta URs and secrets. No free price list for it yet. '), a); out.append(p); } } }
+/* 23 Nov (Ryan: "make the tiles way smaller, it takes ages to scroll; maybe categories, easier to navigate"): one character at a time,
+   each category a one-line collapsible section, each card a compact row (tap it for links, Japanese version, graded prices). */
+let CUR = null; const keyOf = (kind, o) => (kind === 'c' ? o.id : kind === 'jp' ? 'jp:' + o.url : 'x:' + o.id);
+const priceOf = (kind, o) => (kind === 'x' ? ((XP[o.id] && XP[o.id].aud) || o.seen.aud) : o.aud);
+function item(kind, o, extra) { const k = keyOf(kind, o), d = el('details', 'row' + (GOT[k] ? ' have' : '') + (FIRST[k] ? ' isfirst' : '')), sm = el('summary'), im = el('img');
+  im.src = kind === 'x' ? ((XP[o.id] && XP[o.id].img) || '') : o.img || ''; im.alt = ''; im.loading = 'lazy'; im.onerror = () => { im.style.visibility = 'hidden'; };
+  const tx = el('div', 'rt'), nm = kind === 'c' ? o.name.replace(/\s+-\s+\S+$/, '') : o.name; tx.append(el('div', 'rn', nm), el('div', 'rm', kind === 'c' ? `${o.num}${o.rar ? '  ' + rarS(o) : ''}${o.set ? '  ' + o.set : ''}` : kind === 'jp' ? `Japanese · #${o.num || '?'}` : `${o.lang} · #${o.num}`));
+  if (kind === 'c' && asian(o)) { const lg = el('div', 'lg'), P = ['en', 'jp', 'cn'].map((g) => [g, pIn(o, g)]), lo = Math.min(...P.filter((x) => x[1]).map((x) => x[1])); for (const [g, p] of P) lg.append(el('span', (g === LG ? 'on' : '') + (p && p === lo && P.filter((x) => x[1]).length > 1 ? ' cheap' : ''), `${g.toUpperCase()} ${p ? (p >= 100 ? Math.round(p).toLocaleString('en-AU') : p.toFixed(p < 10 ? 2 : 0)) : '–'}`)); tx.append(lg); }
+  const lead = kind === 'c' && LG !== 'en' ? pIn(o, LG) : null, k2 = o.stKey || '', pr = el('div', 'rp'); if (kind === 'c' && LG !== 'en' && !lead) pr.append(el('small', null, 'EN')); pr.append(el('b', null, aud(lead || priceOf(kind, o)))); if (kind === 'c' && (k2 === 'settled' || k2 === 'turning')) pr.append(el('span', 'dot ok', 'buy zone')); else if (kind === 'c' && (k2 === 'falling' || k2 === 'dropping')) pr.append(el('span', 'dot bad', 'falling'));
+  const bt = el('div', 'rb'), mk = (t, cls, title, fn) => { const b = el('button', cls, t); b.type = 'button'; b.title = title; b.setAttribute('aria-label', title); b.onclick = (e) => { e.preventDefault(); e.stopPropagation(); fn(); }; return b; };
+  bt.append(mk(FIRST[k] ? '★' : '☆', 'ib' + (FIRST[k] ? ' on' : ''), FIRST[k] ? 'Take off your buy list' : 'Add to your buy list', () => { if (FIRST[k]) delete FIRST[k]; else FIRST[k] = new Date().toISOString().slice(0, 10); saveFirst(); render(); }),
+    mk(GOT[k] ? '✓' : '○', 'ib' + (GOT[k] ? ' got' : ''), GOT[k] ? 'Take out of your collection' : 'Got it: move to your collection', () => { if (GOT[k]) delete GOT[k]; else GOT[k] = new Date().toISOString().slice(0, 10); saveGot(); render(); }),
+    mk(DEL[k] ? '↺' : '✕', 'ib', DEL[k] ? 'Restore to the checklist' : 'Delete from the checklist', () => { if (DEL[k]) delete DEL[k]; else DEL[k] = new Date().toISOString().slice(0, 10); saveDel(); render(); }));
+  const side = el('div', 'rside'); side.append(pr, bt); sm.append(im, tx, side); d.append(sm);
+  d.addEventListener('toggle', () => { if (d.open && !d.dataset.built) { d.dataset.built = '1'; const box = kind === 'c' ? cardBox(o) : kind === 'jp' ? jpBox(o) : extraBox(o); box.classList.add('detail'); if (extra) box.append(extra()); d.append(box); } });
+  return d; }
+function section(title, sub, note, items, open = false) { if (!items.length) return null; const d = el('details', 'sec' + (/^[★♛]/.test(title) ? ' gold' : '')), sm = el('summary'); sm.append(el('span', 'st2', title), el('span', 'ss', sub)); d.append(sm); if (open) d.open = true;
+  if (note) d.append(el('p', 'gd', note)); const L = el('div', 'rows'); for (const x of items) L.append(x); d.append(L); return d; }
+const range = (v) => (v.length ? `${aud(Math.min(...v))}–${aud(Math.max(...v))}` : '');
+function checklist(cards) { const out = document.getElementById('out'); out.textContent = ''; const who = CUR || want[0];
+  const re = RX[who] || new RegExp('\\b' + who.replace(/[^a-z0-9 ]/g, '') + '\\b', 'i'), L = cards.filter((c) => re.test(c.name) && !(EXCL[who] && EXCL[who].test(c.name)) && (c.aud >= 10 || /^(SEC|SCR|TR|SP)$|secret|god rare/i.test(String(c.rar || '')) || /alternate art|alt art|parallel|manga|\(sp\)/i.test(c.name)) && inBand(c) && groupOf(c) && !DEL[c.id]);
+  const got = L.filter((c) => GOT[c.id]), left = L.filter((c) => !GOT[c.id]), trophy = left.filter((c) => c.aud > 2000), pg = document.getElementById('prog'); pg.textContent = '';
+  pg.append(el('b', null, String(got.length)), document.createTextNode(` of ${L.length} in the binder · ${aud(left.filter((c) => c.aud <= 2000).reduce((t, c) => t + c.aud, 0))} to finish${trophy.length ? ` (plus ${trophy.length} trophy card${trophy.length > 1 ? 's' : ''} over A$2,000)` : ''}`)); document.getElementById('barfill').style.width = (L.length ? Math.max(1.5, (got.length / L.length) * 100) : 0) + '%';
+  /* Card Rush listings that are another printing of a checklist card live on that card */ HOME = {}; const pool = cards.filter((c) => re.test(c.name) && !(EXCL[who] && EXCL[who].test(c.name))), homed = new Set();
+  for (const x of EXCLU[who] || []) { const h = homeFor(x, pool); if (h) { (HOME[h.id] = HOME[h.id] || []).push(x); homed.add(x.url); } }
+  const add = (n) => { if (n) out.append(n); }, sortL = (G) => G.sort(sort === 'drop' ? (a, b) => (a.off ?? 0) - (b.off ?? 0) : (a, b) => b.aud - a.aud);
+  { const F = L.filter((c) => FIRST[c.id] && !off(c.id)), FJ = (EXCLU[who] || []).filter((x) => FIRST['jp:' + x.url] && !off('jp:' + x.url)), FX = EXTRA.filter((x) => x.who === who && FIRST['x:' + x.id] && !off('x:' + x.id)), n = F.length + FJ.length + FX.length;
+    add(section('★ Buy list', n ? `${n} · ${aud([...F, ...FJ].reduce((t, c) => t + c.aud, 0) + FX.reduce((t, x) => t + priceOf('x', x), 0))}` : '', null, [...sortL(F).map((c) => item('c', c)), ...FJ.map((x) => item('jp', x)), ...FX.map((x) => item('x', x))], true)); }
+  { const Gr = cards.filter((c) => GRAIL[c.id] && re.test(c.name) && !off(c.id)); add(section('♛ Grails', `${Gr.length}`, null, Gr.sort((a, b) => b.aud - a.aud).map((c) => item('c', c, () => { const row = el('div', 'gl'), inp = el('input'); inp.type = 'number'; inp.inputMode = 'decimal'; inp.value = GRAIL[c.id]; inp.setAttribute('aria-label', 'Target price'); inp.onchange = () => { GRAIL[c.id] = Math.max(1, +inp.value || GRAIL[c.id]); saveGrail(); render(); }; const gap = c.aud / GRAIL[c.id] - 1; row.append(document.createTextNode('Target A$'), inp, el('span', gap <= 0 ? 'ok' : 'warn', gap <= 0 ? ' At your price: buy' : ` ${aud(c.aud - GRAIL[c.id])} (${Math.round(gap * 100)}%) to go`)); return row; })), true)); }
+  { const A = EXTRA.filter((x) => x.who === who && !off('x:' + x.id)); add(section('Cards you added', `${A.length}`, 'Cards you found and asked to add: the eBay price you saw, plus Card Rush in Japan where it has them.', A.map((x) => item('x', x)))); }
+  let lastGame = ''; for (const k of ORDER) { const G = sortL(L.filter((c) => groupOf(c) === k)), shown = G.filter((c) => !off(c.id)); if (!G.length) continue;
+    if (GROUPS[k].game !== lastGame) { lastGame = GROUPS[k].game; out.append(el('div', 'game', lastGame === 'Fusion World' ? 'Dragon Ball Super: Fusion World (FB/ST, current game)' : lastGame === 'Masters' ? 'Dragon Ball Super: Masters (BT, older game)' : lastGame)); }
+    const n = G.filter((c) => GOT[c.id]).length; add(section(GROUPS[k].t, `${n}/${G.length} · ${range(G.map((c) => c.aud))}`, GROUPS[k].d + (shown.length ? '' : ' All collected.'), shown.map((c) => item('c', c)))); }
+  { const X = (EXCLU[who] || []).filter((x) => inBand(x) && !DEL['jp:' + x.url] && !homed.has(x.url)), shownX = X.filter((x) => !off('jp:' + x.url)); if (X.length) { out.append(el('div', 'game', 'Japanese')); add(section(GROUPS['jp-only'].t, `${X.filter((x) => GOT['jp:' + x.url]).length}/${X.length} · ${range(X.map((x) => x.aud))}`, GROUPS['jp-only'].d, shownX.map((x) => item('jp', x)))); } }
+  if (who === 'vegeta') { const p = el('p', 'gd'), a = el('a', null, 'Super Dragon Ball Heroes Vegeta cards on eBay AU →'); a.href = 'https://www.ebay.com.au/sch/i.html?_nkw=' + encodeURIComponent('super dragon ball heroes vegeta (UR,SEC,parallel) -proxy -custom') + '&_sop=15&LH_PrefLoc=1'; a.target = '_blank'; a.rel = 'noopener'; a.style.color = 'var(--accent)'; p.append(el('b', null, 'Super Dragon Ball Heroes: '), document.createTextNode('the Japanese arcade line, lots of Vegeta URs and secrets; no free price list yet. '), a); out.append(p); } }
 function extraBox(x) { const k = 'x:' + x.id, cr = XP[x.id], d = el('div', 'c' + (GOT[k] ? ' have' : '')), im = el('img'); im.alt = x.name; im.loading = 'lazy'; if (cr && cr.img) im.src = cr.img; else im.style.visibility = 'hidden'; im.onerror = () => { im.style.visibility = 'hidden'; }; d.append(im);
   const lab = el('label', 'got'), cb = el('input'); cb.type = 'checkbox'; cb.checked = !!GOT[k]; cb.onchange = () => { if (cb.checked) GOT[k] = new Date().toISOString().slice(0, 10); else delete GOT[k]; saveGot(); render(); }; lab.append(cb, document.createTextNode(cb.checked ? 'Got it' : 'Got it?'));
   const pr = el('div', 'pr'); pr.append(el('b', null, aud(x.seen.aud)), el('span', 'meta', `on ${x.seen.where} (${new Date(x.seen.date).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })})`));
@@ -126,24 +194,27 @@ function jpBox(x) { const d = el('div', 'c' + (GOT['jp:' + x.url] ? ' have' : ''
   for (const [t, u] of [['Card Rush (Japan)', x.url], ['eBay AU', `https://www.ebay.com.au/sch/i.html?_nkw=${encodeURIComponent(`${x.num || ''} japanese ${x.g === 'OP' ? 'zoro' : 'vegeta'}`.trim())}&_sop=15&LH_PrefLoc=1`]]) { const a = el('a', null, t); a.href = u; a.target = '_blank'; a.rel = 'noopener'; L.append(a); }
   d.append(lab, el('div', 'nm', x.name), el('div', 'meta', `Japanese · #${x.num || '?'}`), pr, L); starBtn('jp:' + x.url, d); delBtn('jp:' + x.url, d); return d; }
 /* My collection (owned) and Removed (deleted): every kind of card, per character */
-function listOf(store, title, empty, note) { const out = document.getElementById('out'); out.textContent = ''; out.append(el('p', 'gd', note));
-  for (const who of want) { const re = RX[who] || new RegExp('\\b' + who.replace(/[^a-z0-9 ]/g, '') + '\\b', 'i'), C = CARDS.filter((c) => store[c.id] && re.test(c.name)), Jx = (EXCLU[who] || []).filter((x) => store['jp:' + x.url]), Xx = EXTRA.filter((x) => x.who === who && store['x:' + x.id]), n = C.length + Jx.length + Xx.length;
-    const h = el('h2', null, who.replace(/^./, (x) => x.toUpperCase())); h.append(el('small', null, n ? `${n} card${n > 1 ? 's' : ''} · worth about ${aud(C.reduce((t, c) => t + c.aud, 0) + Jx.reduce((t, x) => t + x.aud, 0) + Xx.reduce((t, x) => t + ((XP[x.id] && XP[x.id].aud) || x.seen.aud), 0))} today` : empty)); out.append(h);
-    if (!n) continue; const g = el('div', 'grid'); for (const c of C.sort((a, b) => b.aud - a.aud)) g.append(cardBox(c)); for (const x of Jx) g.append(jpBox(x)); for (const x of Xx) g.append(extraBox(x)); out.append(g); } }
+function listOf(store, title, empty, note) { const out = document.getElementById('out'); out.textContent = ''; out.append(el('p', 'gd', note)); const who = CUR || want[0];
+  const re = RX[who] || new RegExp('\\b' + who.replace(/[^a-z0-9 ]/g, '') + '\\b', 'i'), C = CARDS.filter((c) => store[c.id] && re.test(c.name)), Jx = (EXCLU[who] || []).filter((x) => store['jp:' + x.url]), Xx = EXTRA.filter((x) => x.who === who && store['x:' + x.id]), n = C.length + Jx.length + Xx.length;
+  if (!n) { out.append(el('p', 'empty', empty)); return; } const tot = C.reduce((t, c) => t + c.aud, 0) + Jx.reduce((t, x) => t + x.aud, 0) + Xx.reduce((t, x) => t + priceOf('x', x), 0);
+  const s2 = section(title, `${n} · worth about ${aud(tot)} today`, null, [...C.sort((a, b) => b.aud - a.aud).map((c) => item('c', c)), ...Jx.map((x) => item('jp', x)), ...Xx.map((x) => item('x', x))], true); out.append(s2); }
 let CARDS = []; const render = () => (view === 'check' ? checklist(CARDS) : view === 'mine' ? listOf(GOT, 'My collection', 'None yet: tick Got it on the checklist', 'Cards you have ticked Got it, with what they are worth at today\'s prices. Untick one to put it back on the checklist.') : view === 'removed' ? listOf(DEL, 'Removed', 'Nothing removed', 'Cards you deleted from the checklist. Tap Restore to put one back.') : draw(CARDS));
 (async () => { let I; const J = async (f) => (await fetch(`cards/data/${f}?t=${Date.now()}`, { cache: 'no-store' })).json();
   try { I = await J('chars.json'); } catch { try { I = await J('index.json'); } catch { document.getElementById('out').textContent = 'Could not load the card list. Try again shortly.'; return; } }
   try { const j = await J('japanese.json'); JP = j.byId || {}; EXCLU = j.exclusives || {}; } catch { /* not built yet */ }
   try { GRADED = (await J('graded.json')).byId || {}; } catch { /* not built yet */ }
+  try { LANG = (await J('langs.json')).byId || {}; } catch { /* first eBay language run not done yet */ }
   try { const X = await (await fetch('cards/extras.json?t=' + Date.now(), { cache: 'no-store' })).json(); EXTRA = X.cards || [];
     /* 23 Nov (Ryan: "use the star as the cards on the current buy list"): cards he asked for are starred once on this phone; un-starring sticks */
     let seeded = []; try { seeded = JSON.parse(localStorage.getItem('collect-seeded') || '[]'); } catch { seeded = []; } let ch = false;
     for (const k of X.buyList || []) if (!seeded.includes(k)) { if (!GOT[k]) FIRST[k] = new Date().toISOString().slice(0, 10); seeded.push(k); ch = true; }
     if (ch) { saveFirst(); try { localStorage.setItem('collect-seeded', JSON.stringify(seeded)); } catch { /* private mode */ } } } catch { /* none */ }
   try { XP = (await J('japanese.json')).extras || {}; } catch { /* none */ }
-  document.getElementById('sub').textContent = `Every card for each character from A$10, dearest first: English prices are TCGplayer's market price (raw, near mint) in A$, updated ${new Date(I.at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}. Under each One Piece and Fusion World card is its Japanese printing from Card Rush in Japan (they don't ship overseas: use a proxy like Buyee or ZenMarket) and on eBay AU. "Good time to buy" = off its high and stopped falling.`;
+  document.getElementById('sub').textContent = `A$ prices. English from TCGplayer (raw, near mint), Japanese and Chinese from eBay listings that post to Australia; updated ${new Date(I.at).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}. Tap a card for links and graded prices. ☆ buy list, ○ got it, ✕ remove.`;
+  const LGc = document.getElementById('lang'); for (const [k, t] of [['en', 'English'], ['jp', 'Japanese'], ['cn', 'Chinese']]) { const b = el('button', 'chip' + (LG === k ? ' on' : ''), t); b.onclick = () => { LG = k; [...LGc.children].forEach((x) => x.classList.toggle('on', x === b)); render(); }; LGc.append(b); }
   const S = document.getElementById('sort'); for (const [k, t] of [['price', 'Dearest first'], ['drop', 'Biggest drop first']]) { const b = el('button', 'chip' + (sort === k ? ' on' : ''), t); b.onclick = () => { sort = k; [...S.children].forEach((x) => x.classList.toggle('on', x === b)); render(); }; S.append(b); }
-  const B = document.getElementById('band'); for (const [k, t] of [['all', 'Any price'], ['lo', 'A$10–60'], ['hi', 'A$60+']]) { const b = el('button', 'chip' + (band === k ? ' on' : ''), t); b.onclick = () => { band = k; [...B.children].forEach((x) => x.classList.toggle('on', x === b)); render(); }; B.append(b); }
+  const B = document.getElementById('band'); for (const [k, t] of [['all', 'Any price'], ['lo', 'Under A$60'], ['hi', 'A$60+']]) { const b = el('button', 'chip' + (band === k ? ' on' : ''), t); b.onclick = () => { band = k; [...B.children].forEach((x) => x.classList.toggle('on', x === b)); render(); }; B.append(b); }
+  { const W = document.getElementById('who'); CUR = want[0]; document.body.dataset.who = CUR; for (const w of want) { const b = el('button', 'tab' + (w === CUR ? ' on' : ''), w.replace(/^./, (x) => x.toUpperCase())); b.onclick = () => { CUR = w; document.body.dataset.who = w; [...W.children].forEach((x) => x.classList.toggle('on', x === b)); render(); window.scrollTo(0, 0); }; W.append(b); } }
   CARDS = I.cards; const V = document.getElementById('view'); for (const [k, t] of [['check', 'Checklist'], ['mine', 'My collection'], ['removed', 'Removed'], ['all', 'Every card']]) { const b = el('button', 'chip' + (view === k ? ' on' : ''), t); b.onclick = () => { view = k; [...V.children].forEach((x) => x.classList.toggle('on', x === b)); render(); }; V.append(b); }
   render(); })();
 </script>
