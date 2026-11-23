@@ -45,7 +45,12 @@ async function main() { const C = JSON.parse(fs.readFileSync(path.join(OUT, 'cha
   const taken = new Set(Object.values(out).map((x) => x.url)), excl = {}; let epages = 0;
   for (const [who, J] of Object.entries(JPNAME)) { const all = []; for (let page = 1; page <= 10; page++) { const html = await getText(`${SITE[J.g]}/product-list?keyword=${encodeURIComponent(J.q)}&num=100&page=${page}`); epages++; await sleep(1500); if (!html) break; const L = parseList(html); all.push(...L); if (L.length < 100) break; }
     excl[who] = exclusives(all, { not: J.not, taken }).map((x) => ({ name: x.name, num: x.num, yen: x.yen, aud: +(x.yen * fx).toFixed(2), url: x.url, img: x.img, stock: x.stock, g: J.g })); }
-  fs.writeFileSync(path.join(OUT, 'japanese.json'), JSON.stringify({ at: new Date().toISOString(), jpyAud: fx, byId: out, exclusives: excl }));
+  /* 23 Nov: Ryan's own additions (docs/cards/extras.json): a daily Card Rush price where one can be found */
+  const xp = {}; let X = []; try { X = JSON.parse(fs.readFileSync('docs/cards/extras.json', 'utf8')).cards || []; } catch { /* none */ }
+  for (const x of X) { if (!x.kw) continue; const g = x.group && x.group.startsWith('op') ? 'OP' : 'DB', html = await getText(`${SITE[g]}/product-list?keyword=${encodeURIComponent(x.kw)}&num=100`); await sleep(1500); if (!html) continue;
+    const re = x.must ? new RegExp(x.must, 'i') : null, L = parseList(html).filter((y) => !y.cond && (!re || re.test(y.name))).sort((a, b) => (b.stock - a.stock) || a.yen - b.yen); if (L[0]) xp[x.id] = { yen: L[0].yen, aud: +(L[0].yen * fx).toFixed(2), url: L[0].url, img: L[0].img, name: L[0].name, stock: L[0].stock }; }
+  console.log(`your additions: ${X.length}, ${Object.keys(xp).length} found on Card Rush`);
+  fs.writeFileSync(path.join(OUT, 'japanese.json'), JSON.stringify({ at: new Date().toISOString(), jpyAud: fx, byId: out, exclusives: excl, extras: xp }));
   console.log(`Japanese exclusives: ${Object.entries(excl).map(([k, v]) => `${k} ${v.length}`).join(', ')} (${epages} pages)`);
   console.log(`Japanese versions: ${C.length} One Piece / Fusion World character cards, ${pages} Card Rush searches, ${found} matched (JPY to AUD ${fx})`); }
 if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1]))) main().catch((e) => { console.error(e.message); process.exit(1); });
