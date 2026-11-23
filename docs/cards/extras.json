@@ -122,5 +122,83 @@
       "date": "2026-11-23",
       "what": "OP14-015 R foil, A$11.10 + A$6.63 post (check it is the parallel)"
     }
+  },
+  "_about_jpValue": "23 Nov: PriceCharting ungraded values for the Japanese printing, from Ryan's own screen recording (A$). Used when there is no live eBay price or eBay find.",
+  "jpValue": {
+    "670642|Foil": {
+      "aud": 786.3,
+      "date": "2026-11-23",
+      "what": "SP PRB02-006"
+    },
+    "596913|Foil": {
+      "aud": 249.69,
+      "date": "2026-11-23",
+      "what": "Zoro-Juurou SP foil OP05-067"
+    },
+    "705991|Foil": {
+      "aud": 290.59,
+      "date": "2026-11-23",
+      "what": "SP EB04-007"
+    },
+    "541660|Foil": {
+      "aud": 1958.88,
+      "date": "2026-11-23",
+      "what": "Alternate Art Manga OP06-118"
+    },
+    "453511|Foil": {
+      "aud": 77.58,
+      "date": "2026-11-23",
+      "what": "Alternate Art OP01-025"
+    },
+    "454513|Foil": {
+      "aud": 233.4,
+      "date": "2026-11-23",
+      "what": "Alternate Art OP01-001"
+    },
+    "541659|Foil": {
+      "aud": 74.72,
+      "date": "2026-11-23",
+      "what": "Alternate Art OP06-118"
+    },
+    "617591|Foil": {
+      "aud": 143.9,
+      "date": "2026-11-23",
+      "what": "2nd Anniversary OP06-118"
+    },
+    "485262|Foil": {
+      "aud": 37.8,
+      "date": "2026-11-23",
+      "what": "25th Anniversary OP01-001"
+    },
+    "685304|Foil": {
+      "aud": 30.18,
+      "date": "2026-11-23",
+      "what": "Alternate Art EB04-007"
+    },
+    "654099|Foil": {
+      "aud": 30.12,
+      "date": "2026-11-23",
+      "what": "Alternate Art PRB-02 OP09-076"
+    },
+    "653431|Foil": {
+      "aud": 31.05,
+      "date": "2026-11-23",
+      "what": "Alternate Art PRB02-006"
+    },
+    "527665|Foil": {
+      "aud": 20.49,
+      "date": "2026-11-23",
+      "what": "Zoro-Juurou Alternate Art OP05-067"
+    },
+    "546718|Foil": {
+      "aud": 35.67,
+      "date": "2026-11-23",
+      "what": "Live Action P-056"
+    },
+    "657119|Foil": {
+      "aud": 5671.85,
+      "date": "2026-11-23",
+      "what": "Serial OP12-020"
+    }
   }
 }
