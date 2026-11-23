@@ -13,4 +13,6 @@ ok(pickJapanese(card('Roronoa Zoro (Alternate Art)'), L).yen === 4980, 'alternat
 ok(pickJapanese({ name: 'Roronoa Zoro', num: 'OP01-025', g: 'OP' }, L) === null, 'another number: no match');
 ok(pickJapanese(card('Roronoa Zoro (Serial Numbered)'), L) === null && pickJapanese(card('Roronoa Zoro (Treasure Cup August 2026)'), L) === null && pickJapanese({ name: 'Roronoa Zoro - ST01-013 (Treasure Cup)', num: 'OP06-118', g: 'OP' }, L) === null, 'special printings (serial, Treasure Cup, events) get no Japanese match');
 ok(pickJapanese({ name: 'Roronoa Zoro - OP06-118 (Alternate Art)', num: 'OP06-118', g: 'OP', rar: 'SEC' }, L).yen === 4980, 'a name with its number and a version in brackets still matches');
+{ const T = parseList('<ul>' + [li(11, 'ロロノア・ゾロ【R】{OP13-037}', '180'), li(12, 'ロロノア・ゾロ(トレジャーレア)【TR】{OP13-037}', '24,800')].join('') + '</ul>');
+  ok(pickJapanese({ name: 'Roronoa Zoro (OP13-037)', num: 'OP13-037', rar: 'TR', g: 'OP' }, T).yen === 24800 && pickJapanese({ name: 'Roronoa Zoro', num: 'OP13-037', rar: 'R', g: 'OP' }, T).yen === 180, 'rarity must agree: an English Treasure Rare gets the Japanese TR, not the R'); }
 process.exit(f);

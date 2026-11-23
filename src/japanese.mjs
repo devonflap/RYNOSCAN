@@ -22,6 +22,8 @@ export function pickJapanese(card, list) { const nm = String(card.name || ''), n
   if (extra.length) return null;
   const manga = /manga/i.test(nm), par = /alternate art|alt art|parallel|\(sp\)|special/i.test(nm) || /\bSP\b/.test(String(card.rar || '')), sp = /\(sp\)|\bspr?\b/i.test(nm) || /^SP$/.test(String(card.rar || ''));
   const L = list.filter((x) => x.num && x.num.toUpperCase() === num && !x.cond && !/デッキ|スリーブ|プレイマット|ストレージ/.test(x.name))
+    /* the rarity must agree too when both show one (an English Treasure Rare is not the Japanese R): 【SEC/SP】, 【L☆】, 【SR/P】 */
+    .filter((x) => { const en = String(card.rar || '').toUpperCase().replace(/^PR$/, 'P').trim(), jr = (x.name.match(/【([^】]*)】/) || [])[1]; return !en || !jr || jr.replace(/☆/g, '').toUpperCase().split('/').map((t) => t.trim()).includes(en); })
     .filter((x) => (manga ? /漫画/.test(x.name) : !/漫画/.test(x.name)) && (par || manga ? /パラレル/.test(x.name) : !/パラレル/.test(x.name)) && (sp ? /SP/.test(x.name) : true));
   const inStock = L.filter((x) => x.stock), pool = inStock.length ? inStock : L; return pool.sort((a, b) => a.yen - b.yen)[0] || null; }
 const isJapanesePrinted = (c) => c.g === 'OP' || (c.g === 'DB' && /fusion world/i.test(c.cat || ''));
