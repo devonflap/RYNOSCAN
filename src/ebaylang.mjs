@@ -5,7 +5,7 @@
 // and language (about 180 a day, well inside eBay's free 5,000). Writes docs/cards/data/langs.json.
 import fs from 'node:fs';
 import path from 'node:path';
-import { langTitle } from '../docs/cards/langs.mjs';
+import { langTitle, special, sane } from '../docs/cards/langs.mjs';
 const OUT = process.env.OUT_DIR || 'docs/cards/data', ID = process.env.EBAY_CLIENT_ID, SECRET = process.env.EBAY_CLIENT_SECRET, sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const WORD = { jp: 'japanese', cn: 'chinese' };
 const isAsianPrinted = (c) => c.g === 'OP' || (c.g === 'DB' && /fusion world/i.test(c.cat || ''));
@@ -14,8 +14,8 @@ export function audOf(it, fx) { const cv = (m) => (m && m.value != null ? (m.cur
   const p = cv(it && it.price); if (p == null) return null; const ship = (it.shippingOptions || []).map((o) => cv(o.shippingCost)).filter((x) => x != null), post = ship.length ? Math.min(...ship) : null;
   return { aud: +(p + (post || 0)).toFixed(2), post }; }
 // the cheapest matching listing for one card in one language
-export function cheapest(items, c, lang, fx) { let best = null, n = 0;
-  for (const it of items) { if (!langTitle(it.title, c, lang)) continue; const a = audOf(it, fx); if (!a) continue; n++; if (!best || a.aud < best.aud) best = { ...a, url: it.itemWebUrl, title: it.title, img: (it.image && it.image.imageUrl) || null }; }
+export function cheapest(items, c, lang, fx) { let best = null, n = 0; if (special(c.name)) return null;
+  for (const it of items) { if (!langTitle(it.title, c, lang)) continue; const a = audOf(it, fx); if (!a || (c.aud && !sane(c, a.aud, lang))) continue; n++; if (!best || a.aud < best.aud) best = { ...a, url: it.itemWebUrl, title: it.title, img: (it.image && it.image.imageUrl) || null }; }
   return best ? { ...best, n } : null; }
 async function token() { const r = await fetch('https://api.ebay.com/identity/v1/oauth2/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', authorization: 'Basic ' + Buffer.from(`${ID}:${SECRET}`).toString('base64') }, body: 'grant_type=client_credentials&scope=' + encodeURIComponent('https://api.ebay.com/oauth/api_scope') });
   if (!r.ok) throw new Error('eBay sign-in refused (' + r.status + ')'); return (await r.json()).access_token; }

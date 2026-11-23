@@ -15,4 +15,9 @@ export function langTitle(title, c, lang) { const t = ` ${norm(title)} `, num = 
   const v = ver(c.name), manga = /\bmanga\b/.test(t), alt = /\b(alt|alternate|parallel|aa|sp|special)\b/.test(t);
   if (v === 'manga' ? !manga : manga) return false; if (v === 'alt' && !alt) return false; if (v === 'plain' && alt) return false;
   if (/\(sp\)/i.test(c.name) && !/\bsp\b/.test(t)) return false;
+  if (/^TR$/i.test(String(c.rar || '')) && !/\b(tr|treasure)\b/.test(t)) return false; /* a Treasure Rare, not the plain R of that number */
   return true; }
+// a special English printing (event, prize, serial, judge pack, anniversary set, playmat...) has no ordinary Japanese or Chinese twin
+export const special = (name) => [...String(name || '').matchAll(/\(([^)]*)\)/g)].map((m) => m[1].trim()).some((g) => !/^[A-Z]{0,5}\d+[-A-Z0-9/]*$/i.test(g) && !/^(alternate art|alt art|manga|sp|parallel|special parallel|super alternate art)$/i.test(g));
+// first live run (23 Nov): a price far under or over the English one is usually another version or a mislisting, so it is left out
+export const sane = (c, aud, lang) => !(c.aud >= 50 && aud < c.aud * 0.08) && aud <= c.aud * (lang === 'cn' ? 1.5 : 3) + 5;

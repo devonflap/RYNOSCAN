@@ -17,4 +17,9 @@ ok(!langTitle('Zoro OP06-118 SEC Parallel Japanese', manga, 'jp') && langTitle('
   ok(audOf(L[0], fx).aud === 67.5, 'US$ listing converted to A$ with postage'); const b = cheapest(L, alt, 'jp', fx); ok(b.url === 'u2' && b.n === 2, 'cheapest matching listing, count of matches'); }
 ok(jpName('ベジータ(パラレル/金文字)【SR☆】') === 'Vegeta (Parallel, Gold letter) SR★' && jpName('ロロノア・ゾロ(未開封/英語版/TREASURECUP/illust:kankurou)【SR】') === 'Roronoa Zoro (Sealed, English edition, TREASURECUP, illust:kankurou) SR', 'Japanese names in English');
 ok(!/[\u3040-\u30ff\u4e00-\u9fff]/.test(jpName('ルフィは海賊王になる男だ!!!(フルアート/金文字)【R】')), 'untranslated Japanese dropped, not shown');
+{ const fx = {}, it = (title, v) => ({ title, price: { value: String(v), currency: 'AUD' }, itemWebUrl: title });
+  ok(cheapest([it('Roronoa Zoro OP15-113 Japanese', 2.5)], { name: 'Roronoa Zoro (Treasure Cup August 2026)', num: 'OP15-113', g: 'OP', aud: 3599 }, 'jp', fx) === null, 'special printings (Treasure Cup, serial, judge pack) get no eBay match');
+  ok(cheapest([it('Roronoa Zoro OP06-118 SEC Parallel Alt Art Japanese', 4.5)], { name: 'Roronoa Zoro (Alternate Art)', num: 'OP06-118', g: 'OP', aud: 147 }, 'jp', fx) === null, 'a price far under the English one is left out');
+  ok(cheapest([it('Roronoa Zoro OP18-092 UC Chinese', 452)], { name: 'Roronoa Zoro (092)', num: 'OP18-092', g: 'OP', aud: 12 }, 'cn', fx) === null, 'a price far over the English one is left out');
+  ok(cheapest([it('Roronoa Zoro OP13-037 Rare Japanese', 2.3)], { name: 'Roronoa Zoro (OP13-037)', num: 'OP13-037', rar: 'TR', g: 'OP', aud: 170 }, 'jp', fx) === null, 'a Treasure Rare needs TR in the title'); }
 process.exit(f);

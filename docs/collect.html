@@ -87,7 +87,7 @@ details.row.isfirst > summary { background:linear-gradient(90deg, color-mix(in s
 <script type="module">
 import { ebayBuy, ebaySold, ebayJapanese, ebayChinese, ebayQuery, cardTerms } from './cards/ebayq.mjs?v=20261123d';
 import { jpName } from './cards/jpname.mjs?v=20261123a';
-import { homeFor } from './cards/langs.mjs?v=20261123a';
+import { homeFor, special, sane } from './cards/langs.mjs?v=20261123b';
 import { groupOf, GROUPS, ORDER } from './cards/collectible.mjs?v=20261123b';
 const el = (t, c, x) => { const e = document.createElement(t); if (c) e.className = c; if (x != null) e.textContent = x; return e; };
 const aud = (n) => 'A$' + (n >= 100 ? Math.round(n).toLocaleString('en-AU') : n.toFixed(2));
@@ -215,7 +215,7 @@ let CARDS = []; const render = () => (view === 'check' ? checklist(CARDS) : view
   try { const j = await J('japanese.json'); JP = j.byId || {}; EXCLU = j.exclusives || {}; } catch { /* not built yet */ }
   try { GRADED = (await J('graded.json')).byId || {}; } catch { /* not built yet */ }
   try { SEEN = (await (await fetch('cards/extras.json?t=' + Date.now(), { cache: 'no-store' })).json()).jpSeen || {}; } catch { /* none */ }
-  try { LANG = (await J('langs.json')).byId || {}; } catch { /* first eBay language run not done yet */ }
+  try { LANG = (await J('langs.json')).byId || {}; for (const c of I.cards) { const E = LANG[c.id]; if (!E) continue; for (const g of ['jp', 'cn']) if (E[g] && (special(c.name) || !sane(c, E[g].aud, g))) delete E[g]; } /* same checks as the scan */ } catch { /* first eBay language run not done yet */ }
   try { const X = await (await fetch('cards/extras.json?t=' + Date.now(), { cache: 'no-store' })).json(); EXTRA = X.cards || [];
     /* 23 Nov (Ryan: "use the star as the cards on the current buy list"): cards he asked for are starred once on this phone; un-starring sticks */
     let seeded = []; try { seeded = JSON.parse(localStorage.getItem('collect-seeded') || '[]'); } catch { seeded = []; } let ch = false;
