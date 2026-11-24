@@ -1,3 +1,5 @@
-Hourly refresh 14:11 Brisbane: 3 tracked coins refreshed, 3 scored, 1 above 65. On-chain volume Strong (1.77x 7-day avg).
+Full scan 15:29 Brisbane: 43 scanned, 32 scored, 3 above 65. On-chain volume Strong (1.93x 7-day avg).
+NEW watch: PUMP (Solana) Breakout retest, opp 67, checks 5/6, stop 13.6% away, upside 40.1%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: PIPPIN (Single holder ownership), NVDAX (Mint Authority still enabled), $WIF (top 10 wallets hold 42.4% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
