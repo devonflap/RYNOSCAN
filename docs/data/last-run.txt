@@ -1,5 +1,5 @@
-Full scan 18:31 Brisbane: 51 scanned, 39 scored, 2 above 65. On-chain volume Strong (1.82x 7-day avg).
-NEW watch: RINGS (Solana) Breakout retest, opp 68, checks 5/6, stop 39.6% away, upside 102.7%; volume fading.
+Full scan 19:30 Brisbane: 48 scanned, 38 scored, 2 above 65. On-chain volume Strong (1.83x 7-day avg).
+NEW watch: DCTY (Solana) Bottom reversal, opp 77, checks 6/6, stop 66.6% away, upside 1337.3%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: FARTCOIN (top 10 wallets hold 33.1% (gate 30%)), CARDS (Top 10 holders high ownership), NVDAX (Mint Authority still enabled), HSOL (Mint Authority still enabled), DBR (top 10 wallets hold 82.1% (gate 30%)), BP (Mint Authority still enabled).
+Removed for token safety: FARTCOIN (top 10 wallets hold 33.2% (gate 30%)), NVDAX (Mint Authority still enabled), HSOL (Mint Authority still enabled), $WIF (top 10 wallets hold 42.4% (gate 30%)), DBR (top 10 wallets hold 82.1% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
