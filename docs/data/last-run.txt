@@ -1,5 +1,5 @@
-Full scan 02:29 Brisbane: 43 scanned, 40 scored, 5 above 65. On-chain volume Strong (1.21x 7-day avg).
-NEW watch: RINGS (Solana) Breakout retest, opp 83, checks 5/6, stop 24.9% away, upside 151.8%; weak last 6h.
+Hourly refresh 03:11 Brisbane: 3 tracked coins refreshed, 3 scored, 2 above 65. On-chain volume Strong (2.07x 7-day avg).
+NEW watch: NIO (Solana) Bottom reversal, opp 73, checks 6/6, stop 45.7% away, upside 137%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
 Removed for token safety: CARDS (Top 10 holders high ownership), TTWO (Mint Authority still enabled), PIPPIN (Single holder ownership), SPCX (Mint Authority still enabled), NVDAX (Mint Authority still enabled), PUMP (top 10 wallets hold 59.6% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
