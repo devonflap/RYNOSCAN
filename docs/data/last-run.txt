@@ -1,5 +1,6 @@
-Full scan 19:30 Brisbane: 48 scanned, 38 scored, 2 above 65. On-chain volume Strong (1.83x 7-day avg).
-NEW watch: DCTY (Solana) Bottom reversal, opp 77, checks 6/6, stop 66.6% away, upside 1337.3%.
+Full scan 20:31 Brisbane: 48 scanned, 38 scored, 3 above 65. On-chain volume Strong (2x 7-day avg).
+NEW watch: ANSEMCAT (Robinhood) Trend pullback, opp 73, checks 5/6, stop 57.8% away, upside 173.4%; no socials/website listed.
+NEW watch: FLOAT (Solana) Bottom reversal, opp 73, checks 6/6, stop 22.9% away, upside 105.9%.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: FARTCOIN (top 10 wallets hold 33.2% (gate 30%)), NVDAX (Mint Authority still enabled), HSOL (Mint Authority still enabled), $WIF (top 10 wallets hold 42.4% (gate 30%)), DBR (top 10 wallets hold 82.1% (gate 30%)).
+Removed for token safety: FARTCOIN (top 10 wallets hold 33.2% (gate 30%)), NVDAX (Mint Authority still enabled), CUPSEY (top 10 wallets hold 31.4% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
