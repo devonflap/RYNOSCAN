@@ -1,5 +1,4 @@
-Full scan 05:27 Brisbane: 37 scanned, 30 scored, 1 above 65. On-chain volume Normal (1.03x 7-day avg).
-NEW watch: HOOKR (Robinhood) Bottom reversal, opp 72, checks 5/6, stop 18.3% away, upside 104.1%; more sellers than buyers in the last hour.
+Full scan 06:27 Brisbane: 37 scanned, 29 scored, 3 above 65. On-chain volume Normal (1.02x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: CARDS (Top 10 holders high ownership), BP (Mint Authority still enabled), PUMP (top 10 wallets hold 59.6% (gate 30%)), MOODENG (top 10 wallets hold 60.3% (gate 30%)), SPCX (Mint Authority still enabled), PIPPIN (Single holder ownership).
+Removed for token safety: CARDS (Top 10 holders high ownership), SPCX (Mint Authority still enabled), PUMP (top 10 wallets hold 59.6% (gate 30%)), PIPPIN (Single holder ownership), TRUMP (Top 10 holders high ownership), BP (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
