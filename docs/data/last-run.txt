@@ -1,5 +1,3 @@
-Full scan 15:32 Brisbane: 51 scanned, 45 scored, 3 above 65. On-chain volume Normal (1.09x 7-day avg).
-NEW watch: MEME (Robinhood) Breakout retest, opp 72, checks 4/6, stop 41.8% away, upside 125.3%; volume fading; weak last 6h.
+Hourly refresh 16:11 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Normal (1.09x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: CARDS (Top 10 holders high ownership), ANSEM (Single holder ownership), CBUCKS (top 10 wallets hold 34.6% (gate 30%)), PIPPIN (Single holder ownership), VINE (top 10 wallets hold 40.2% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
