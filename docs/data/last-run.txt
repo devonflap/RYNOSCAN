@@ -1,4 +1,5 @@
-Full scan 13:30 Brisbane: 51 scanned, 41 scored, 2 above 65. On-chain volume Normal (1.09x 7-day avg).
+Full scan 14:30 Brisbane: 49 scanned, 44 scored, 2 above 65. On-chain volume Normal (1.07x 7-day avg).
+NEW watch: TROLL (Solana) Bottom reversal, opp 66, checks 5/6, stop 18.4% away, upside 55.1%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: CARDS (Top 10 holders high ownership), TRUMP (Top 10 holders high ownership), PIPPIN (Single holder ownership), ANT (Mint Authority still enabled), NET (owner can mint more), NVDAX (Mint Authority still enabled).
+Removed for token safety: ANSEM (Single holder ownership), CARDS (Top 10 holders high ownership), CBUCKS (top 10 wallets hold 34.6% (gate 30%)), PIPPIN (Single holder ownership), NVDAX (Mint Authority still enabled), VINE (top 10 wallets hold 40.2% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
