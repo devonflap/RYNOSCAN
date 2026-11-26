@@ -1,5 +1,3 @@
-Full scan 19:27 Brisbane: 39 scanned, 30 scored, 3 above 65. On-chain volume Normal (1.04x 7-day avg).
-NEW watch: MOW (Robinhood) Bull flag, opp 71, checks 5/6, stop null% away, upside null%; no socials/website listed.
+Hourly refresh 20:11 Brisbane: 3 tracked coins refreshed, 3 scored, 1 above 65. On-chain volume Normal (1.04x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: SPCX (Mint Authority still enabled), CARDS (Top 10 holders high ownership), ANTX (Mint Authority still enabled), ANT (Mint Authority still enabled), TRUMP (Top 10 holders high ownership), CASHCAT (top 10 wallets hold 37.6% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
