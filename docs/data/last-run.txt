@@ -1,3 +1,5 @@
-Hourly refresh 20:11 Brisbane: 3 tracked coins refreshed, 3 scored, 1 above 65. On-chain volume Normal (1.04x 7-day avg).
+Full scan 21:28 Brisbane: 41 scanned, 29 scored, 1 above 65. On-chain volume Normal (0.98x 7-day avg).
+NEW watch: CATE (Solana) Falling wedge, opp 68, checks 4/6, stop 11.7% away, upside 26.5%; volume figures disagree; weak last 6h.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: TRUMP (Top 10 holders high ownership), SPCX (Mint Authority still enabled), CARDS (Top 10 holders high ownership), ME (Single holder ownership), ANTX (Mint Authority still enabled), PUMP (top 10 wallets hold 59.6% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
