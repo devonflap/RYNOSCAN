@@ -1,5 +1,7 @@
-Full scan 05:29 Brisbane: 45 scanned, 31 scored, 1 above 65. On-chain volume Below normal (0.81x 7-day avg).
+Full scan 06:29 Brisbane: 43 scanned, 30 scored, 4 above 65. On-chain volume Below normal (0.8x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
+NEW watch: MOW (Robinhood) Bull flag, opp 69, checks 4/6, stop null% away, upside null%; volume fading; no socials/website listed.
+NEW watch: TROLL (Solana) Falling wedge, opp 68, checks 5/6, stop 29.1% away, upside 87.2%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: USELESS (top 10 wallets hold 38.7% (gate 30%)), SPCX (Mint Authority still enabled), ANTX (Mint Authority still enabled), TRUMP (Top 10 holders high ownership), PUMP (top 10 wallets hold 59.6% (gate 30%)), $WIF (top 10 wallets hold 42.5% (gate 30%)).
+Removed for token safety: ANTX (Mint Authority still enabled), SPCX (Mint Authority still enabled), PIPPIN (Single holder ownership), USELESS (top 10 wallets hold 38.7% (gate 30%)), TRUMP (Top 10 holders high ownership), PUMP (top 10 wallets hold 59.6% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
