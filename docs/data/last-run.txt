@@ -1,4 +1,7 @@
-Full scan 13:27 Brisbane: 39 scanned, 30 scored, 0 above 65. On-chain volume Normal (1.05x 7-day avg).
+Full scan 14:28 Brisbane: 42 scanned, 33 scored, 5 above 65. On-chain volume Strong (1.17x 7-day avg).
+NEW watch: STONK (Solana) Liquidity sweep reclaim, opp 70, checks 5/6, stop 15.8% away, upside 44.8%; volume fading.
+NEW watch: FLOAT (Solana) Bottom reversal, opp 68, checks 6/6, stop 39.1% away, upside 117.3%.
+NEW watch: TROLL (Solana) Inverse H&S, opp 68, checks 5/6, stop 30.4% away, upside 91.2%; volume fading.
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: CARDS (Top 10 holders high ownership), USELESS (top 10 wallets hold 38.4% (gate 30%)), SPCX (Mint Authority still enabled), ANT (Mint Authority still enabled), PIPPIN (Single holder ownership), VINE (top 10 wallets hold 39.9% (gate 30%)).
+Removed for token safety: CRCLX (Mint Authority still enabled), SPCX (Mint Authority still enabled), CARDS (Top 10 holders high ownership), PIPPIN (Single holder ownership), CASHCAT (top 10 wallets hold 37.6% (gate 30%)), ANT (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
