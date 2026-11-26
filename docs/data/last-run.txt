@@ -1,4 +1,4 @@
-Full scan 11:26 Brisbane: 39 scanned, 31 scored, 1 above 65. On-chain volume Strong (1.18x 7-day avg).
+Full scan 12:28 Brisbane: 41 scanned, 31 scored, 0 above 65. On-chain volume Strong (1.19x 7-day avg).
 Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: CRCLX (Mint Authority still enabled), CARDS (Top 10 holders high ownership), SPCX (Mint Authority still enabled), USELESS (top 10 wallets hold 38.4% (gate 30%)), ANT (Mint Authority still enabled), PIPPIN (Single holder ownership).
+Removed for token safety: CRCLX (Mint Authority still enabled), USELESS (top 10 wallets hold 38.4% (gate 30%)), CARDS (Top 10 holders high ownership), PIPPIN (Single holder ownership), CASHCAT (top 10 wallets hold 37.6% (gate 30%)), ANSEM (Single holder ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
