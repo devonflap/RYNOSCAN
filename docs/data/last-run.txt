@@ -1,7 +1,5 @@
-Full scan 03:27 Brisbane: 38 scanned, 26 scored, 2 above 65. On-chain volume Below normal (0.75x 7-day avg).
+Full scan 04:28 Brisbane: 39 scanned, 26 scored, 4 above 65. On-chain volume Below normal (0.76x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
-NEW bid-ready: BATON (Solana) Volume breakout, opp 82, checks 5/6, stop null% away, upside null%. Entry null-null, stop null, TP null / null / null.
-NEW bid-ready: CATE (Solana) Falling wedge, opp 75, checks 4/6, stop 14.8% away, upside 44.5%. Entry 0.017717-0.018243, stop 0.015316, TP 0.020644 / 0.023309 / 0.025973.
 Market: SOL neutral, ETH neutral.
-Removed for token safety: BP (Mint Authority still enabled), TRUMP (Top 10 holders high ownership), RIZZMAS (top 10 wallets hold 32.2% (gate 30%)), SPCX (Mint Authority still enabled), PUMP (top 10 wallets hold 59.6% (gate 30%)).
+Removed for token safety: BP (Mint Authority still enabled), TRUMP (Top 10 holders high ownership), SPCX (Mint Authority still enabled), RIZZMAS (top 10 wallets hold 32.2% (gate 30%)), PUMP (top 10 wallets hold 59.6% (gate 30%)), PIPPIN (Single holder ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
