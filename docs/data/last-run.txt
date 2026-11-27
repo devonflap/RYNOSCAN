@@ -1,5 +1,7 @@
-Hourly refresh 09:11 Brisbane: 3 tracked coins refreshed, 3 scored, 3 above 65. On-chain volume Below normal (0.78x 7-day avg).
+Full scan 10:28 Brisbane: 44 scanned, 30 scored, 2 above 65. On-chain volume Below normal (0.74x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
-NEW watch: MIHAO (Solana) Bottom reversal, opp 70, checks 5/6, stop 44.2% away, upside 165.3%; more sellers than buyers in the last hour.
-Market: SOL risk-off, ETH risk-off. Reversals fail more often in a falling market, so size down.
+NEW watch: MOW (Robinhood) Ascending triangle, opp 72, checks 4/6, stop null% away, upside null%; volume fading; no socials/website listed.
+NEW watch: STONK (Solana) Liquidity sweep reclaim, opp 71, checks 6/6, stop 15.4% away, upside 44.4%.
+Market: SOL neutral, ETH neutral.
+Removed for token safety: $WIF (top 10 wallets hold 42.5% (gate 30%)), USELESS (top 10 wallets hold 38.7% (gate 30%)), HSOL (Mint Authority still enabled), SPCX (Mint Authority still enabled), CARDS (Top 10 holders high ownership), PIPPIN (Single holder ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
