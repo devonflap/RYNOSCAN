@@ -1,6 +1,5 @@
-Full scan 06:27 Brisbane: 40 scanned, 26 scored, 1 above 65. On-chain volume Below normal (0.77x 7-day avg).
+Full scan 07:26 Brisbane: 38 scanned, 27 scored, 0 above 65. On-chain volume Below normal (0.79x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
-No longer bid-ready: CATE (Solana).
 Market: SOL neutral, ETH neutral.
-Removed for token safety: TRUMP (Top 10 holders high ownership), BP (Mint Authority still enabled), SPCX (Mint Authority still enabled), RIZZMAS (top 10 wallets hold 32.2% (gate 30%)), PUMP (top 10 wallets hold 59.6% (gate 30%)).
+Removed for token safety: BP (Mint Authority still enabled), TRUMP (Top 10 holders high ownership), SPX (Mint Authority still enabled), RIZZMAS (top 10 wallets hold 32.2% (gate 30%)), SPCX (Mint Authority still enabled), PUMP (top 10 wallets hold 59.6% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
