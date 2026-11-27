@@ -1,5 +1,5 @@
-Full scan 04:28 Brisbane: 39 scanned, 26 scored, 4 above 65. On-chain volume Below normal (0.76x 7-day avg).
+Hourly refresh 05:12 Brisbane: 7 tracked coins refreshed, 7 scored, 3 above 65. On-chain volume Below normal (0.76x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
+No longer bid-ready: BATON (Solana).
 Market: SOL neutral, ETH neutral.
-Removed for token safety: BP (Mint Authority still enabled), TRUMP (Top 10 holders high ownership), SPCX (Mint Authority still enabled), RIZZMAS (top 10 wallets hold 32.2% (gate 30%)), PUMP (top 10 wallets hold 59.6% (gate 30%)), PIPPIN (Single holder ownership).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
