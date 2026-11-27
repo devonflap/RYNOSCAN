@@ -1,4 +1,5 @@
-Hourly refresh 15:11 Brisbane: 4 tracked coins refreshed, 4 scored, 3 above 65. On-chain volume Below normal (0.77x 7-day avg).
+Hourly refresh 16:11 Brisbane: 3 tracked coins refreshed, 3 scored, 2 above 65. On-chain volume Below normal (0.77x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
+NEW bid-ready: STONK (Solana) Bottom reversal, opp 67, checks 5/6, stop 18.9% away, upside 38.4%. Entry 0.031927-0.032802, stop 0.026241, TP 0.038488 / 0.044612 / 0.044803.
 Market: SOL neutral, ETH neutral.
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
