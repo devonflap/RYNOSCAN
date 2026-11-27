@@ -1,6 +1,5 @@
-Full scan 23:27 Brisbane: 37 scanned, 24 scored, 2 above 65. On-chain volume Below normal (0.74x 7-day avg).
+Full scan 00:27 Brisbane: 40 scanned, 27 scored, 2 above 65. On-chain volume Below normal (0.75x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
-NEW bid-ready: CATE (Solana) Falling wedge, opp 69, checks 3/6, stop 14.7% away, upside 44.1%. Entry 0.017694-0.018219, stop 0.015315, TP 0.020598 / 0.023239 / 0.02588.
 Market: SOL neutral, ETH neutral.
 Removed for token safety: SPCX (Mint Authority still enabled), $WIF (top 10 wallets hold 42% (gate 30%)), TRUMP (Top 10 holders high ownership), RIZZMAS (top 10 wallets hold 32.2% (gate 30%)), PIPPIN (Single holder ownership), BP (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
