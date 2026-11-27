@@ -1,10 +1,7 @@
-Full scan 19:29 Brisbane: 44 scanned, 28 scored, 4 above 65. On-chain volume Below normal (0.76x 7-day avg).
+Hourly refresh 20:11 Brisbane: 4 tracked coins refreshed, 4 scored, 2 above 65. On-chain volume Below normal (0.76x 7-day avg).
 On-chain volume is weak today, so keep trades at none or minimum.
-NEW bid-ready: CATE (Solana) Base breakout, opp 80, checks 5/6, stop 18% away, upside 54%. Entry 0.018421-0.018942, stop 0.01532, TP 0.022043 / 0.025405 / 0.028767.
-NEW bid-ready: TIBBIR (Robinhood) Base breakout, opp 70, checks 5/6, stop 13.5% away, upside 40.4%. Entry 0.13018-0.13219, stop 0.11353, TP 0.14884 / 0.16649 / 0.18414.
-No longer bid-ready: MOW (Robinhood).
-NEW watch: TROLL (Solana) Bottom reversal, opp 74, checks 6/6, stop 31% away, upside 92.9%.
-Signal MOW: open, open -0.12R.
+No longer bid-ready: TIBBIR (Robinhood).
+Signal CATE: open, open -0.15R.
+Signal TIBBIR: open, open -0.09R.
 Market: SOL neutral, ETH neutral.
-Removed for token safety: SPCX (Mint Authority still enabled), RIZZMAS (top 10 wallets hold 32.2% (gate 30%)), PUMP (top 10 wallets hold 59.6% (gate 30%)), BP (Mint Authority still enabled), PIPPIN (Single holder ownership), $WIF (top 10 wallets hold 42% (gate 30%)).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
