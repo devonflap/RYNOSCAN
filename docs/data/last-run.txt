@@ -1,4 +1,6 @@
-Full scan 09:26 Brisbane: 36 scanned, 25 scored, 2 above 65. On-chain volume Normal (0.89x 7-day avg).
-Market: SOL neutral, ETH neutral.
-Removed for token safety: TRUMP (Top 10 holders high ownership), BP (Mint Authority still enabled), RIZZMAS (top 10 wallets hold 32.2% (gate 30%)), SPCX (Mint Authority still enabled).
+Full scan 10:26 Brisbane: 35 scanned, 25 scored, 2 above 65. On-chain volume Below normal (0.81x 7-day avg).
+On-chain volume is weak today, so keep trades at none or minimum.
+NEW watch: JOB (Solana) Volume breakout, opp 76, checks 6/6, stop 40.8% away, upside 122.3%; paid DexScreener boost active (promotion, not organic demand).
+Market: SOL neutral, ETH risk-off. Reversals fail more often in a falling market, so size down.
+Removed for token safety: RIZZMAS (top 10 wallets hold 32.2% (gate 30%)), CBUCKS (top 10 wallets hold 34.1% (gate 30%)), TRUMP (Top 10 holders high ownership), ANSEM (Single holder ownership), BP (Mint Authority still enabled), SPCX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
