@@ -1,4 +1,7 @@
-Full scan 19:27 Brisbane: 35 scanned, 22 scored, 0 above 65. On-chain volume Normal (0.85x 7-day avg).
+Full scan 20:26 Brisbane: 34 scanned, 21 scored, 1 above 65. On-chain volume Below normal (0.81x 7-day avg).
+On-chain volume is weak today, so keep trades at none or minimum.
+NEW watch: FIONA (Solana) Bottom reversal, opp 71, checks 6/6, stop 55.7% away, upside 295.2%.
+Signal BATON: open, open -0.12R.
 Market: SOL neutral, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: CBUCKS (top 10 wallets hold 34.1% (gate 30%)), TRUMP (Top 10 holders high ownership), PIPPIN (Single holder ownership), SPCX (Mint Authority still enabled).
+Removed for token safety: CBUCKS (top 10 wallets hold 34.1% (gate 30%)), TRUMP (Top 10 holders high ownership), SPCX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
