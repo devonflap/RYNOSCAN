@@ -1,5 +1,5 @@
-Full scan 23:24 Brisbane: 35 scanned, 26 scored, 2 above 65. On-chain volume Normal (0.9x 7-day avg).
-NEW bid-ready: BATON (Solana) Breakout retest, opp 67, checks 4/6, stop null% away, upside null%. Entry null-null, stop null, TP null / null / null.
+Full scan 00:23 Brisbane: 29 scanned, 23 scored, 1 above 65. On-chain volume Normal (0.91x 7-day avg).
+No longer bid-ready: BATON (Solana).
 Market: SOL neutral, ETH risk-off. Reversals fail more often in a falling market, so size down.
-Removed for token safety: TRUMP (Top 10 holders high ownership), SPCX (Mint Authority still enabled), PONS (top 10 wallets hold 52.5% (gate 30%)).
+Removed for token safety: TRUMP (Top 10 holders high ownership), PIPPIN (Single holder ownership), PONS (top 10 wallets hold 52.5% (gate 30%)), SPCX (Mint Authority still enabled).
 Rule-based screen, not financial advice. Rules are untested until the log builds up.
